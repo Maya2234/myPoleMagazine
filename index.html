@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>myPoleMagazine</title>
+  <meta name="description" content="Log your pole moves, track your progress and help build a shared trick dictionary.">
+  <meta name="theme-color" content="#1c1220">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/style.css">
+  <!-- ES modules and service workers don't run from file://, so flag it early. -->
+  <script>if (location.protocol === 'file:') document.documentElement.classList.add('no-server');</script>
+</head>
+<body>
+  <div class="file-warning" role="alert">
+    This app has to be served over http. In this folder run <code>python3 -m http.server 8000</code>,
+    then open <code>http://localhost:8000</code>.
+  </div>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#/"><em>my</em>PoleMagazine</a>
+      <nav id="nav" aria-label="Main" hidden></nav>
+    </div>
+  </header>
+
+  <main id="app" tabindex="-1"></main>
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <noscript><p style="padding:16px">myPoleMagazine needs JavaScript to run.</p></noscript>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
