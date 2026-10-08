@@ -1,7 +1,7 @@
 {
   "name": "myPoleMagazine",
   "short_name": "PoleMag",
-  "description": "Log your pole moves, track your progress and help build a shared trick dictionary.",
+  "description": "Log your pole moves, track your progress and help build a shared trick Bible.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

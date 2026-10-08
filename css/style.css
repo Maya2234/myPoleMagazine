@@ -18,6 +18,10 @@
   --progress-bg: #fbe9c8; --progress-fg: #7a4b00;
   --achieved-bg: #d9efdc; --achieved-fg: #1d5a2b;
   --radius: 14px;
+  /* Every avatar on every screen is sized from this one number, and the circle and its white inset
+   * multiply together, so the shoe keeps the same share of the circle at any scale. Change 1.25 to
+   * make every circle bigger or smaller; 1 is the size they were originally drawn at. */
+  --avatar-scale: 1.25;
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
 }
@@ -147,6 +151,17 @@ h3 { margin: 0; font: 700 1.1rem/1.25 var(--serif); overflow-wrap: anywhere; }
 .btn.danger { color: var(--danger); border-color: var(--danger); }
 .btn.small { min-height: 36px; padding: 0 14px; font-size: .85rem; }
 .btn.block { width: 100%; }
+/* An icon-only button: the collection pencil, beside the move count in a page head. */
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; padding: 0; flex: none;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); color: var(--ink); cursor: pointer;
+}
+.icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+.icon-btn[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.head-actions { display: flex; align-items: center; gap: 10px; }
+
 .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .actions.stacked { flex-direction: column; margin-top: 16px; }
 .actions.stacked .btn { width: 100%; }
@@ -238,7 +253,7 @@ a.chip:hover { outline: 1px solid var(--accent); }
 .field > span, .field > legend, .field > .label { font-size: .9rem; font-weight: 700; padding: 0; }
 .field small { color: var(--muted); }
 
-input[type="text"], input[type="search"], input[type="password"], select, textarea {
+input[type="text"], input[type="search"], input[type="password"], input[type="email"], input[type="number"], select, textarea {
   width: 100%; min-height: 44px; padding: 10px 12px; border-radius: 10px;
   border: 1px solid var(--line); background: var(--surface); color: var(--ink);
   font: inherit;
@@ -249,6 +264,16 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 
 .inline-form { display: flex; gap: 8px; margin-bottom: 16px; }
 .inline-form input { flex: 1; }
+/* A <select> carries width: 100%, which fights the button beside it without this. */
+.inline-form select { flex: 1; min-width: 0; }
+.inline-form .btn { flex: none; white-space: nowrap; }
+
+/* A one-word answer does not need a line of its own: label first, then its control and button beside
+ * it. The control keeps the hairline border every other field has but drops the fill, so the line
+ * reads as text with a button rather than as a box. */
+.field-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.field-row .set-label { flex: none; }
+.field-row input { flex: none; width: 7.5rem; background: none; }
 
 /* radio groups drawn as pills */
 .seg label { position: relative; }
@@ -301,20 +326,178 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 .check-row input { margin-top: 4px; width: 20px; height: 20px; flex: none; }
 .check-row span { display: grid; gap: 2px; }
 
+/* The username and its pencil share one row, so the pencil sits right of the name instead of at the
+ * far edge of the page head. Editing swaps the name for an input in that same row, so nothing below
+ * the head moves. */
+.name-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.name-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.name-form input {
+  flex: 1 1 220px; width: auto; min-width: 0; min-height: 40px;
+  font: 700 clamp(1.25rem, 4.5vw, 1.6rem)/1.2 var(--serif);
+}
+/* The pencil reads as part of the name rather than a boxed control: no panel behind it. */
+.icon-btn.plain { width: 34px; height: 34px; border-color: transparent; background: none; color: var(--muted); }
+.icon-btn.plain:hover { border-color: transparent; background: none; color: var(--accent); }
+/* On a phone the avatar leaves no room for a name, an input and two buttons on one line, so the
+ * input takes the width and the buttons take the next line on purpose instead of by accident. */
+@media (max-width: 460px) {
+  .name-form input { flex: 1 1 100%; }
+}
+
+/* One shape for every setting on the account page: a small label, the control, a line of help, and
+ * a rule between one setting and the next. */
+.set-block { display: grid; gap: 10px; }
+.set-block + .set-block { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
+.set-label { font-size: .9rem; font-weight: 700; }
+.set-block .inline-form { margin-bottom: 0; }
+.set-block .avatar-picker { margin: 0; }
+/* Named so it beats `.card p`, which would otherwise space these out. */
+.set-block .field-help { margin: 0; font-size: .85rem; }
+
 .auth { max-width: 440px; margin: 4vh auto 0; }
 .brand-lg { font-size: clamp(2.4rem, 9vw, 3.4rem); }
 .brand-lg em { font-weight: 400; color: var(--accent); }
 .auth .seg { margin-bottom: 18px; }
-.demo { margin-top: 24px; font-size: .9rem; }
-.demo p { margin: 6px 0 0; color: var(--muted); }
-.demo code { color: var(--ink); }
+
+/* ---------- avatars ---------- */
+
+.avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: calc(32px * var(--avatar-scale)); height: calc(32px * var(--avatar-scale));
+  flex: none; border-radius: 50%; overflow: hidden;
+  /* The rim scales with everything else on purpose. A fixed 1px rim shrinks the inside of a big
+   * circle and grows it in a small one, so the circle, its rim and its inset all carry the scale and
+   * the picture keeps exactly its share at any size. It also has to: the photo is a square inside a
+   * round clip, so once it is wider than the circle's inscribed square its corners get shaved off. */
+  background: var(--surface); border: calc(1px * var(--avatar-scale)) solid var(--line);
+  object-fit: cover;
+}
+/* A photo comes with its own white background, so the disc is white too and the picture is inset a
+ * little: the shoe then sits in white instead of touching the rim. The inset is the element's own
+ * padding, which object-fit respects, so the photo scales down rather than being cropped. In px, not
+ * %, because a percentage padding resolves against the parent's width instead of the circle's. */
+img.avatar { background: #fff; padding: calc(5px * var(--avatar-scale)); }
+/* Line-art avatars (an .svg in the map) are dark, so their disc is tinted rather than white. */
+img.avatar-art { background: #f3edf6; }
+.avatar-letter { color: #fff; font: 700 calc(1rem * var(--avatar-scale))/1 var(--sans); border: 0; }
+.avatar-xs { width: calc(20px * var(--avatar-scale)); height: calc(20px * var(--avatar-scale)); }
+.avatar-sm { width: calc(34px * var(--avatar-scale)); height: calc(34px * var(--avatar-scale)); }
+.avatar-md { width: calc(52px * var(--avatar-scale)); height: calc(52px * var(--avatar-scale)); }
+.avatar-lg { width: calc(72px * var(--avatar-scale)); height: calc(72px * var(--avatar-scale)); }
+/* One inset per size, so every circle keeps roughly the same share of white. Written as img.avatar-*
+ * because a plain .avatar-lg would lose to img.avatar above on specificity; equal specificity here
+ * means source order decides, which is what these rely on. */
+img.avatar-xs { padding: calc(3px * var(--avatar-scale)); }
+img.avatar-sm { padding: calc(5px * var(--avatar-scale)); }
+img.avatar-md { padding: calc(8px * var(--avatar-scale)); }
+img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
+.avatar-md.avatar-letter { font-size: calc(1.35rem * var(--avatar-scale)); }
+.avatar-lg.avatar-letter { font-size: calc(1.9rem * var(--avatar-scale)); }
+
+/* avatar beside a name in a page head */
+.who { display: flex; align-items: center; gap: 14px; }
+.who > div { min-width: 0; }
+.who p { margin: 0; }
+.who .eyebrow { margin-bottom: 6px; }
+
+/* The "Add new goal" dialogue: where the goal comes from on the left, that source's options on
+ * the right. Stacked on a narrow screen. */
+.goal-add {
+  margin-top: 18px; padding: 16px;
+  border: 1px solid var(--line); border-radius: 14px; background: var(--surface);
+}
+.goal-add .inline-form { margin-bottom: 0; }
+.goal-add-body {
+  display: grid; grid-template-columns: minmax(150px, 200px) 1fr;
+  gap: 18px; align-items: start;
+}
+.goal-sources { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; }
+.goal-sources legend { padding: 0 0 6px; color: var(--muted); }
+.goal-source {
+  display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--paper);
+  cursor: pointer; font: 600 .9rem/1.2 var(--sans);
+}
+.goal-source input { width: 18px; height: 18px; margin: 0; flex: none; accent-color: var(--accent); }
+/* :has() only paints the chosen row; the radio itself already shows the state everywhere else. */
+.goal-source:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.goal-add-options { min-width: 0; }
+.goal-add-options > div { display: grid; gap: 12px; }
+
+@media (max-width: 560px) {
+  .goal-add-body { grid-template-columns: 1fr; gap: 14px; }
+}
+
+.avatar-picker { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0 0; }
+.avatar-opt {
+  padding: 3px; border: 2px solid transparent; border-radius: 50%;
+  background: none; cursor: pointer; line-height: 0;
+}
+.avatar-opt:hover { border-color: var(--line); }
+.avatar-opt[aria-pressed="true"] { border-color: var(--accent); }
+
+/* ---------- community ---------- */
+
+/* the avatar that opens a feed row, so a name is not just text */
+.feed-who { flex: none; line-height: 0; }
+.media-owner {
+  display: flex; align-items: center; gap: 6px; padding: 8px;
+  font-size: .78rem; color: var(--muted); overflow-wrap: anywhere;
+}
+.media-owner a { color: inherit; }
+
+/* ---------- photos & videos ---------- */
+
+.media-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px; margin-top: 10px;
+}
+.media-item {
+  position: relative; margin: 0; overflow: hidden;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+}
+.media-item img, .media-item video {
+  display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; background: #000;
+}
+.media-remove {
+  position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; padding: 0;
+  border: 0; border-radius: 50%; background: rgba(0, 0, 0, .6); color: #fff;
+  font: 700 1.05rem/1 var(--sans); cursor: pointer;
+}
+.media-remove:hover { background: var(--danger); }
+.upload-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
+.upload-note { font-size: .8rem; }
+
+.entry-link { color: inherit; text-decoration: none; border-bottom: 1px solid var(--line); }
+.entry-link:hover { border-color: var(--accent); }
+
+/* Who logged a trick, as mini avatars on the Bible screens. Nothing is drawn when nobody has, so an
+ * unused trick gets no empty row. */
+.loggers { display: inline-flex; align-items: center; gap: 4px; }
+.logger { display: inline-flex; line-height: 0; border-radius: 50%; }
+.logger:hover { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Counts the dancers past the third, so the row never grows past three faces. Tracks the avatar
+ * scale so it stays the same size as the circles beside it. */
+.logger-more {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: calc(20px * var(--avatar-scale)); height: calc(20px * var(--avatar-scale));
+  padding: 0 5px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--ink);
+  font-size: .72rem; font-weight: 700; line-height: 1;
+}
+/* The avatars and their caption on one line, on a trick page. */
+.loggers-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tag a { color: inherit; }
 
 /* ---------- toast ---------- */
 
 #toast {
   position: fixed; left: 50%; bottom: 96px; z-index: 20;
-  max-width: calc(100% - 32px); padding: 10px 18px; border-radius: 999px;
+  /* As wide as the auth column so a full sentence like "check your email" reads in a couple of
+     lines instead of a tall egg. Short confirmations simply get a roomy box. */
+  width: min(440px, calc(100% - 32px)); padding: 14px 18px; border-radius: 10px;
   background: var(--ink); color: var(--paper); font-weight: 600; text-align: center;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .26);
   opacity: 0; transform: translate(-50%, 16px); pointer-events: none;
   transition: opacity .2s, transform .2s;
 }
@@ -323,6 +506,12 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 @media (min-width: 701px) { #toast { bottom: 32px; } }
 
 /* ---------- misc ---------- */
+
+/* For a hint that would otherwise be another row of visual clutter. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
 
 .file-warning { display: none; padding: 12px 16px; background: #fff3cd; color: #4a3500; font-size: .9rem; }
 .no-server .file-warning { display: block; }
