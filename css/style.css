@@ -85,6 +85,17 @@ main:focus { outline: none; }
   padding: 8px 12px; border-radius: 999px; font-size: .9rem;
 }
 #nav a[aria-current="page"] { background: rgba(255, 255, 255, .16); }
+/* The account tab is drawn as an icon rather than a word, so the link centres it itself - a text
+ * link gets that for free from its own line box. */
+#nav a.icon-only { display: inline-flex; align-items: center; justify-content: center; }
+/* The glyph sits inside a white ring, the way an avatar placeholder does. The ring is the border and
+ * the space between it and the glyph is the padding, so shrinking one without the other cannot make
+ * the two collide. Sized so 22 + the link's 8px padding either side lands on the 38px the word tabs
+ * already are, which keeps the whole bar on one height. */
+#nav a.icon-only svg {
+  width: 22px; height: 22px; padding: 2.5px;
+  border: 1.5px solid #fff; border-radius: 50%;
+}
 #nav .pill {
   display: inline-block; min-width: 18px; margin-left: 4px; padding: 0 5px;
   border-radius: 999px; background: #ff8fb8; color: #1c1220;
@@ -116,6 +127,7 @@ h3 { margin: 0; font: 700 1.1rem/1.25 var(--serif); overflow-wrap: anywhere; }
   letter-spacing: .14em; text-transform: uppercase;
 }
 .page-head {
+  position: relative;   /* what a follow bar's dropped list lines up against, and how wide it is */
   display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
   padding-bottom: 14px; margin-bottom: 18px; border-bottom: 1px solid var(--ink);
 }
@@ -123,6 +135,8 @@ h3 { margin: 0; font: 700 1.1rem/1.25 var(--serif); overflow-wrap: anywhere; }
   margin: 26px 0 8px; color: var(--muted); font-size: .78rem; font-weight: 700;
   letter-spacing: .14em; text-transform: uppercase;
 }
+/* A line under a subhead that explains it, without the gap .fineprint leaves above itself. */
+.subnote { margin: -2px 0 10px; font-size: .85rem; }
 .muted { color: var(--muted); }
 .fineprint { font-size: .85rem; margin-top: 20px; }
 .back {
@@ -328,8 +342,9 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 
 /* The username and its pencil share one row, so the pencil sits right of the name instead of at the
  * far edge of the page head. Editing swaps the name for an input in that same row, so nothing below
- * the head moves. */
-.name-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+ * the head moves. The follow bars ride in the same row; wrapping is what puts them on their own line
+ * when a name and three bars do not fit side by side. */
+.name-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 6px; min-width: 0; }
 .name-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
 .name-form input {
   flex: 1 1 220px; width: auto; min-width: 0; min-height: 40px;
@@ -394,11 +409,51 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
 .avatar-md.avatar-letter { font-size: calc(1.35rem * var(--avatar-scale)); }
 .avatar-lg.avatar-letter { font-size: calc(1.9rem * var(--avatar-scale)); }
 
-/* avatar beside a name in a page head */
-.who { display: flex; align-items: center; gap: 14px; }
+/* avatar beside a name in a page head. min-width: 0 lets the block beside the avatar give way when
+ * there is not room, so the follow bars below it wrap instead of pushing the page sideways. */
+.who { display: flex; align-items: center; gap: 14px; min-width: 0; }
 .who > div { min-width: 0; }
 .who p { margin: 0; }
 .who .eyebrow { margin-bottom: 6px; }
+
+/* ---------- the follow bars in a page head ---------- */
+
+/* Followers, Friends and Following as a row of bars beside the name: a label, a count, and the
+ * list itself once the bar is opened. The opening is a native <details>, so it works from the
+ * keyboard with no script, and the panel drops below its own bar instead of covering the page.
+ * flex-start matters: without it a taller open bar would stretch its closed neighbours. */
+/* width: max-content is load-bearing: a wrapping flex container reports only its widest single
+ * item as its intrinsic width, which collapsed the name block to one bar per line. Asking for
+ * max-content states the row's real width, and max-width lets it wrap on a narrow screen. */
+.follow-bars {
+  display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px;
+  width: max-content; max-width: 100%;
+}
+.follow-bar { min-width: 0; }
+.follow-bar > summary {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 6px 0 12px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--surface);
+  color: var(--ink); font: 600 .85rem/1 var(--sans); cursor: pointer; list-style: none;
+}
+/* Safari draws its own triangle in the marker pseudo-element rather than as a list marker. */
+.follow-bar > summary::-webkit-details-marker { display: none; }
+.follow-bar > summary::marker { content: ''; }
+.follow-bar > summary:hover { border-color: var(--accent); }
+.follow-bar[open] > summary { border-color: var(--accent); background: var(--accent-soft); }
+/* The count would otherwise disappear into the open bar's own tint. */
+.follow-bar[open] .count { background: var(--surface); }
+/* Out of the flow on purpose: the list drops over what is below the header instead of shoving the
+ * page down, which is what makes a bar a dropdown rather than an accordion. It measures against the
+ * page head - left/right: 0 is that head's own width - so a row inside always has room for a name
+ * and a button, and it can never stick out past the page the way a content-sized box would. */
+.follow-panel {
+  position: absolute; left: 0; right: 0; top: calc(100% + 10px); z-index: 5;
+  padding: 12px 14px;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+  box-shadow: 0 14px 30px rgb(0 0 0 / 16%);
+}
+.follow-panel > :first-child { margin-top: 0; }
+.follow-panel .subnote { margin: 0 0 10px; }
 
 /* The "Add new goal" dialogue: where the goal comes from on the left, that source's options on
  * the right. Stacked on a narrow screen. */

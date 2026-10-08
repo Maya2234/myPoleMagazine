@@ -25,6 +25,7 @@ const usage = new Map();           // Bible entry id -> Set of dancer ids who lo
 
 const now = () => new Date().toISOString();
 const byName = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+const byUsername = (a, b) => a.username.localeCompare(b.username, undefined, { sensitivity: 'base' });
 const sameText = (a, b) => String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
 const escapeLike = (s) => s.replace(/[\\%_]/g, '\\$&');   // so "_" and "%" in a name aren't wildcards
 
@@ -216,7 +217,7 @@ export async function setPrivacy(isPrivate) {
   profiles.set(me.id, me);
 }
 
-/* ---------- my profile: avatar and pole dancing since ---------- */
+/* ---------- my profile: avatar and Poler since ---------- */
 
 /* The one place that knows about avatar artwork: on the left an id, which is what a profile row
  * stores in profiles.avatar, and on the right the file in icons/avatars/ that draws it. The key is
@@ -238,7 +239,7 @@ export const AVATARS = Object.keys(AVATAR_FILES);
  * that was removed, or a row someone edited by hand. Callers fall back to the letter avatar. */
 export const avatarSrc = (key) => (key && AVATAR_FILES[key] ? `icons/avatars/${AVATAR_FILES[key]}` : null);
 
-const SOCIAL_HINT = 'Avatars, pole dancing since and following are not switched on for this project yet: run supabase/social.sql in the Supabase SQL editor, then reload.';
+const SOCIAL_HINT = 'Avatars, Poler since and following are not switched on for this project yet: run supabase/social.sql in the Supabase SQL editor, then reload.';
 
 /* "column profiles.avatar does not exist" is not a sentence a dancer needs, so translate it. */
 const explainSocial = (message) =>
@@ -758,14 +759,61 @@ export async function unfollow(userId) {
   following.delete(userId);
 }
 
-export async function followCounts(userId) {
-  const [followers, followees] = await Promise.all([
-    supabase.from('follows').select('follower_id', { count: 'exact', head: true }).eq('followee_id', userId),
-    supabase.from('follows').select('followee_id', { count: 'exact', head: true }).eq('follower_id', userId),
+const REMOVE_FOLLOWER_HINT = 'Removing a follower is not switched on for this project yet: run supabase/social.sql in the Supabase SQL editor. Until then you can still unfollow other dancers.';
+
+/* Takes a follow off you - the opposite direction from unfollow(). Requires the
+ * follows_remove_follower policy in supabase/social.sql, because a dancer deleting a row that
+ * points at them is a different permission from deleting a row they made. */
+export async function removeFollower(followerId) {
+  const user = requireUser();
+  if (followerId === user.id) throw new Error('You cannot remove yourself.');
+  let removed;
+  try {
+    /* Asking for the deleted rows back is the whole point: a policy that refuses matches no rows,
+     * and Supabase reports that as a plain success rather than an error, so without this the screen
+     * would claim a follower was removed while nothing changed. */
+    removed = must(await supabase.from('follows')
+      .delete().eq('follower_id', followerId).eq('followee_id', user.id).select('follower_id'));
+  } catch (err) {
+    throw new Error(explainSocial(err.message));
+  }
+  if (!removed.length) throw new Error(REMOVE_FOLLOWER_HINT);
+}
+
+/* A dancer's follows, split the way a profile shows them.
+ *
+ *   friends   - accounts this one follows that follow back. Two profiles pointing at each other is
+ *               what makes a friendship, so it is worked out here rather than stored anywhere: no
+ *               second table to keep in step, and it cannot drift out of agreement with the follows.
+ *   following - accounts this one follows that have not followed back yet. Because friends is the
+ *               other half of the same set, the two lists never repeat a dancer, and neither shows
+ *               someone who only follows them.
+ *   followers - everyone pointing at this account, which the count on the profile uses.
+ *
+ * Two plain selects, and the follows table is readable by any signed-in dancer, so this works on
+ * anyone's profile the same way the count did. Names come from a second query because a follow
+ * stores only ids. */
+export async function followLists(userId) {
+  const [inbound, outbound] = await Promise.all([
+    supabase.from('follows').select('follower_id').eq('followee_id', userId),
+    supabase.from('follows').select('followee_id').eq('follower_id', userId),
   ]);
-  const failed = followers.error ?? followees.error;
+  const failed = inbound.error ?? outbound.error;
   if (failed) throw new Error(explainSocial(failed.message));
-  return { followers: followers.count ?? 0, following: followees.count ?? 0 };
+
+  const followerIds = inbound.data.map((r) => r.follower_id);
+  const followeeIds = outbound.data.map((r) => r.followee_id);
+  await loadProfiles([...new Set([...followerIds, ...followeeIds])]);
+
+  const followersOf = new Set(followerIds);
+  const asPeople = (ids) => ids.map((id) => profiles.get(id)).filter(Boolean);
+  const followedBack = followeeIds.filter((id) => followersOf.has(id));
+
+  return {
+    followers: asPeople(followerIds),
+    friends: asPeople(followedBack).sort(byUsername),
+    following: asPeople(followeeIds.filter((id) => !followersOf.has(id))).sort(byUsername),
+  };
 }
 
 /* ---------- community feed ---------- */

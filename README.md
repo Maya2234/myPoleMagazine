@@ -53,7 +53,7 @@ Supabase - accounts now live there, not in the browser.
 | Browse and share collections (standardized naming) | **Community → Dancers** → a dancer → their moves and collections; "Save to my goals" copies the name into your list and into your current goals |
 | See what the community is doing | **Community → New moves & uploads**: the newest public moves and photos/videos, with a filter for the dancers you follow |
 | Follow other dancers | **Community → Dancers**, or the button on a dancer's page; **Account** shows nothing to manage - a follow is yours to give and take back |
-| Show how long you have been pole dancing | **Account → Pole dancing since** (a year), shown on your profile next to your avatar |
+| Show how long you have been Poler | **Account → Poler since** (a year), shown on your profile next to your avatar |
 | Pick an avatar | **Account → Avatar**: five pleaser photos, or your initial on a colour of its own |
 | Register / login | Landing screen |
 | Pole Bible, linked or newly suggested, admin review | **Bible** to search and suggest; the move form auto-links on a name match; **Review** (admin only) approves or rejects |
@@ -141,11 +141,14 @@ one fails in a way that looks like an app bug:
    now on one automatically. Until it is run the home screen still works - it creates the
    collection the first time you open it - but then it is an ordinary collection matched by name,
    so it can be renamed or deleted like any other.
-8. **Avatars, pole dancing since and following: `supabase/social.sql`.** Adds `profiles.poling_since`,
-   `profiles.avatar` and the `follows` table. Until it is run the app still works, with the social
-   parts switched off rather than broken: everyone gets a coloured letter avatar, the profile screen
-   says there is nothing to save into yet, and the Community page says what to run instead of
-   showing Follow buttons.
+8. **Avatars, Poler since and following: `supabase/social.sql`.** Adds `profiles.poling_since`,
+   `profiles.avatar` and the `follows` table, and the policies that let a dancer follow, unfollow
+   and remove a follower. Until it is run the app still works, with the social parts switched off
+   rather than broken: everyone gets a coloured letter avatar, the profile screen says there is
+   nothing to save into yet, and the Community page says what to run instead of showing Follow
+   buttons. It is safe to run again, so re-run it to pick up the remove-a-follower policy if you
+   ran an earlier copy: without it the Remove button refuses with a message rather than pretending
+   to work.
 
 Two queries that answer most questions when a screen comes up empty:
 
@@ -162,6 +165,7 @@ select policyname, cmd, roles from pg_policies where schemaname = 'public';
 - **Privacy rules are enforced in Postgres**, and `store.js` no longer repeats them. A missing policy shows up as an empty screen rather than an error, so check the Supabase logs when something looks absent.
 - **Offline mode is partial.** The app shell and the Supabase client are cached so the app opens without a network, but reading or writing moves still needs to reach Supabase.
 - **Following is one-directional and unlocks nothing.** Following a private account does not let you see their moves - the policies on `moves` still decide that. A follow only fills the "People I follow" filter on the Community page.
+- **Friends are worked out, not stored.** A friendship is two `follows` rows pointing at each other, so the Friends list on a profile is the intersection of the two lists and Following is the rest of what that account follows. Nothing to keep in step, and no friendship table to fall out of agreement with `follows`. Removing a follower deletes the row they made, so they can follow again; it does not block them.
 - **The Community feed is the newest 24 moves and 12 uploads**, with no paging and no ranking. Two queries, both filtered by row level security, which is why a private account can never appear in it.
 - **Avatars are a name and a file, not a file name.** `AVATAR_FILES` in `store.js` maps an id (what `profiles.avatar` stores) to a file in `icons/avatars/`, and its order is the order of the picker. The file's real extension decides how it is drawn: an `.svg` gets a light disc behind it as line art, anything else fills the circle like a photo. To add one, drop the file in and add a line - `'my-avatar': 'my-photo.jpg'` - then add the file to `SHELL` in `sw.js` and bump `CACHE`. The file must actually be the format its extension claims: a JPEG saved as `.svg` is served as `image/svg+xml`, fails to parse, and renders as nothing. An id that is no longer in the map is not an error: `avatarSrc` returns null and that dancer falls back to their initial.
 - **Duplicate suggestions** are blocked only by exact name match. Merging near-duplicates ("Fireman spin" vs "Fireman Spinn") is an admin task not yet supported.

@@ -59,6 +59,13 @@ const dots = (n) => html`<span class="dots" role="img" aria-label="Difficulty ${
 const pencilIcon = html`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <path d="M4 20h4L20 8a2.83 2.83 0 0 0-4-4L4 16v4Z"/><path d="M14.5 5.5l4 4"/></svg>`;
+
+/* A head and shoulders, drawn with the same stroke as the pencil so the two icons match. It stands
+ * in for the word "Account" in the navigation, which is why the link that carries it names itself
+ * with aria-label: nothing here is readable by voice. */
+const profileIcon = html`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <circle cx="12" cy="8" r="3.75"/><path d="M4.75 20.5a7.25 7.25 0 0 1 14.5 0"/></svg>`;
 const dateText = (iso) =>
   new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 /* Resolves to a Map so views can look up a collection name by id after awaiting it. */
@@ -107,6 +114,112 @@ function loggerRow(users) {
   </span>`;
 }
 
+/* One row of a follow list: face, name, and a button. The same shape the Dancers tab uses, so a face
+ * reads the same way in both places. `canRemove` swaps the follow button for the one only the owner
+ * of the profile may use: taking a follower off, which deletes the follow pointing at them rather
+ * than one they made. */
+const personRow = (u, canRemove = false) => {
+  const following = store.isFollowing(u.id);
+  return html`<li class="row">
+    <a class="feed-who" href="#/user/${u.id}">${avatarOf(u, 'avatar-sm')}</a>
+    <div class="row-main">
+      <strong><a class="entry-link" href="#/user/${u.id}">${u.username}</a></strong>
+      ${u.polingSince ? html`<span class="muted">Poler since ${u.polingSince}</span>` : ''}
+    </div>
+    ${!store.socialEnabled() ? '' : html`<div class="actions">
+      ${canRemove ? html`<button type="button" class="btn small danger"
+        data-remove-follower="${u.id}">Remove</button>` : html`<button type="button"
+        class="btn small ${following ? '' : 'primary'}" data-follow="${u.id}"
+        aria-pressed="${following}">${following ? 'Following' : 'Follow'}</button>`}
+    </div>`}
+  </li>`;
+};
+
+/* Which bar is open. Kept by name rather than by element, because a follow redraws the page and a
+ * new element is built each time - without this the list you clicked in would snap shut mid-use. */
+const openBars = new Set();
+
+/* A bar's list sits over the page, so clicking anywhere else or pressing Escape puts it away, the
+ * way any dropdown is dismissed. Registered here, once, rather than inside the wiring below: that
+ * runs on every render, and a document listener added each time would pile up. */
+const closeFollowBars = () => {
+  openBars.clear();
+  $$('.follow-bar').forEach((bar) => { bar.open = false; });
+};
+document.addEventListener('click', (e) => { if (!e.target.closest('.follow-bars')) closeFollowBars(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeFollowBars(); });
+
+/* The follow lists as bars beside the name in a page head: Followers, Friends, Following, each with
+ * its count and each dropping down its list when opened. An empty list still opens, to say what the
+ * list means and how to fill it - a bar that is there and empty is findable, which the old version
+ * (sections that drew only when somebody was in them) was not.
+ *
+ * Friends point at each other; Following holds the dancers this account follows that have not
+ * followed back, which is why it says so - without the note it reads as though someone is missing.
+ * Followers is drawn only on your own profile, because removing a follower is the one action here
+ * nobody else may take.
+ *
+ * The two outbound lists are halves of the same set, so nobody appears in both. Followers is the
+ * inbound set, so a friend of yours does appear in Followers as well as Friends - that is what a
+ * follower is. */
+function followBars(lists, { own = false } = {}) {
+  if (!lists) return '';
+  const bar = (title, people, { note = '', canRemove = false, empty }) => html`
+    <details class="follow-bar" data-bar="${title}" ${openBars.has(title) ? raw('open') : ''}>
+      <summary><span>${title}</span><span class="count">${people.length}</span></summary>
+      <div class="follow-panel">
+        ${note ? html`<p class="muted subnote">${note}</p>` : ''}
+        ${people.length
+          ? html`<ul class="list">${people.map((u) => personRow(u, canRemove))}</ul>`
+          : html`<p class="muted">${empty}</p>`}
+      </div>
+    </details>`;
+  return html`<div class="follow-bars">
+    ${own ? bar('Followers', lists.followers, {
+      note: 'Dancers who follow you. Removing one takes their follow back off; they can follow you again.',
+      canRemove: true,
+      empty: 'Nobody follows you yet.',
+    }) : ''}
+    ${bar('Friends', lists.friends, {
+      empty: 'No friends yet. When you and another dancer follow each other, they appear here.',
+    })}
+    ${bar('Following', lists.following, {
+      note: 'Dancers this account follows who have not followed back yet.',
+      empty: own
+        ? 'You are not following anyone yet. Find dancers on the Community tab.'
+        : 'Not following anyone yet.',
+    })}</div>`;
+}
+
+/* Every follow list and the Dancers tab draw the same two controls, so they share their wiring: do
+ * the thing, say so, then redraw whichever screen drew the button. */
+function wireFollowActions(refresh) {
+  /* <details> opens itself. This only keeps it to one bar at a time and remembers which, so the
+   * redraw after a follow leaves that bar open. */
+  $$('.follow-bar').forEach((bar) => bar.addEventListener('toggle', () => {
+    if (bar.open) {
+      openBars.add(bar.dataset.bar);
+      $$('.follow-bar').forEach((other) => { if (other !== bar) other.open = false; });
+    } else {
+      openBars.delete(bar.dataset.bar);
+    }
+  }));
+  $$('[data-follow]').forEach((btn) => btn.addEventListener('click', () => attempt(async () => {
+    const id = btn.dataset.follow;
+    const wasFollowing = store.isFollowing(id);
+    if (wasFollowing) await store.unfollow(id);
+    else await store.follow(id);
+    toast(wasFollowing ? 'Unfollowed.' : `You follow ${store.usernameOf(id)}.`);
+    await refresh();
+  })));
+  $$('[data-remove-follower]').forEach((btn) => btn.addEventListener('click', () => attempt(async () => {
+    const id = btn.dataset.removeFollower;
+    await store.removeFollower(id);
+    toast(`${store.usernameOf(id)} no longer follows you.`);
+    await refresh();
+  })));
+}
+
 const moveCard = (m, names) => html`
   <a class="card" href="#/move/${m.id}">
     <div class="card-top"><h3>${m.name}</h3></div>
@@ -135,11 +248,16 @@ function renderNav(section) {
     ['community', '#/community', 'Community'],
   ];
   if (me.isAdmin) items.push(['review', '#/review', 'Review']);
-  items.push(['account', '#/account', 'Account']);
+  items.push(['account', '#/account', 'Account', profileIcon]);
   const pending = store.pendingCount();
-  nav.innerHTML = items.map(([key, href, label]) => String(html`
-    <a href="${href}" ${key === section ? raw('aria-current="page"') : ''}>${label}${
-      key === 'review' && pending ? html`<span class="pill">${pending}</span>` : ''}</a>`)).join('');
+  nav.innerHTML = items.map(([key, href, label, icon]) => {
+    const here = key === section ? raw('aria-current="page"') : '';
+    const pill = key === 'review' && pending ? html`<span class="pill">${pending}</span>` : '';
+    /* An item with an icon shows only the icon, so the label moves into an accessible name. */
+    return icon
+      ? String(html`<a class="icon-only" href="${href}" ${here} aria-label="${label}" title="${label}">${icon}${pill}</a>`)
+      : String(html`<a href="${href}" ${here}>${label}${pill}</a>`);
+  }).join('');
 }
 const raw = (s) => new Safe(s);
 
@@ -466,8 +584,10 @@ async function viewMoves() {
   if (filters.cat !== 'all' && !names.has(filters.cat)) filters.cat = 'all';
 
   const head = html`
+  <br>
     <div class="page-head">
-      <div><p class="eyebrow">Hi, ${me.username}</p><h1>My moves</h1></div>
+    
+      <div><h1>Skill Roster</h1></div>
       <a class="btn primary" href="#/move/new">+ Add move</a>
     </div>`;
 
@@ -868,7 +988,7 @@ async function viewCollections() {
 
   show(html`
     <div class="page-head">
-      <div><p class="eyebrow">Group your moves</p><h1>Collections</h1></div>
+      <div><h1>Collections</h1></div>
       <span class="count">${cats.length}</span>
     </div>
     <form class="inline-form" id="new-cat">
@@ -974,7 +1094,7 @@ async function viewBible() {
       <div><p class="eyebrow"></p><h1>Pole Bible</h1></div>
       <span class="count">${entries.length}</span>
     </div>
-    <p class="lede">The community's shared list of trick names. Link your moves to it so everyone means the same thing.</p>
+    <p class="lede">The community's collaborative trick log</p>
     <input type="search" id="dq" placeholder="Search the Bible" aria-label="Search the Bible" value="${dictQuery}" style="margin-bottom:14px">
     <ul class="list" id="dict-list"></ul>
     <h2 class="subhead">Missing a trick?</h2>
@@ -1041,7 +1161,7 @@ async function viewEntry(id) {
   show(html`
     <a class="back" href="#/Bible">← Pole Bible</a>
     <div class="page-head">
-      <div><p class="eyebrow">Trick</p><h1>${entry.name}</h1></div>
+      <div><h1>${entry.name}</h1></div>
       ${entry.status === 'pending' ? html`<span class="tag">Pending review</span>` : ''}
     </div>
 
@@ -1054,7 +1174,7 @@ async function viewEntry(id) {
 
     <div class="actions">
       ${linked ? html`<a class="btn primary" href="#/move/${linked.id}">In your moves</a>`
-        : html`<a class="btn primary" href="#/move/new?entry=${entry.id}">Log it as my move</a>`}
+        : html`<a class="btn primary" href="#/move/new?entry=${entry.id}">+ Add to My Moves</a>`}
     </div>
 
     ${mediaSection({
@@ -1180,7 +1300,7 @@ async function drawDancers() {
           <a class="feed-who" href="#/user/${u.id}">${avatarOf(u, 'avatar-sm')}</a>
           <div class="row-main">
             <strong><a class="entry-link" href="#/user/${u.id}">${u.username}</a></strong>
-            <span class="muted">${plural(sum.total, 'move')} logged${u.polingSince ? ` · Pole dancing since ${u.polingSince}` : ''}</span>
+            <span class="muted">${plural(sum.total, 'move')} logged${u.polingSince ? ` · Poler since ${u.polingSince}` : ''}</span>
           </div>
           ${store.socialEnabled() ? html`<div class="actions">
             <button type="button" class="btn small ${following ? '' : 'primary'}" data-follow="${u.id}"
@@ -1192,13 +1312,7 @@ async function drawDancers() {
     ${store.socialEnabled() ? '' : html`<p class="muted fineprint">Following needs
       <code>supabase/social.sql</code> run once in the Supabase SQL editor.</p>`}`);
 
-  $$('[data-follow]').forEach((btn) => btn.addEventListener('click', () => attempt(async () => {
-    const id = btn.dataset.follow;
-    if (store.isFollowing(id)) await store.unfollow(id);
-    else await store.follow(id);
-    toast(store.isFollowing(id) ? `You follow ${store.usernameOf(id)}.` : 'Unfollowed.');
-    await drawDancers();
-  })));
+  wireFollowActions(drawDancers);
 }
 
 /* ---------- view: one dancer's profile ---------- */
@@ -1214,16 +1328,21 @@ async function viewUser(id) {
     ? await Promise.all([catMap(user.id), store.listCategories(user.id), store.listMoves(user.id)])
     : [new Map(), [], []];
 
-  /* Following needs supabase/social.sql. Without it the profile still reads; the button and the
-   * counts are left out and the reason is said on the page. */
-  let counts = null;
+  /* Following needs supabase/social.sql. Without it the profile still reads; the count, the button
+   * and the two lists are left out and the reason is said on the page. */
+  let social = null;
   let socialNote = '';
   if (!store.socialEnabled()) {
     socialNote = 'Following is off until supabase/social.sql is run in the Supabase SQL editor.';
   } else {
-    try { counts = await store.followCounts(user.id); }
+    try { social = await store.followLists(user.id); }
     catch (err) { socialNote = err.message; }
   }
+  /* Their whole following count is the two lists added together: friends are the ones who follow
+   * back, and the rest are under Following. */
+  const counts = social
+    ? { followers: social.followers.length, following: social.friends.length + social.following.length }
+    : null;
   const following = store.isFollowing(user.id);
 
   show(html`
@@ -1233,8 +1352,11 @@ async function viewUser(id) {
         ${avatarOf(user, 'avatar-lg')}
         <div>
           <p class="eyebrow">Dancer</p>
-          <h1>${user.username}</h1>
-          ${user.polingSince ? html`<p class="muted">Pole dancing since ${user.polingSince}</p>` : ''}
+          <div class="name-row">
+            <h1>${user.username}</h1>
+            ${followBars(social)}
+          </div>
+          ${user.polingSince ? html`<p class="muted">Poler since ${user.polingSince}</p>` : ''}
         </div>
       </div>
       ${!counts ? '' : html`<button type="button" class="btn small ${following ? '' : 'primary'}" id="follow"
@@ -1260,6 +1382,7 @@ async function viewUser(id) {
     toast(store.isFollowing(user.id) ? `You follow ${user.username}.` : `You no longer follow ${user.username}.`);
     await route({ keepScroll: true });
   }));
+  wireFollowActions(() => route({ keepScroll: true }));
 }
 
 /* ---------- view: admin review queue ---------- */
@@ -1300,10 +1423,17 @@ async function viewReview() {
 /* Whether the username box is open. Kept out of the URL: it is a short-lived form, not a screen. */
 let editingName = false;
 
-function viewAccount() {
+async function viewAccount() {
   setTitle('Account');
   const me = store.currentUser();
   const thisYear = new Date().getFullYear();
+
+  /* My own profile has no page of its own - this screen is it - so my friends and the dancers I
+   * follow are listed here, the same two lists other dancers see on my profile. */
+  let social = null;
+  if (store.socialEnabled()) {
+    try { social = await store.followLists(me.id); } catch { social = null; }
+  }
   show(html`
     <div class="page-head">
       <div class="who">
@@ -1324,8 +1454,9 @@ function viewAccount() {
                 <small class="sr-only" id="username-hint">3-24 characters: letters, numbers, dots, dashes
                   or underscores. This is the name other dancers see; you still log in with your email.</small>
               </form>`}
+            ${followBars(social, { own: true })}
           </div>
-          ${me.polingSince ? html`<p class="muted">Pole dancing since ${me.polingSince}</p>` : ''}
+          ${me.polingSince ? html`<p class="muted">Poler since ${me.polingSince}</p>` : ''}
         </div>
       </div>
     </div>
@@ -1345,12 +1476,12 @@ function viewAccount() {
 
       <div class="set-block">
         <div class="field-row">
-          <label class="set-label" for="poling">Pole dancing since</label>
+          <label class="set-label" for="poling">Poler since</label>
           <input type="number" id="poling" inputmode="numeric" min="1900" max="${thisYear}" placeholder="e.g. 2021"
             value="${me.polingSince ?? ''}">
           <button type="button" class="btn primary" id="save-poling">Save</button>
         </div>
-        ${store.socialEnabled() ? '' : html`<p class="muted field-help">Avatars, pole dancing since and following need
+        ${store.socialEnabled() ? '' : html`<p class="muted field-help">Avatars, Poler since and following need
           <code>supabase/social.sql</code> run once in the Supabase SQL editor.</p>`}
       </div>
     </div>
@@ -1456,6 +1587,7 @@ function viewAccount() {
       go('#/auth');
     });
   });
+  wireFollowActions(() => route({ keepScroll: true }));
 }
 
 /* ---------- start ---------- */

@@ -1,4 +1,4 @@
--- The social layer: Pole dancing since, avatars, and following.
+-- The social layer: Poler since, avatars, and following.
 --
 -- Run this once in the Supabase SQL editor, after the base tables exist. It is written to be safe
 -- to run again - nothing already in the database is deleted, renamed or rewritten.
@@ -9,10 +9,10 @@
 
 -- 1. profile additions ------------------------------------------------------------
 
--- The year a dancer started pole. Shown in the app as "Pole dancing since 2021".
+-- The year a dancer started pole. Shown in the app as "Poler since 2021".
 -- The column keeps the name poling_since: a column name cannot contain a space, and renaming one
 -- that already holds data would mean a migration for no visible gain. The app maps it to the words
--- dancers read, which is where "pole dancing" lives.
+-- dancers read, which is where "Poler" lives.
 alter table public.profiles add column if not exists poling_since integer;
 
 -- The chosen avatar, or null for the generated letter avatar. It holds one of the preset keys from
@@ -59,6 +59,18 @@ create policy follows_insert on public.follows for insert to authenticated
 drop policy if exists follows_delete on public.follows;
 create policy follows_delete on public.follows for delete to authenticated
   using (follower_id = auth.uid());
+
+-- Removing a follower: the mirror of the rule above. A dancer may delete a follow that points at
+-- them as well as one they made, which is what "Remove" beside a follower on the Account screen
+-- does. Postgres ORs permissive policies for the same command together, so this widens delete
+-- rather than replacing follows_delete - both are needed, one for each direction.
+--
+-- Without this, the delete matches no rows and Supabase still answers success - an empty list
+-- rather than an error - so on its own the app cannot tell a removal from a policy that quietly
+-- refused. store.js therefore asks for the deleted rows back and says so when none come.
+drop policy if exists follows_remove_follower on public.follows;
+create policy follows_remove_follower on public.follows for delete to authenticated
+  using (followee_id = auth.uid());
 
 -- Note: following is one-directional and unlocks nothing. A private account stays private to the
 -- people following it - their moves are still hidden by the policies on public.moves. What
