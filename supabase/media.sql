@@ -1,4 +1,4 @@
--- Photos and videos on moves and Bible tricks.
+-- Photos and videos on moves and dictionary tricks.
 -- Run this once in the Supabase SQL editor, after the base tables exist.
 --
 -- Files live in a private bucket called "media", one folder per uploader:
@@ -37,7 +37,7 @@ $$;
 grant execute on function public.account_is_public(uuid) to authenticated;
 
 -- 3. the media table --------------------------------------------------------------
--- Exactly one parent: either a move of yours, or a Bible entry (which is shared).
+-- Exactly one parent: either a move of yours, or a dictionary entry (which is shared).
 
 create table if not exists public.media (
   id uuid primary key default gen_random_uuid(),
@@ -63,7 +63,7 @@ drop policy if exists media_read on public.media;
 create policy media_read on public.media for select to authenticated
   using (owner_id = auth.uid() or public.account_is_public(owner_id));
 
--- You may attach a file to your own move, or to a Bible entry you are allowed to see
+-- You may attach a file to your own move, or to a dictionary entry you are allowed to see
 -- (approved, or one of your own pending suggestions).
 drop policy if exists media_insert on public.media;
 create policy media_insert on public.media for insert to authenticated

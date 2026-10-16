@@ -8,10 +8,15 @@
 -- What goes:
 --   * their uploads - the files in the media bucket and their rows
 --   * their moves (which takes their collection links with them) and their collections
---   * Bible suggestions still waiting for review, and their profile row
+--   * dictionary suggestions still waiting for review, which follow the profile row through ON DELETE
+--     CASCADE, whichever way it was decided.
+--   * their profile row
 -- What stays (the choice made for this project):
---   * approved Bible entries they submitted, because other dancers have linked moves to them.
+--   * approved dictionary entries they submitted, because other members have linked moves to them.
 --     Their submitted_by is cleared so they are no longer attributed to a deleted account.
+--   * the nicknames they added to tricks (supabase/aliases.sql). Their added_by is ON DELETE SET NULL,
+--     so the names stay and stop being attributed to an account that no longer exists - a nickname is
+--     a fact about a trick by then, and the search box still has to find it.
 --
 -- If this fails with a foreign key violation, the table it names still references the account
 -- without an ON DELETE rule. List the candidates with:
@@ -22,7 +27,7 @@
 --     and confrelid in ('public.profiles'::regclass, 'auth.users'::regclass);
 --
 -- then re-add the offender with ON DELETE CASCADE (or SET NULL where the row should outlive the
--- account, as with an approved Bible entry).
+-- account, as with an approved dictionary entry).
 
 create or replace function public.delete_my_account()
 returns void

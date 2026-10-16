@@ -1,50 +1,161 @@
-/* myPoleMagazine: editorial look (serif headlines, thin rules, plum + pink).
-   Colors are tokens on :root so light/dark mode is just a second set of values. */
+/* myPoleMagazine — the look: black, white, and hot pink. Sharp, not soft: hairline rules, small
+   radii, firm weights (nothing past 700), and shadows used only where something genuinely floats.
+
+   Light, dark and "follow this device" all read from the same set of colour tokens. Which set is in
+   force is decided by, in order of strength:
+
+     1. html[data-theme="light"|"dark"]  - what the dancer chose in Settings. app.js writes this
+        attribute and remembers the choice in localStorage.
+     2. the media query below              - when no choice has been made, the device decides.
+     3. :root                              - light, the fallback for everything older than that.
+
+   The cost of that order is that the light values are written twice and the dark values twice as
+   well, because a media query cannot be reused for an attribute. It is load-bearing that the two
+   copies of each set stay identical; when you change a colour, change it in both places. The
+   `:not([data-theme="light"])` on the dark media block is what lets an explicit light choice win on
+   a device that prefers dark.
+
+   `color-scheme` is separate from the tokens and does a different job: it tells the browser which way
+   round the native parts are - scrollbars, the number spinner, the date picker, the default focus
+   ring. Without it, a dark page keeps a white scrollbar and white input spinners. */
 
 :root {
-  --paper: #f7f1ea;
-  --surface: #fffdfa;
-  --ink: #1c1220;
-  --muted: #6b5d70;
-  --line: #e3d8cf;
-  --accent: #b4235f;
-  --accent-ink: #ffffff;
-  --accent-soft: #f6dce8;
-  --bar: #1c1220;
-  --bar-ink: #f7f1ea;
-  --focus: #1f5fd1;
-  --danger: #a3261f;
-  --goal-bg: #e6e9f2;     --goal-fg: #2f3a63;
-  --progress-bg: #fbe9c8; --progress-fg: #7a4b00;
-  --achieved-bg: #d9efdc; --achieved-fg: #1d5a2b;
-  --radius: 14px;
-  /* Every avatar on every screen is sized from this one number, and the circle and its white inset
-   * multiply together, so the shoe keeps the same share of the circle at any scale. Change 1.25 to
-   * make every circle bigger or smaller; 1 is the size they were originally drawn at. */
+  color-scheme: light dark;
+
+  /* THE ONE RULE OF THIS PALETTE: --accent is for FILLS and --accent-strong is for INK. A pink that
+     looks right behind a dark label is glare the moment it is used for words on white, so anything
+     that is read as text - links, eyebrows, the count pill, the level badge, hovers - takes
+     --accent-strong, and anything that is a shape - a button, an active pill, a meter, a border, an
+     outline - takes --accent. Please do not undo this: it is what makes one hot pink feel like a
+     palette instead of a highlighter. */
+  --paper: #f7f6f8;          /* the page: a whisper of tint, never a bare white */
+  --surface: #ffffff;        /* cards, panels, fields */
+  --surface-2: #f0eff3;      /* fills that sit on a surface: tracks, chips, quiet chips */
+  --ink: #2c2a33;            /* text. Softened off black on purpose: #0a0a0b on near-white is 19:1, and
+                                that much glare is what made the first pass read harsh. This is
+                                ~14:1 - still crisp - with a violet cast that sits with the pink,
+                                and the greys around it now read as greys. */
+  --muted: #6b6773;          /* second-rank text, labels, captions */
+  --line: #e9e7ee;           /* every hairline */
+  --accent: #ff2d85;         /* hot pink as a FILL: buttons, active pills, meters, borders */
+  --accent-ink: #1c1b20;     /* the label that sits on --accent */
+  --accent-soft: #ffe6f0;    /* the faintest pink: selected rows, quiet chips */
+  --accent-strong: #a8004a;  /* hot pink as INK: deep enough to read on white (~7:1) where the fill
+                                pink manages only ~4:1. It is also what draws the BORDER of a selected
+                                row: a pink edge on a pink fill has to be this deep pink, because
+                                --accent on --accent-soft is only 2.99:1 and the edge stops reading as
+                                an edge. So the rule is by background, not by element: on a neutral
+                                surface a shape takes --accent, on a pink one it takes --accent-strong. */
+  --accent-hover: #ff5c9f;   /* what a pink button lightens to under the pointer: lighter, because its
+                                label is dark, so brightening raises the contrast rather than eating
+                                into it */
+  --bar: #1c1b20;            /* the header and the phone tab bar: charcoal, not a black slab, so the top
+                                of the page is not the hardest edge on it */
+  --bar-ink: #f7f6f8;
+  --focus: #ff2d85;
+  --danger: #c3284d;
+
+  /* Move states and community difficulty both read as one ramp of the palette - quiet grey, pink,
+     deep plum - so "how far along" and "how hard" are told the same way, and the top of the ramp is
+     a colour rather than a black slab. */
+  --goal-bg: #f0eff3;     --goal-fg: #55515e;
+  --progress-bg: #ffe6f0; --progress-fg: #a8004a;
+  --achieved-bg: #33101f; --achieved-fg: #ffc9de;
+  --lvl1-bg: #f0eff3;     --lvl1-fg: #55515e;
+  --lvl2-bg: #ffe6f0;     --lvl2-fg: #a8004a;
+  --lvl3-bg: #33101f;     --lvl3-fg: #ffc9de;
+  --lvl1-fill: #c8c5d0;   --lvl2-fill: #ff2d85;   --lvl3-fill: #33101f;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+  /* Every avatar on every screen is sized from this one number, and the circle and its inset
+   * multiply together, so the shoe keeps the same share of the circle at any scale. */
   --avatar-scale: 1.25;
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #150e19;
-    --surface: #21172a;
-    --ink: #f3eaf5;
-    --muted: #b9aabf;
-    --line: #3a2c44;
-    --accent: #ff6fa5;
-    --accent-ink: #1c1220;
-    --accent-soft: #4a2440;
-    --bar: #0e0912;
-    --bar-ink: #f3eaf5;
-    --focus: #7fb0ff;
-    --danger: #ff8a80;
-    --goal-bg: #2a3050;     --goal-fg: #c3ccf5;
-    --progress-bg: #4a3510; --progress-fg: #f6d28a;
-    --achieved-bg: #1b3d26; --achieved-fg: #a8e3b6;
+  :root:not([data-theme="light"]) {
+    --paper: #141317;
+    --surface: #1c1b21;
+    --surface-2: #26252c;
+    --ink: #e8e6ec;
+    --muted: #a6a2b0;
+    --line: #322f3a;
+    --accent: #ff5b9d;
+    --accent-ink: #17161a;
+    --accent-soft: #3a1628;
+    --accent-strong: #ffa8cb;
+    --accent-hover: #ff7bb2;
+    --bar: #17161b;
+    --bar-ink: #eceaf0;
+    --focus: #ff5b9d;
+    --danger: #ff8098;
+    --goal-bg: #26252c;     --goal-fg: #c8c5d0;
+    --progress-bg: #3a1628; --progress-fg: #ffa8cb;
+    --achieved-bg: #f0e3ea; --achieved-fg: #2a1018;
+    --lvl1-bg: #26252c;     --lvl1-fg: #c8c5d0;
+    --lvl2-bg: #3a1628;     --lvl2-fg: #ffa8cb;
+    --lvl3-bg: #f0e3ea;     --lvl3-fg: #2a1018;
+    --lvl1-fill: #5c5866;   --lvl2-fill: #ff5b9d;   --lvl3-fill: #f0e3ea;
   }
 }
+
+/* An explicit choice. Must stay identical to the tokens above - see the comment at the top. */
+html[data-theme="light"] {
+  color-scheme: light;
+  --paper: #f7f6f8;
+  --surface: #ffffff;
+  --surface-2: #f0eff3;
+  --ink: #2c2a33;
+  --muted: #6b6773;
+  --line: #e9e7ee;
+  --accent: #ff2d85;
+  --accent-ink: #1c1b20;
+  --accent-soft: #ffe6f0;
+  --accent-strong: #a8004a;
+  --accent-hover: #ff5c9f;
+  --bar: #1c1b20;
+  --bar-ink: #f7f6f8;
+  --focus: #ff2d85;
+  --danger: #c3284d;
+  --goal-bg: #f0eff3;     --goal-fg: #55515e;
+  --progress-bg: #ffe6f0; --progress-fg: #a8004a;
+  --achieved-bg: #33101f; --achieved-fg: #ffc9de;
+  --lvl1-bg: #f0eff3;     --lvl1-fg: #55515e;
+  --lvl2-bg: #ffe6f0;     --lvl2-fg: #a8004a;
+  --lvl3-bg: #33101f;     --lvl3-fg: #ffc9de;
+  --lvl1-fill: #c8c5d0;   --lvl2-fill: #ff2d85;   --lvl3-fill: #33101f;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #141317;
+  --surface: #1c1b21;
+  --surface-2: #26252c;
+  --ink: #e8e6ec;
+  --muted: #a6a2b0;
+  --line: #322f3a;
+  --accent: #ff5b9d;
+  --accent-ink: #17161a;
+  --accent-soft: #3a1628;
+  --accent-strong: #ffa8cb;
+  --accent-hover: #ff7bb2;
+  --bar: #17161b;
+  --bar-ink: #eceaf0;
+  --focus: #ff5b9d;
+  --danger: #ff8098;
+  --goal-bg: #26252c;     --goal-fg: #c8c5d0;
+  --progress-bg: #3a1628; --progress-fg: #ffa8cb;
+  --achieved-bg: #f0e3ea; --achieved-fg: #2a1018;
+  --lvl1-bg: #26252c;     --lvl1-fg: #c8c5d0;
+  --lvl2-bg: #3a1628;     --lvl2-fg: #ffa8cb;
+  --lvl3-bg: #f0e3ea;     --lvl3-fg: #2a1018;
+  --lvl1-fill: #5c5866;   --lvl2-fill: #ff5b9d;   --lvl3-fill: #f0e3ea;
+}
+
+/* ---------- base ---------- */
 
 * { box-sizing: border-box; }
 html { scroll-padding-top: 72px; } /* keep focused fields clear of the sticky header */
@@ -54,12 +165,13 @@ body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
-  font: 16px/1.5 var(--sans);
+  font: 16px/1.55 var(--sans);
   -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
 }
 
-a { color: var(--accent); }
-:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+a { color: var(--accent-strong); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 3px; }
 main:focus { outline: none; }
 
 /* ---------- header & navigation ---------- */
@@ -75,40 +187,45 @@ main:focus { outline: none; }
 }
 .brand {
   color: var(--bar-ink); text-decoration: none;
-  font: 700 1.25rem/1 var(--serif); letter-spacing: -.01em;
+  font: 700 1.3rem/1 var(--serif); letter-spacing: -.02em;
 }
-.brand em { font-weight: 400; color: #ff8fb8; }
+.brand em { font-weight: 400; color: var(--accent); }
 
 #nav { display: flex; gap: 2px; }
 #nav a {
   position: relative; color: inherit; text-decoration: none;
-  padding: 8px 12px; border-radius: 999px; font-size: .9rem;
+  padding: 8px 12px; border-radius: 999px;
+  font-size: .9rem; font-weight: 600;
 }
-#nav a[aria-current="page"] { background: rgba(255, 255, 255, .16); }
+#nav a:hover { background: rgb(255 255 255 / .1); }
+/* Pink pill, charcoal label: the bar is dark in both themes, so this reads the same either way
+   without needing a token of its own for text on the accent. */
+#nav a[aria-current="page"] { background: var(--accent); color: var(--bar); }
+#nav a[aria-current="page"]:hover { background: var(--accent); }
 /* The account tab is drawn as an icon rather than a word, so the link centres it itself - a text
  * link gets that for free from its own line box. */
 #nav a.icon-only { display: inline-flex; align-items: center; justify-content: center; }
-/* The glyph sits inside a white ring, the way an avatar placeholder does. The ring is the border and
- * the space between it and the glyph is the padding, so shrinking one without the other cannot make
- * the two collide. Sized so 22 + the link's 8px padding either side lands on the 38px the word tabs
- * already are, which keeps the whole bar on one height. */
+/* The glyph sits inside a ring, the way an avatar placeholder does. The ring is the border and the
+ * space between it and the glyph is the padding, so shrinking one without the other cannot make the
+ * two collide. Sized so 22 + the link's 8px padding either side lands on the height the word tabs
+ * already are, which keeps the whole bar on one line. */
 #nav a.icon-only svg {
   width: 22px; height: 22px; padding: 2.5px;
-  border: 1.5px solid #fff; border-radius: 50%;
+  border: 1.5px solid currentColor; border-radius: 50%;
 }
 #nav .pill {
   display: inline-block; min-width: 18px; margin-left: 4px; padding: 0 5px;
-  border-radius: 999px; background: #ff8fb8; color: #1c1220;
+  border-radius: 999px; background: var(--accent); color: var(--bar);
   font-size: .72rem; font-weight: 700; text-align: center;
 }
 
-main { max-width: 760px; margin: 0 auto; padding: 20px 16px 56px; }
+main { max-width: 760px; margin: 0 auto; padding: 22px 16px 56px; }
 
 @media (max-width: 700px) {
   #nav {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
     justify-content: space-around; gap: 0;
-    background: var(--bar); border-top: 1px solid rgba(255, 255, 255, .14);
+    background: var(--bar); border-top: 1px solid rgb(255 255 255 / .14);
     padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
   }
   #nav a { flex: 1; text-align: center; font-size: .72rem; padding: 10px 2px; }
@@ -118,62 +235,69 @@ main { max-width: 760px; margin: 0 auto; padding: 20px 16px 56px; }
 /* ---------- type & page structure ---------- */
 
 h1 {
-  font: 700 clamp(2rem, 6vw, 2.75rem)/1.05 var(--serif);
-  letter-spacing: -.01em; margin: 0; overflow-wrap: anywhere;
+  font: 700 clamp(2rem, 6vw, 2.7rem)/1.05 var(--serif);
+  letter-spacing: -.02em; margin: 0; overflow-wrap: anywhere;
 }
-h3 { margin: 0; font: 700 1.1rem/1.25 var(--serif); overflow-wrap: anywhere; }
+h3 { margin: 0; font: 700 1.06rem/1.25 var(--sans); letter-spacing: -.01em; overflow-wrap: anywhere; }
+p { max-width: 68ch; }
 .eyebrow {
-  margin: 0 0 6px; color: var(--accent); font-size: .72rem; font-weight: 700;
-  letter-spacing: .14em; text-transform: uppercase;
+  margin: 0 0 6px; color: var(--accent-strong); font-size: .7rem; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
 }
+/* A hairline under the head, not a rule: the page already reads as a page, and a bar of near-black
+   across every screen was part of what made the first pass feel harsh. The one heavy rule left in
+   the app is on a trick's own page (.entry-head), and it is pink. */
 .page-head {
   position: relative;   /* what a follow bar's dropped list lines up against, and how wide it is */
   display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
-  padding-bottom: 14px; margin-bottom: 18px; border-bottom: 1px solid var(--ink);
+  padding-bottom: 14px; margin-bottom: 20px; border-bottom: 1px solid var(--line);
 }
+/* The Back button a screen shows when it is only ever reached from another one. Every screen uses the
+   same one - a small button, the shape of every other button here - so going back is the same gesture
+   and the same target wherever a dancer happens to be; only the word after the arrow changes. */
+.page-back { margin-bottom: 14px; width: 40px; padding: 0; justify-content: center; font-size: 1.1rem; line-height: 1; }
 .subhead {
-  margin: 26px 0 8px; color: var(--muted); font-size: .78rem; font-weight: 700;
-  letter-spacing: .14em; text-transform: uppercase;
+  margin: 30px 0 10px; color: var(--muted); font-size: .72rem; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
 }
 /* A line under a subhead that explains it, without the gap .fineprint leaves above itself. */
 .subnote { margin: -2px 0 10px; font-size: .85rem; }
 .muted { color: var(--muted); }
 .fineprint { font-size: .85rem; margin-top: 20px; }
-.back {
-  display: inline-block; margin-bottom: 14px; color: var(--muted);
-  text-decoration: none; font-size: .9rem;
-}
-.back:hover { color: var(--accent); }
 .count {
-  display: inline-block; min-width: 24px; padding: 1px 8px; border-radius: 999px;
-  background: var(--accent-soft); color: var(--ink); font: 700 .8rem/1.6 var(--sans);
-  text-align: center;
+  display: inline-block; min-width: 26px; padding: 2px 9px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent-strong);
+  font: 700 .78rem/1.6 var(--sans); text-align: center;
+  font-variant-numeric: tabular-nums;
 }
-.lede { color: var(--muted); margin: 8px 0 22px; }
+.lede { color: var(--muted); margin: 8px 0 22px; font-size: 1.02rem; }
 
 /* ---------- buttons ---------- */
 
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   min-height: 44px; padding: 0 18px; border-radius: 999px;
-  border: 1px solid var(--ink); background: transparent; color: var(--ink);
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
   font: 700 .95rem/1 var(--sans); text-decoration: none; cursor: pointer;
 }
-.btn:hover { background: var(--accent-soft); }
+.btn:hover { border-color: var(--muted); }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.btn.primary:hover { filter: brightness(1.08); }
+.btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 .btn.danger { color: var(--danger); border-color: var(--danger); }
+.btn.danger:hover { background: var(--danger); border-color: var(--danger); color: var(--bar-ink); }
 .btn.small { min-height: 36px; padding: 0 14px; font-size: .85rem; }
 .btn.block { width: 100%; }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+.btn[disabled]:hover { border-color: var(--line); }
 /* An icon-only button: the collection pencil, beside the move count in a page head. */
 .icon-btn {
   display: inline-flex; align-items: center; justify-content: center;
   width: 40px; height: 40px; padding: 0; flex: none;
-  border: 1px solid var(--line); border-radius: 10px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
   background: var(--surface); color: var(--ink); cursor: pointer;
 }
-.icon-btn:hover { border-color: var(--accent); color: var(--accent); }
-.icon-btn[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.icon-btn:hover { border-color: var(--accent); color: var(--accent-strong); }
+.icon-btn[aria-expanded="true"] { border-color: var(--accent-strong); color: var(--accent-strong); background: var(--accent-soft); }
 .head-actions { display: flex; align-items: center; gap: 10px; }
 
 .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
@@ -183,21 +307,117 @@ h3 { margin: 0; font: 700 1.1rem/1.25 var(--serif); overflow-wrap: anywhere; }
 /* ---------- cards, badges, chips ---------- */
 
 .stack { display: grid; gap: 10px; }
+
+/* Collections at the top of the Moves page: square tiles, with a + tile first to make a new one. */
+.coll-section { margin-bottom: 28px; }
+.coll-grid {
+  display: grid; gap: 10px; margin-bottom: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+}
+.coll-tile {
+  aspect-ratio: 1; display: flex; flex-direction: column; justify-content: space-between;
+  padding: 12px; min-width: 0; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); color: var(--ink); text-decoration: none; font: inherit; text-align: left; cursor: pointer;
+}
+.coll-tile:hover { border-color: var(--accent); }
+.coll-tile .coll-name { font-weight: 600; overflow-wrap: anywhere; }
+.coll-tile .count { align-self: flex-end; }
+.coll-new { align-items: flex-start; border-style: dashed; color: var(--muted); }
+.coll-new .coll-plus { font-size: 2rem; line-height: 1; color: var(--accent); }
+.coll-section .inline-form[hidden] { display: none; }
 .card {
-  display: block; padding: 14px 16px; border: 1px solid var(--line);
+  display: block; padding: 16px 18px; border: 1px solid var(--line);
   border-radius: var(--radius); background: var(--surface);
   color: inherit; text-decoration: none;
 }
 a.card:hover { border-color: var(--accent); }
+/* The same pink edge on every card that previews a trick or a move, not only the ones that are links:
+ * the Moves page's cards have had it since they were anchors, and the dictionary, the goals window and
+ * the feed draw the same card - so hovering any of them says the same thing in the same way. Written
+ * as :has(.trick-card) rather than on the container, because what makes a card a preview is the
+ * preview inside it, and every one of these is built by trickPreview(). */
+.card:has(.trick-card):hover { border-color: var(--accent); }
 .card.disabled { opacity: .7; }
 .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.card-top h3 { min-width: 0; }   /* so a long name gives way before the level beside it does */
 .card p { margin: 6px 0 0; }
+
+/* ---------- one trick or move, previewed ----------
+   The shape every list that previews a trick draws: the name, the five dashes at the far end of that
+   line, and whatever is known about it underneath. The Moves page, the Current goals window, the
+   Dictionary and the Community feed all put this inside their own container, so the preview reads the
+   same wherever a dancer meets one - what differs between the screens is only what fills the slots:
+   a status dropdown and a Remove button here, a "Pending" mark and an add button there.
+
+   The card around it belongs to the container, not to the preview: on the Moves page the card *is* the
+   link, and everywhere else the container decides. */
+.trick-card { display: grid; gap: 6px; min-width: 0; }
+.trick-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
+/* The name takes the free space, which is what keeps the dashes against the right edge of the card
+   instead of trailing a short name. It gives way first when the line runs out of room. */
+.trick-name { flex: 1 1 auto; min-width: 0; }
+/* `margin-left: auto` matters only when the line runs out and this wraps onto a line of its own - a
+   long name beside an add button on a phone. The name takes the free space on a shared line, so
+   nothing moves there; alone on its line, the tail is pushed to the right, which is where the dashes
+   and the action live on every other card. Without it a wrapped action starts back at the left edge
+   under the name, reading as a second thing on the card rather than the end of the first line. */
+.trick-tail { flex: none; margin-left: auto; display: inline-flex; align-items: center; gap: 8px; }
+.trick-level { display: inline-flex; align-items: center; }
+/* Written after `.card p`, which would otherwise space these two onto their own lines. */
+.trick-card .trick-detail, .trick-card .trick-alias {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px;
+  margin: 0; color: var(--muted); font-size: .88rem;
+}
+.trick-card .trick-alias { font-style: italic; }
+.trick-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+/* The add and in-your-moves marks on a dictionary row are a small mark beside the name, not a big button. */
+.trick-tail .icon-btn { width: 32px; height: 32px; }
+.trick-tail .icon-btn svg { width: 15px; height: 15px; }
+.trick-actions .btn { margin: 0; }
+
+/* The status of a move: a dropdown that is also the place the status is read, painted in the colour of
+   the answer it holds. The three pairs below are the goal / progress / achieved tokens the palette
+   check measures, so a status reads the same way here as it did as a badge. */
+.status-pick {
+  position: relative; display: inline-flex; border-radius: 999px; overflow: hidden;
+  background: var(--surface-2); color: var(--ink);
+}
+.status-goal     { background: var(--goal-bg);     color: var(--goal-fg); }
+.status-progress { background: var(--progress-bg); color: var(--progress-fg); }
+.status-achieved { background: var(--achieved-bg); color: var(--achieved-fg); }
+/* The native arrow is swapped for a small chevron drawn in the pill's own colour, so the control
+   reads as one shape with its text rather than as a grey box with a system arrow. */
+.status-pick select {
+  appearance: none; -webkit-appearance: none; box-sizing: border-box;
+  min-height: 32px; margin: 0; padding: 0 30px 0 14px; border: 0; border-radius: 999px; -webkit-border-radius: 999px;
+  background: transparent; color: inherit; cursor: pointer;
+  font: 600 .86rem/1 var(--sans); letter-spacing: .005em;
+}
+.status-pick select:focus-visible { outline: 2px solid currentColor; outline-offset: -3px; border-radius: 999px; }
+.status-pick::after {
+  content: ""; position: absolute; right: 13px; top: 50%; width: 6px; height: 6px;
+  border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+  transform: translateY(-70%) rotate(45deg); pointer-events: none;
+}
+.status-pick option { color: var(--ink); background: var(--surface); font-weight: 600; }
 .meta, .meta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 8px; }
 
 .badge {
   flex: none; padding: 3px 10px; border-radius: 999px;
   font-size: .75rem; font-weight: 700; white-space: nowrap;
 }
+/* A smaller badge for a list row, where the chip is a label on a name rather than a headline of its
+   own, and a quiet one for the states that are an absence of an answer (Unrated, Pending) - they are
+   true and worth saying, and they must not compete with a trick somebody bothered to mark. */
+.badge.sm { padding: 2px 8px; font-size: .68rem; }
+/* Smaller again, for the dictionary's own list: there the level is a mark beside the trick rather than the
+   last thing on the line, and it has to stay quieter than the name it marks. */
+.badge.xs { padding: 1px 7px; font-size: .62rem; }
+.badge.is-unrated { background: var(--surface-2); color: var(--muted); }
+/* A suggestion waiting for review, in a dictionary row: a pink asterisk instead of a word. The reason
+   is in its tooltip, so the row itself stays quiet. */
+.pending-mark { flex: none; color: var(--accent-strong); font: 800 1.15rem/1 var(--sans); margin-left: 6px; }
+
 .badge-goal     { background: var(--goal-bg);     color: var(--goal-fg); }
 .badge-progress { background: var(--progress-bg); color: var(--progress-fg); }
 .badge-achieved { background: var(--achieved-bg); color: var(--achieved-fg); }
@@ -207,9 +427,54 @@ a.card:hover { border-color: var(--accent); }
   color: var(--muted); font-size: .75rem; font-weight: 600;
 }
 
-.dots { display: inline-flex; gap: 3px; }
-.dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
-.dots i.on { background: var(--accent); }
+/* ---------- one dancer's own 1-5 difficulty ----------
+   Five segments and no word beside them: the position in the scale is the whole reading, and the
+   written level is on the element as a tooltip and in its accessible name for anyone who asks. It
+   sits inline inside .meta rows and at the end of a preview's name line, so it must never wrap or
+   grow taller than the line it is on. */
+/* The level is five dashes with its title on hover. No outline and no pill around them: a dash row
+ * on its own is the whole reading. Unrated tricks get the pill instead, so the empty state has a shape
+ * rather than a gap. */
+.diff {
+  display: inline-flex; align-items: center; min-width: 0; white-space: nowrap;
+  /* A round hit area around the dashes, so hovering near them still shows the level. */
+  padding: 6px 8px; border-radius: 999px;
+}
+.diff:hover { background: var(--surface-2); }
+.diff-unrated {
+  display: inline-flex; align-items: center; white-space: nowrap;
+  padding: 1px 7px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--surface-2); color: var(--muted); font-size: .62rem; font-weight: 600;
+}
+.diff-dots { display: inline-flex; gap: 2px; }
+.diff-dots i {
+  width: 13px; height: 5px; border-radius: 2px;
+  background: var(--surface-2); border: 1px solid var(--line);
+}
+.diff-dots i.on { background: var(--accent); border-color: var(--accent); }
+
+/* The five pills in the add-move form: tighter than the default radio pills so all five fit a
+   phone, and allowed to wrap when they do not. */
+/* The editable dashes on a move's own page. Each step is a button with a generous hit area around a
+   thin dash, so it is easy to hit on a phone. The written level sits underneath. */
+.diff-edit { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.diff-steps { display: inline-flex; gap: 2px; }
+.diff-step {
+  appearance: none; border: 0; background: none; cursor: pointer;
+  padding: 12px 6px; border-radius: 10px;
+}
+.diff-step::before {
+  content: ""; display: block; width: 34px; height: 7px; border-radius: 3px;
+  background: var(--surface-2); border: 1px solid var(--line);
+}
+.diff-step.on::before { background: var(--accent); border-color: var(--accent); }
+.diff-step:hover::before { border-color: var(--accent); }
+.diff-step:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.diff-label { margin: 0 0 0 6px; color: var(--muted); font-size: .85rem; font-weight: 600; }
+
+/* The + beside the new-collection box: the box stays hidden until it is asked for. */
+.cat-add { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.cat-add input[type="text"] { flex: 1; min-width: 0; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .section .chips { margin-top: 0; }
@@ -222,17 +487,21 @@ a.chip:hover { outline: 1px solid var(--accent); }
 
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
 .stat {
-  padding: 12px 8px; text-align: center; border: 1px solid var(--line);
+  padding: 14px 8px; text-align: center; border: 1px solid var(--line);
   border-radius: var(--radius); background: var(--surface);
 }
-.stat strong { display: block; font: 700 1.9rem/1.1 var(--serif); }
-.stat span { color: var(--muted); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; }
+.stat strong {
+  display: block; font: 700 1.7rem/1.15 var(--sans);
+  letter-spacing: -.03em; font-variant-numeric: tabular-nums;
+}
+.stat span { color: var(--muted); font-size: .68rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
 
 .empty {
   padding: 34px 16px; text-align: center; color: var(--muted);
   border: 1px dashed var(--line); border-radius: var(--radius);
 }
 .empty h3 { color: var(--ink); margin-bottom: 6px; }
+.empty p { margin-left: auto; margin-right: auto; }
 .empty .btn { margin-top: 10px; }
 
 /* ---------- lists ---------- */
@@ -240,40 +509,111 @@ a.chip:hover { outline: 1px solid var(--accent); }
 .list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
 .row {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 12px 0; border-bottom: 1px solid var(--line);
+  padding: 13px 0; border-bottom: 1px solid var(--line);
 }
-.row-main { display: grid; gap: 2px; min-width: 0; }
+/* `flex: 1` is load-bearing, not decoration. `.row` is space-between, so on a row with three
+   children - avatar, text, button - the free space is split between BOTH gaps and the name ends up
+   floating in the middle of the page with a dead stretch either side. Letting the text block take the
+   free space instead keeps the name against its avatar and still pushes the button to the far right. */
+.row-main { display: grid; gap: 2px; min-width: 0; flex: 1 1 auto; }
 .row-main strong { overflow-wrap: anywhere; }
 .row .actions { margin: 0; flex: none; }
+
+/* A post in the Community feed: whose it is on the left, and one of the shared preview cards on the
+   right. The avatar is the feed's own mark - who posted it - which a preview of a trick has no
+   business carrying, so the two live side by side and only the card is the preview. */
+.feed-post {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 0; border-bottom: 1px solid var(--line);
+}
+.feed-post .card { flex: 1 1 auto; min-width: 0; }
 
 /* ---------- filters ---------- */
 
 .filters { display: grid; gap: 10px; margin-bottom: 16px; }
-.filter-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+/* minmax(0, 1fr) rather than 1fr: a 1fr track is minmax(auto, 1fr), so its minimum is the select's
+ * own min-content width, and two selects whose options are long words added up to more than the
+ * page - which pushed a horizontal scrollbar onto every screen in the app on a phone. The first
+ * track is allowed to go below its content width instead, and the selects share what there is. */
+.filter-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
 .filter-row select { width: auto; max-width: 48vw; }
+
+/* A labelled filter on a line of its own: the word, then the control. Used where a select narrows a
+   list - the members tab's studio picker - so it reads as part of the list it filters rather than as
+   a control in the page head. */
+.filter-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 18px; }
+.filter-bar .set-label { flex: none; }
+.filter-bar select, .filter-bar input { flex: 1 1 200px; width: auto; min-width: 0; }
+/* A search field with its magnifier inside the box, at the left, where a placeholder word would be. */
+.search-field { position: relative; flex: 0 1 240px; min-width: 0; display: flex; }
+.search-field input { width: 100%; padding-left: 36px; }
+.search-field svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+
+/* A heading with its own control on the same line: what the panel holds, and how to narrow it. The
+   heading drops its usual top margin because this row carries the gap instead. */
+.panel-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap; margin: 26px 0 12px;
+}
+.panel-head .subhead { margin: 0; }
+.panel-head .seg { margin: 0; }
 
 .seg { display: flex; flex-wrap: wrap; gap: 6px; }
 .seg-btn {
   min-height: 40px; padding: 0 14px; border-radius: 999px;
   border: 1px solid var(--line); background: var(--surface); color: var(--ink);
-  font: 600 .88rem/1 var(--sans); cursor: pointer;
+  font: 700 .88rem/1 var(--sans); cursor: pointer;
 }
-.seg-btn[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.seg-btn:hover { border-color: var(--muted); }
+.seg-btn[aria-pressed="true"] {
+  background: var(--accent); border-color: var(--accent); color: var(--accent-ink);
+}
+
+/* The primary choice on a screen - which half of the Community page you are on - as ONE track with
+   two equal halves, instead of two loose pills that have to be read as a pair. The pressed half is
+   the pink fill and the seam between them is invisible, which is what makes it read as one control
+   rather than two buttons that happen to sit together. Declared after .seg-btn on purpose: same
+   specificity, so source order is what wins. */
+.seg-tabs {
+  display: flex; width: 100%; gap: 4px; padding: 4px; margin-bottom: 20px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2);
+}
+.seg-tabs .seg-btn {
+  flex: 1; min-height: 38px; padding: 0 14px; border: 0; background: none;
+  border-radius: 999px;
+  /* The two labels must never wrap onto two lines and make the track jump height on a phone. */
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.seg-tabs .seg-btn:hover { background: var(--surface); }
+.seg-tabs .seg-btn[aria-pressed="true"],
+.seg-tabs .seg-btn[aria-pressed="true"]:hover {
+  background: var(--accent); color: var(--accent-ink);
+}
+
+/* A secondary switch: the audience filter beside a heading. Quieter than the tabs on purpose - it
+   narrows what is already on screen rather than choosing the screen. */
+.seg-sm .seg-btn { min-height: 32px; padding: 0 12px; font-size: .8rem; font-weight: 600; }
 
 /* ---------- forms ---------- */
 
 .form { margin-top: 8px; }
-.field { display: grid; gap: 6px; margin: 0 0 18px; padding: 0; border: 0; min-width: 0; }
+.field { display: grid; gap: 6px; margin: 0 0 20px; padding: 0; border: 0; min-width: 0; }
 .field > span, .field > legend, .field > .label { font-size: .9rem; font-weight: 700; padding: 0; }
 .field small { color: var(--muted); }
+.field-help { margin: 0; font-size: .85rem; color: var(--muted); }
 
 input[type="text"], input[type="search"], input[type="password"], input[type="email"], input[type="number"], select, textarea {
-  width: 100%; min-height: 44px; padding: 10px 12px; border-radius: 10px;
+  width: 100%; min-height: 44px; padding: 10px 12px; border-radius: var(--radius-sm);
   border: 1px solid var(--line); background: var(--surface); color: var(--ink);
   font: inherit;
 }
+/* A ring on :focus rather than :focus-visible: a field you are typing in should show where the
+   caret is, whether you got there by tab or by tap. */
+input:focus, select:focus, textarea:focus {
+  outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent);
+}
 textarea { resize: vertical; min-height: 110px; }
-input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: .75; }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 
 .inline-form { display: flex; gap: 8px; margin-bottom: 16px; }
@@ -288,6 +628,14 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 .field-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .field-row .set-label { flex: none; }
 .field-row input { flex: none; width: 7.5rem; background: none; }
+.field-row input:focus { background: var(--surface); }
+
+/* The support form's honeypot: a box no person can see or tab to, which a bot filling in every input
+ * will happily complete. Moved off-screen rather than `display: none`, because the obvious cases
+ * skip hidden fields and this is the cheap half of what keeps an open contact endpoint usable. */
+/* `input.hp` rather than `.hp` on purpose: the input rules above it are `input[type="text"]`,
+ * which outranks a bare class, so the 1px box would otherwise never apply. */
+input.hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 
 /* radio groups drawn as pills */
 .seg label { position: relative; }
@@ -295,23 +643,28 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 .seg label span {
   display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px;
   border: 1px solid var(--line); border-radius: 999px; background: var(--surface);
-  font-weight: 600; cursor: pointer;
+  font-weight: 700; cursor: pointer;
 }
-.seg label input:checked + span { background: var(--ink); border-color: var(--ink); color: var(--paper); }
-.seg label input:focus-visible + span { outline: 3px solid var(--focus); outline-offset: 2px; }
+.seg label span:hover { border-color: var(--muted); }
+.seg label input:checked + span {
+  background: var(--accent); border-color: var(--accent); color: var(--accent-ink);
+}
+.seg label input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 2px; }
 
 .checks { display: flex; flex-wrap: wrap; gap: 8px; }
 .check {
   display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px;
   border: 1px solid var(--line); border-radius: 999px; background: var(--surface); cursor: pointer;
 }
+.check:hover { border-color: var(--muted); }
+.check:has(input:checked) { border-color: var(--accent-strong); background: var(--accent-soft); }
 
 /* chip input for entries / exits / combos */
 .chip-field {
   display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px;
-  border: 1px solid var(--line); border-radius: 10px; background: var(--surface); cursor: text;
+  border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); cursor: text;
 }
-.chip-field:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
+.chip-field:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
 .chip-field .chip-text {
   flex: 1; min-width: 150px; min-height: 34px; padding: 4px 6px;
   border: 0; outline: none; background: transparent;
@@ -323,16 +676,22 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 
 /* ---------- move detail ---------- */
 
-.section { margin: 22px 0; }
+.section { margin: 24px 0; }
 .section h2 {
-  margin: 0 0 8px; color: var(--muted); font-size: .78rem; font-weight: 700;
-  letter-spacing: .14em; text-transform: uppercase;
+  margin: 0 0 8px; color: var(--muted); font-size: .72rem; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
 }
 .section p { margin: 0; }
 .notes {
-  white-space: pre-wrap; overflow-wrap: anywhere; padding: 12px 14px;
-  border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+  white-space: pre-wrap; overflow-wrap: anywhere; padding: 12px 16px;
+  border: 1px solid var(--line); border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0; background: var(--surface);
 }
+
+/* A support message in the inbox: what somebody wrote is a paragraph, not a line, so the row lines up
+   at the top and the body gets a little air above it. */
+.support-row { align-items: flex-start; }
+.support-row .notes { margin-top: 8px; }
 
 /* ---------- account & auth ---------- */
 
@@ -352,7 +711,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 }
 /* The pencil reads as part of the name rather than a boxed control: no panel behind it. */
 .icon-btn.plain { width: 34px; height: 34px; border-color: transparent; background: none; color: var(--muted); }
-.icon-btn.plain:hover { border-color: transparent; background: none; color: var(--accent); }
+.icon-btn.plain:hover { border-color: transparent; background: none; color: var(--accent-strong); }
 /* On a phone the avatar leaves no room for a name, an input and two buttons on one line, so the
  * input takes the width and the buttons take the next line on purpose instead of by accident. */
 @media (max-width: 460px) {
@@ -364,10 +723,75 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 .set-block { display: grid; gap: 10px; }
 .set-block + .set-block { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
 .set-label { font-size: .9rem; font-weight: 700; }
+/* The Settings entry on the profile page: a gear and its name. A row sized for a thumb rather than
+ * a pill that asks to be noticed. */
+.set-link {
+  display: inline-flex; align-items: center; gap: 10px; min-height: 44px;
+  font-size: .9rem; font-weight: 700; color: var(--ink); text-decoration: none;
+}
+.set-link:hover { color: var(--accent-strong); }
+
+/* A whole row that is a link: the Support and Settings entries at the foot of a profile. The icon
+ * keeps a column of its own so two rows line up, and a label over its one-line explanation is the
+ * same shape as every other titled row in the app. */
+.link-row {
+  display: flex; align-items: center; gap: 14px; min-height: 56px;
+  color: var(--ink); text-decoration: none;
+}
+.link-row svg { flex: none; color: var(--muted); }
+.link-row strong { display: block; font-weight: 700; }
+.link-row small { display: block; color: var(--muted); font-size: .85rem; }
+.link-row:hover { color: var(--accent-strong); }
+.link-row:hover svg { color: var(--accent-strong); }
+/* The chevron is a sibling of the text in the same flex row, so it has to be told to go to the far
+ * edge; without this it would sit right after the last word of the explanation. */
+.link-row > svg:last-child { margin-left: auto; }
+
+/* Logging out sits apart from the rows above it - a rule between them - so it is a deliberate step
+ * rather than the next line of the settings list. */
+.account-actions { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--line); }
+/* A card with no subhead over it. The subhead is what normally spaces a section from the one above,
+ * so a card that carries its own label has to bring that gap with it. */
+.card.standalone { margin-top: 30px; }
 .set-block .inline-form { margin-bottom: 0; }
 .set-block .avatar-picker { margin: 0; }
 /* Named so it beats `.card p`, which would otherwise space these out. */
 .set-block .field-help { margin: 0; font-size: .85rem; }
+
+/* ---------- settings: equal groupings ----------
+   Every group is the same card, the same padding and the same internal rhythm, and they sit in one
+   equal row where there is room: the track is narrow enough that three fit side by side at the
+   page's own max width, so the delete group is never a half-width orphan and nothing competes for
+   attention with it. Each card is a column so its control row can be pushed to the bottom with
+   margin-top: auto - that is what lines the controls of neighbouring cards up when one of them has
+   more to say than the other. */
+.set-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 12px; align-items: stretch;
+}
+.set-card {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 18px; border: 1px solid var(--line);
+  border-radius: var(--radius); background: var(--surface);
+}
+.set-title { margin: 0; font: 700 1rem/1.25 var(--sans); letter-spacing: -.01em; }
+.set-help { margin: 0; color: var(--muted); font-size: .85rem; max-width: none; }
+.set-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 4px; }
+/* The one control that is a field rather than a button: the type-your-username box in the delete
+   group. It takes what room there is and leaves the button its own width, so the pair lines up with
+   the button rows of the other cards. */
+.set-actions input { flex: 1 1 160px; min-width: 0; }
+/* The theme switcher is the Appearance card's control, so it sits on the same bottom line as every
+   other card's control row. Three pills only just fit the narrowest column (230px, so ~194px of
+   content): left to themselves they wrap onto a second line, which gave the Appearance card the only
+   ragged bottom edge in the row - exactly what "equal groupings" was meant to stop. So they share
+   the row evenly, at a slightly smaller size that fits without ellipsis, and never wrap. */
+.set-card .seg { margin-top: auto; padding-top: 4px; flex-wrap: nowrap; }
+.set-card .seg-btn {
+  flex: 1 1 0; min-width: 0; padding: 0 8px; font-size: .8rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.set-card .btn { min-width: 0; }
 
 .auth { max-width: 440px; margin: 4vh auto 0; }
 .brand-lg { font-size: clamp(2.4rem, 9vw, 3.4rem); }
@@ -384,7 +808,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
    * circle and grows it in a small one, so the circle, its rim and its inset all carry the scale and
    * the picture keeps exactly its share at any size. It also has to: the photo is a square inside a
    * round clip, so once it is wider than the circle's inscribed square its corners get shaved off. */
-  background: var(--surface); border: calc(1px * var(--avatar-scale)) solid var(--line);
+  background: var(--surface); border: calc(2px * var(--avatar-scale)) solid var(--accent);
   object-fit: cover;
 }
 /* A photo comes with its own white background, so the disc is white too and the picture is inset a
@@ -392,9 +816,13 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
  * padding, which object-fit respects, so the photo scales down rather than being cropped. In px, not
  * %, because a percentage padding resolves against the parent's width instead of the circle's. */
 img.avatar { background: #fff; padding: calc(5px * var(--avatar-scale)); }
-/* Line-art avatars (an .svg in the map) are dark, so their disc is tinted rather than white. */
-img.avatar-art { background: #f3edf6; }
-.avatar-letter { color: #fff; font: 700 calc(1rem * var(--avatar-scale))/1 var(--sans); border: 0; }
+/* The pleaser artwork is dark line work, so its disc stays light in both themes - a dark disc in
+ * dark mode would leave nothing to see. A deliberate exception to the palette, not an oversight. */
+img.avatar-art { background: #f2f2f5; }
+/* No picture: the initial is drawn in one of the two loud brand colours, picked stably from the
+   name, so a list of them does not read as the same disc repeated. */
+.avatar-letter { background: var(--accent); color: var(--accent-ink); font: 700 calc(1rem * var(--avatar-scale))/1 var(--sans); border: 0; }
+.avatar-letter.alt { background: var(--ink); color: var(--paper); }
 .avatar-xs { width: calc(20px * var(--avatar-scale)); height: calc(20px * var(--avatar-scale)); }
 .avatar-sm { width: calc(34px * var(--avatar-scale)); height: calc(34px * var(--avatar-scale)); }
 .avatar-md { width: calc(52px * var(--avatar-scale)); height: calc(52px * var(--avatar-scale)); }
@@ -412,8 +840,17 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
 /* avatar beside a name in a page head. min-width: 0 lets the block beside the avatar give way when
  * there is not room, so the follow bars below it wrap instead of pushing the page sideways. */
 .who { display: flex; align-items: center; gap: 14px; min-width: 0; }
+
+/* A profile head: who it is on the left, and the follow lists beside the name. flex-start so a taller
+ * open bar lines up with the top of the block instead of stretching its closed neighbours, and it
+ * wraps instead of squeezing the name. */
+.profile-head { align-items: flex-start; flex-wrap: wrap; gap: 14px 18px; }
 .who > div { min-width: 0; }
 .who p { margin: 0; }
+/* Somebody else's profile keeps its follow button under the name, where the question "do I follow
+   them" belongs to the name rather than to the counts at the other end of the head. The lines it sits
+   between carry no margin of their own, so it brings its own room. */
+.who .btn { margin: 8px 0; }
 .who .eyebrow { margin-bottom: 6px; }
 
 /* ---------- the follow bars in a page head ---------- */
@@ -426,20 +863,24 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
  * item as its intrinsic width, which collapsed the name block to one bar per line. Asking for
  * max-content states the row's real width, and max-width lets it wrap on a narrow screen. */
 .follow-bars {
-  display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px;
+  display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px;
   width: max-content; max-width: 100%;
 }
 .follow-bar { min-width: 0; }
+/* Label-sized on purpose: the bars sit just under the dancer's name, so they read as a caption on
+ * that name rather than as three controls that happened to land there. The
+ * padding is asymmetric because the count on the right carries its own pink pill. */
 .follow-bar > summary {
-  display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 6px 0 12px;
+  display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 0 4px 0 9px;
   border: 1px solid var(--line); border-radius: 999px; background: var(--surface);
-  color: var(--ink); font: 600 .85rem/1 var(--sans); cursor: pointer; list-style: none;
+  color: var(--ink); font: 700 .74rem/1 var(--sans); cursor: pointer; list-style: none;
 }
+.follow-bar .count { min-width: 19px; padding: 1px 6px; font-size: .68rem; }
 /* Safari draws its own triangle in the marker pseudo-element rather than as a list marker. */
 .follow-bar > summary::-webkit-details-marker { display: none; }
 .follow-bar > summary::marker { content: ''; }
 .follow-bar > summary:hover { border-color: var(--accent); }
-.follow-bar[open] > summary { border-color: var(--accent); background: var(--accent-soft); }
+.follow-bar[open] > summary { border-color: var(--accent-strong); background: var(--accent-soft); color: var(--accent-strong); }
 /* The count would otherwise disappear into the open bar's own tint. */
 .follow-bar[open] .count { background: var(--surface); }
 /* Out of the flow on purpose: the list drops over what is below the header instead of shoving the
@@ -449,39 +890,126 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
 .follow-panel {
   position: absolute; left: 0; right: 0; top: calc(100% + 10px); z-index: 5;
   padding: 12px 14px;
-  border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
-  box-shadow: 0 14px 30px rgb(0 0 0 / 16%);
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface);
+  box-shadow: 0 14px 34px rgb(0 0 0 / 12%);
 }
 .follow-panel > :first-child { margin-top: 0; }
 .follow-panel .subnote { margin: 0 0 10px; }
 
-/* The "Add new goal" dialogue: where the goal comes from on the left, that source's options on
- * the right. Stacked on a narrow screen. */
+/* ---------- journal drawer ----------
+   A native <dialog> docked to the right edge, so Escape and the focus trap come from the browser. */
+#nav .journal-open {
+  background: transparent; border: 0; color: inherit; cursor: pointer; font: inherit; box-shadow: none;
+  padding: 8px 12px; border-radius: 999px; font-size: .9rem; font-weight: 600;
+}
+#nav .journal-open:hover { background: rgb(255 255 255 / .1); }
+.journal-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; left: auto; margin: 0; height: 100dvh; max-height: 100dvh;
+  width: min(420px, 100vw); max-width: 100vw;
+  padding: 18px 20px; border: 0; border-left: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); overflow-y: auto;
+  box-shadow: -24px 0 60px rgb(0 0 0 / 22%);
+}
+.journal-drawer:focus { outline: none; }
+.journal-drawer::backdrop { background: rgb(0 0 0 / .35); }
+.journal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.journal-head h2 { margin: 0; }
+.journal-day { margin: 0 0 8px; color: var(--muted); font-weight: 600; }
+.journal-list { list-style: none; margin: 20px 0 0; padding: 0; }
+.journal-entry { padding: 12px 0; border-top: 1px solid var(--line); }
+.journal-entry-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.journal-entry-head time { color: var(--muted); font-size: .9rem; font-weight: 600; }
+.journal-entry-body { margin: 6px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* ---------- a dialogue ----------
+   The browser owns the backdrop, the Escape key and the focus trap; this is only the box. Used by
+   the add-a-trick form, which asks three questions that belong together. */
+.sheet {
+  width: min(560px, calc(100% - 24px)); max-height: calc(100dvh - 48px); overflow: auto;
+  padding: 20px 22px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); color: var(--ink);
+  box-shadow: 0 24px 60px rgb(0 0 0 / 28%);
+}
+.sheet::backdrop { background: rgb(0 0 0 / .45); }
+.sheet h2 { margin: 0 0 6px; }
+/* The form's own fields carry a bottom margin everywhere else, but the last thing in a dialogue is
+   its button row and that margin would leave the box looking unfinished. */
+.sheet .actions { margin-bottom: 0; }
+/* Four choices - Unrated and the three levels - as two columns: the widest that still fits a phone,
+   and all four the same size. */
+.seg-2col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.seg-2col label { display: flex; }
+.seg-2col label span { flex: 1; justify-content: center; text-align: center; }
+
+/* The profile editor's two sheets: details behind the pencil, the picture behind "Change avatar". Each
+ * is a dialogue with its own Save. */
+#avatar-dialog .avatar-picker { margin: 12px 0 0; }
+
+/* The "Add new goal" panel: three stacked blocks - one of my moves, a trick from the dictionary, a move
+ * that is not in the dictionary - rather than a method to choose first and that method's options beside
+ * it. The radio group that asked the question hid two of the three ways behind a click; a block each
+ * says what it does, and there is nothing to choose before you can see what you are choosing. */
 .goal-add {
-  margin-top: 18px; padding: 16px;
-  border: 1px solid var(--line); border-radius: 14px; background: var(--surface);
+  position: relative;
+  margin-top: 18px; padding: 14px 16px 16px;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface);
 }
 .goal-add .inline-form { margin-bottom: 0; }
-.goal-add-body {
-  display: grid; grid-template-columns: minmax(150px, 200px) 1fr;
-  gap: 18px; align-items: start;
+/* The cross hangs partly off the top and right edges of the box it closes: pink on hover like every
+ * other quiet control, and a circle so it reads as the same family as the icon buttons in a page head. */
+.panel-x {
+  position: absolute; top: -12px; right: -12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; padding: 0;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--surface); color: var(--ink); cursor: pointer;
 }
-.goal-sources { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; }
-.goal-sources legend { padding: 0 0 6px; color: var(--muted); }
-.goal-source {
-  display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px;
-  border: 1px solid var(--line); border-radius: 10px; background: var(--paper);
-  cursor: pointer; font: 600 .9rem/1.2 var(--sans);
+.panel-x:hover { border-color: var(--accent); color: var(--accent-strong); }
+/* The three sources down the left, the chosen one's panel beside it. The top padding is the band the
+ * cross sits in, so nothing is ever drawn under it. One column on a phone, with the rail stacked
+ * above the panel: three full-width words read better than three squeezed columns. */
+.goal-add-grid {
+  display: grid; grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
+  gap: 12px 20px; align-items: start; padding-top: 30px;
 }
-.goal-source input { width: 18px; height: 18px; margin: 0; flex: none; accent-color: var(--accent); }
-/* :has() only paints the chosen row; the radio itself already shows the state everywhere else. */
-.goal-source:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
-.goal-add-options { min-width: 0; }
-.goal-add-options > div { display: grid; gap: 12px; }
+.goal-sources { display: grid; gap: 6px; min-width: 0; }
+.goal-source-btn {
+  min-height: 40px; padding: 8px 12px; text-align: left;
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--ink);
+  font: 700 .85rem/1.25 var(--sans); cursor: pointer;
+}
+.goal-source-btn:hover { border-color: var(--muted); }
+/* The chosen source: the pink text and edge the palette check measures against --accent-soft, so the
+ * selected row reads as selected in both themes without a tick beside it. */
+.goal-source-btn[aria-pressed="true"] {
+  border-color: var(--accent-strong); background: var(--accent-soft); color: var(--accent-strong);
+}
+.goal-source-block { display: grid; gap: 10px; align-content: start; min-width: 0; }
+@media (max-width: 640px) {
+  .goal-add-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+}
+/* In the overlay the panel is the dialogue itself: no box inside a box. The cross is placed in the
+ * dialogue's own corner, so the panel is not positioned against the box it used to sit in. */
+.goal-sheet .goal-add { position: static; margin-top: 0; padding: 0; border: 0; background: transparent; }
+.goal-sheet .goal-add-grid { padding-top: 0; }
+.goal-sheet .panel-x { top: 12px; right: 12px; }
+.goal-sheet h2 { padding-right: 44px; }
 
-@media (max-width: 560px) {
-  .goal-add-body { grid-template-columns: 1fr; gap: 14px; }
+/* The camera on a profile picture: a small disc on the bottom edge of the avatar, the same family as
+ * the icon buttons. The avatar is wrapped so the disc has something to sit on. */
+.avatar-wrap { position: relative; display: inline-flex; flex: none; }
+.avatar-cam {
+  position: absolute; left: 50%; bottom: -4px; transform: translateX(-50%);
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; padding: 0; border-radius: 999px;
+  border: 2px solid var(--surface); background: var(--surface); color: var(--ink); cursor: pointer;
 }
+.avatar-cam:hover { border-color: var(--accent); color: var(--accent-strong); }
+
+/* The profile's edit pencil sits in the top right corner of the head, out of the name's way. */
+.profile-head { position: relative; padding-right: 56px; }
+.profile-edit { position: absolute; top: 0; right: 0; }
 
 .avatar-picker { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0 0; }
 .avatar-opt {
@@ -495,6 +1023,13 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
 
 /* the avatar that opens a feed row, so a name is not just text */
 .feed-who { flex: none; line-height: 0; }
+/* The thumbnail on an upload in the feed, so a photo reads differently from a move at a glance
+ * without needing a second column of its own. */
+.feed-media {
+  flex: none; width: 72px; height: 72px; border-radius: var(--radius-sm); overflow: hidden;
+  border: 1px solid var(--line); line-height: 0;
+}
+.feed-media img, .feed-media video { width: 100%; height: 100%; object-fit: cover; display: block; }
 .media-owner {
   display: flex; align-items: center; gap: 6px; padding: 8px;
   font-size: .78rem; color: var(--muted); overflow-wrap: anywhere;
@@ -509,40 +1044,156 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
 }
 .media-item {
   position: relative; margin: 0; overflow: hidden;
-  border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface);
 }
 .media-item img, .media-item video {
   display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; background: #000;
 }
 .media-remove {
   position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; padding: 0;
-  border: 0; border-radius: 50%; background: rgba(0, 0, 0, .6); color: #fff;
+  border: 0; border-radius: 50%; background: rgb(28 27 32 / .55); color: #fff;
   font: 700 1.05rem/1 var(--sans); cursor: pointer;
 }
 .media-remove:hover { background: var(--danger); }
 .upload-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
 .upload-note { font-size: .8rem; }
 
-.entry-link { color: inherit; text-decoration: none; border-bottom: 1px solid var(--line); }
-.entry-link:hover { border-color: var(--accent); }
+/* ---------- files picked in the add-move form ----------
+   Chosen but not yet uploaded, so each row is a name and a way to take it back off before saving.
+   The name truncates rather than wrapping: a long filename should not push the remove button off. */
+.file-list { list-style: none; display: grid; gap: 8px; margin: 12px 0 0; padding: 0; }
+.file-chip {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2);
+  font-size: .85rem;
+}
+.file-chip-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.file-chip-size { color: var(--muted); font-variant-numeric: tabular-nums; }
+.file-chip-x {
+  flex: none; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%;
+  background: none; color: var(--muted); font: 700 1.05rem/1 var(--sans); cursor: pointer;
+}
+.file-chip-x:hover { color: var(--danger); background: var(--surface); }
 
-/* Who logged a trick, as mini avatars on the Bible screens. Nothing is drawn when nobody has, so an
+.entry-link { color: inherit; text-decoration: none; border-bottom: 1px solid var(--line); }
+.entry-link:hover { border-color: var(--accent); color: var(--accent-strong); }
+
+/* The rest of a dancer's studios, behind a "+N" that opens where it sits. A profile leads with one
+   place and folds the others away, so the summoning control is a small round button the size of the
+   line it sits on rather than a bar; the panel is the same box a follow bar drops. */
+.studio-more { position: relative; display: inline-block; margin-left: 6px; vertical-align: baseline; }
+.studio-more-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 26px; min-height: 22px; padding: 0 7px; box-sizing: border-box;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--surface);
+  color: var(--accent-strong); font: 700 .74rem/1 var(--sans); cursor: default;
+}
+.studio-more:hover .studio-more-count,
+.studio-more:focus-visible .studio-more-count { border-color: var(--accent); }
+.studio-more:focus-visible { outline: none; }
+/* The panel only shows while the count is hovered or focused. Its transparent top padding closes
+   the gap to the count, so the pointer can travel down into the panel without losing the hover. */
+.studio-more-panel {
+  display: none; position: absolute; left: 0; top: 100%; z-index: 5; width: max-content; max-width: 60vw;
+  padding-top: 8px;
+}
+.studio-more:hover .studio-more-panel,
+.studio-more:focus-visible .studio-more-panel { display: block; }
+.studio-more-box {
+  display: block; padding: 10px 14px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); box-shadow: 0 14px 34px rgb(0 0 0 / 12%);
+}
+.studio-more-item { display: block; }
+.studio-more-item + .studio-more-item { margin-top: 6px; }
+
+/* The list of studios in the profile editor: one row per place, in the dancer's own order, with the
+   top row marked because that is the one a profile shows. Rows rather than chips because a row has
+   room for the order arrows and the count of rows is what the +N counts. */
+.studio-draft { list-style: none; margin: 0; padding: 0; }
+.studio-draft-row {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  padding: 8px 0; border-bottom: 1px solid var(--line);
+}
+.studio-draft-row:first-child { border-top: 1px solid var(--line); }
+.studio-draft-name { font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
+/* The arrows and Remove stay together at the far end of their row, and a long studio name wraps
+   inside its own line rather than shoving them onto the next one. */
+.studio-draft-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.studio-draft-actions .icon-btn.plain { width: 30px; height: 30px; }
+.studio-draft-actions .icon-btn.plain svg { width: 15px; height: 15px; }
+
+/* A link inside a line of text that must still read as text - the studio on a profile, which is worth
+   following to its page and should not shout about it. */
+.quiet-link {
+  color: inherit; text-decoration: underline; text-decoration-thickness: 1px;
+  text-decoration-color: var(--line); text-underline-offset: 2px;
+}
+.quiet-link:hover { color: var(--accent-strong); text-decoration-color: var(--accent); }
+
+/* Who logged a trick, as mini avatars on the dictionary screens. Nothing is drawn when nobody has, so an
  * unused trick gets no empty row. */
 .loggers { display: inline-flex; align-items: center; gap: 4px; }
 .logger { display: inline-flex; line-height: 0; border-radius: 50%; }
 .logger:hover { outline: 2px solid var(--accent); outline-offset: 2px; }
-/* Counts the dancers past the third, so the row never grows past three faces. Tracks the avatar
+/* Counts the members past the third, so the row never grows past three faces. Tracks the avatar
  * scale so it stays the same size as the circles beside it. */
 .logger-more {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: calc(20px * var(--avatar-scale)); height: calc(20px * var(--avatar-scale));
   padding: 0 5px; border-radius: 999px;
-  background: var(--accent-soft); color: var(--ink);
+  background: var(--accent-soft); color: var(--accent-strong);
   font-size: .72rem; font-weight: 700; line-height: 1;
 }
 /* The avatars and their caption on one line, on a trick page. */
 .loggers-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .tag a { color: inherit; }
+
+/* ---------- one dictionary entry ----------
+   Read as a short article rather than a stack of cards: a title block on the one strong rule in the
+   app - pink rather than black, so the trick is what stands out and not the line under it - then one
+   quiet strip of facts, then clearly headed sections. */
+/* Two gaps, not one. Everything that belongs to the trick itself - its name, the facts, the button
+   that adds it to your moves - sits in one group at the smaller gap, and the groups are separated by
+   the larger one. Reading down the page is then a matter of seeing three blocks rather than seven
+   equally spaced things, which is what "space it out" actually asks for: the old single 20px gap
+   gave the name and the page's last paragraph the same weight. */
+.entry { display: grid; gap: 30px; }
+.entry > *, .entry-hero > * { margin-top: 0; margin-bottom: 0; }
+.entry-hero { display: grid; gap: 18px; }
+.entry-head {
+  display: grid; gap: 8px;
+  padding-bottom: 16px; border-bottom: 2px solid var(--accent);
+}
+.entry-title { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; }
+.entry-title h1 { margin: 0; }
+.entry-head .lede { margin: 0; max-width: 60ch; }
+/* Three quiet tiles sharing hairlines, not three loud cards: the facts are context for the trick,
+   and the trick is what should be loud.
+   On a phone each fact is a line - the label at one end, its answer at the other - because three
+   tiles across a phone cannot hold a word like "Intermediate": the old auto-fit row fitted two and
+   pushed the third onto a line of its own, leaving a hole in the corner that read as a value that
+   had gone missing. Rows cannot fail that way, and every answer stays at the same left/right edge. */
+.entry-facts {
+  display: grid; gap: 1px; background: var(--line);
+  border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
+}
+.fact {
+  display: flex; flex-direction: row-reverse; justify-content: space-between;
+  align-items: baseline; gap: 12px; padding: 13px 16px; background: var(--surface);
+}
+.fact-value {
+  font: 700 1.2rem/1.2 var(--sans); letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+}
+.fact-label {
+  color: var(--muted); font-size: .66rem; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+}
+/* Once there is room, the same three facts are the tiles they were designed as. */
+@media (min-width: 560px) {
+  .entry-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .fact { flex-direction: column; align-items: flex-start; gap: 3px; }
+}
 
 /* ---------- toast ---------- */
 
@@ -550,15 +1201,105 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
   position: fixed; left: 50%; bottom: 96px; z-index: 20;
   /* As wide as the auth column so a full sentence like "check your email" reads in a couple of
      lines instead of a tall egg. Short confirmations simply get a roomy box. */
-  width: min(440px, calc(100% - 32px)); padding: 14px 18px; border-radius: 10px;
-  background: var(--ink); color: var(--paper); font-weight: 600; text-align: center;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, .26);
+  width: min(440px, calc(100% - 32px)); padding: 14px 18px; border-radius: var(--radius-sm);
+  background: var(--bar); color: var(--bar-ink); font-weight: 700; text-align: center;
+  box-shadow: 0 12px 30px rgb(0 0 0 / 18%);
   opacity: 0; transform: translate(-50%, 16px); pointer-events: none;
   transition: opacity .2s, transform .2s;
 }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
-#toast.error { background: #a3261f; color: #fff; }
+#toast.error { background: var(--danger); color: var(--bar-ink); }
 @media (min-width: 701px) { #toast { bottom: 32px; } }
+
+/* ---------- community difficulty (levels) ---------- */
+
+/* The badge in a page head or a dictionary row: what the members who answered said, and how many of them
+   agree. The three levels run quiet grey -> hot pink -> deep plum, the same ramp as the move states
+   above, so a level reads the same in light and dark and in the same direction a dancer expects.
+   The top of the ramp is a colour now rather than a black slab, which is what keeps the hardest
+   thing on a dictionary row from being a chip about a trick nobody found hard. */
+.level-badge { background: var(--accent-soft); color: var(--accent-strong); }
+.badge.level-beginner     { background: var(--lvl1-bg); color: var(--lvl1-fg); }
+.badge.level-intermediate { background: var(--lvl2-bg); color: var(--lvl2-fg); }
+.badge.level-advanced     { background: var(--lvl3-bg); color: var(--lvl3-fg); }
+
+/* Voting: the pills are the same .seg radio group the move form uses, so they need nothing here
+   beyond a little breathing room. */
+.level-pick .seg { margin-bottom: 4px; }
+/* The three answers are one track of three equal parts, not three pills left to wrap. Left alone
+   they wrapped to two rows - Beginner and Intermediate on the first, Advanced alone under them -
+   so the question "how hard is this?" arrived looking like a broken row. Equal parts is complete at
+   every width: a long word wraps inside its own pill, and because the row is a grid all three stay
+   the same height when it does. */
+.level-pick .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.level-pick .seg label { display: flex; }
+.level-pick .seg label span { flex: 1; justify-content: center; padding: 0 8px; text-align: center; }
+.level-pick small { color: var(--muted); }
+
+/* A section drawn as its own panel, so it is visibly a separate thing from the section above it:
+   the community's answer, and the clips on a trick. `.panel` is the general form and the trick
+   page's level card is one of them - the two must stay the same box, or the page grows a section
+   that does not line up with its neighbour. */
+.level-card, .alias-card, .parts-card, .section.panel {
+  padding: 18px; border: 1px solid var(--line);
+  border-radius: var(--radius); background: var(--surface);
+}
+.level-card h2 { margin-bottom: 10px; }
+
+/* Also known as: the nicknames members have filed for one trick, as the same chips an entry or exit
+   is drawn as - they are the same kind of thing, a short name a dancer typed - with a × on the ones
+   this reader may take off. The lead on a nickname is the name itself, so the × is inside the chip
+   rather than beside it. */
+.alias-card .chips { margin: 12px 0 0; }
+.alias-chip { padding-right: 5px; }
+/* The form under the chips is the last thing in the card, and the card's own padding is the gap. */
+.alias-card .inline-form,
+.parts-card .inline-form { margin: 16px 0 0; }
+
+/* Entries & exits, gathered from every move of this trick: two short lists of the same chips, each
+   with its own small heading, because "what do people get into this from" and "what do they get out
+   into" are different questions with different answers. */
+.parts-title {
+  margin: 16px 0 0; color: var(--muted); font: 700 .72rem/1.2 var(--sans);
+  letter-spacing: .12em; text-transform: uppercase;
+}
+.parts-title + .chips { margin-top: 8px; }
+/* The number of members who said it, on the chip: quieter than the name, so a common entry does not
+   shout over the trick it belongs to. */
+.chip-count {
+  padding: 0 6px; border-radius: 999px;
+  background: var(--surface); color: var(--muted); font-size: .72rem; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.level-card .level-pick { margin-bottom: 6px; }
+
+/* One row per level: name, bar, share, number of votes. The bar is a track with a fill, so the
+   same markup reads as "nothing yet" at 0% without a special case. The bars are only drawn once
+   somebody has answered at all; see levelSection() in app.js. */
+.level-bars { display: grid; gap: 10px; margin: 16px 0 4px; }
+.level-row {
+  display: grid; grid-template-columns: 6.5rem 1fr 2.75rem 4.5rem;
+  align-items: center; gap: 10px; font-size: .85rem;
+}
+.level-name { font-weight: 700; }
+.level-track {
+  display: block; height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden;
+}
+.level-fill { display: block; height: 100%; border-radius: 999px; background: var(--muted); }
+.level-fill.level-beginner     { background: var(--lvl1-fill); }
+.level-fill.level-intermediate { background: var(--lvl2-fill); }
+.level-fill.level-advanced     { background: var(--lvl3-fill); }
+.level-pct { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.level-count { white-space: nowrap; text-align: right; color: var(--muted); }
+/* No mark on the leading row. A tick after the level most members chose read as a tick against the
+ * level *you* chose - the two are usually the same, and the one person it misleads is the one who
+ * voted differently and now thinks the app has agreed with the room. The numbers on the row say
+ * which level is ahead, and they say it without being read as a verdict on your own answer. */
+
+@media (max-width: 420px) {
+  .level-row { grid-template-columns: 5.5rem 1fr 2.5rem; }
+  .level-count { display: none; }   /* the share is the answer; the count is the detail */
+}
 
 /* ---------- misc ---------- */
 
@@ -568,7 +1309,7 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
 
-.file-warning { display: none; padding: 12px 16px; background: #fff3cd; color: #4a3500; font-size: .9rem; }
+.file-warning { display: none; padding: 12px 16px; background: var(--accent-soft); color: var(--accent-strong); font-size: .9rem; }
 .no-server .file-warning { display: block; }
 
 @media (prefers-reduced-motion: reduce) {

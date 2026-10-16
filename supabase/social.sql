@@ -12,7 +12,7 @@
 -- The year a dancer started pole. Shown in the app as "Poler since 2021".
 -- The column keeps the name poling_since: a column name cannot contain a space, and renaming one
 -- that already holds data would mean a migration for no visible gain. The app maps it to the words
--- dancers read, which is where "Poler" lives.
+-- members read, which is where "Poler" lives.
 alter table public.profiles add column if not exists poling_since integer;
 
 -- The chosen avatar, or null for the generated letter avatar. It holds one of the preset keys from

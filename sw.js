@@ -1,6 +1,6 @@
 /* Service worker: caches the app shell so the app opens offline.
  * Bump CACHE whenever you change any file below, or users keep the old copy. */
-const CACHE = 'mypolemagazine-v5';
+const CACHE = 'mypolemagazine-v45';
 const CDN = 'https://esm.sh';   // the Supabase client is imported from here
 const SHELL = [
   './',
@@ -35,7 +35,14 @@ self.addEventListener('activate', (event) => {
 
 /* Network first, cache second. The cache is what makes the app open offline, but a network
  * first strategy means edits show up on reload while you are developing - with the old
- * cache first version you had to bump CACHE or you kept seeing the previous build. */
+ * cache first version you had to bump CACHE or you kept seeing the previous build.
+ *
+ * For our own files, "network first" has to mean the network: a plain fetch() is allowed to answer
+ * out of the browser's HTTP cache, and that is how a release ends up serving the new app.js beside a
+ * ten-minute-old store.js. Two halves of different builds crash the moment one of them calls
+ * something the other has never exported. cache: 'no-store' asks the server for the file itself, so
+ * a reload always lands on one whole build. The CDN is left to the HTTP cache on purpose: its URLs
+ * carry a version and its payload is large, so there is nothing stale to gain by re-fetching it. */
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
@@ -47,7 +54,7 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith((async () => {
     try {
-      const res = await fetch(request);
+      const res = await (isOurs ? fetch(request, { cache: 'no-store' }) : fetch(request));
       if (res.ok) {
         const copy = res.clone();
         caches.open(CACHE).then((cache) => cache.put(request, copy)).catch(() => {});

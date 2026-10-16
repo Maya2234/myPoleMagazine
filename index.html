@@ -5,10 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>myPoleMagazine</title>
   <meta name="description" content="Log your pole moves, track your progress and standarized trick naming across the community.">
-  <meta name="theme-color" content="#1c1220">
+  <meta name="theme-color" id="theme-color" content="#ffffff">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <!-- Light, dark, or this device's own setting, applied before the first paint so a dancer who chose
+       dark never sees a white flash. The choice is a device preference, not account data; the key is
+       repeated in js/app.js (THEME_KEY) and the two must match. -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('mypolemagazine-theme');
+        var dark = saved === 'dark' || (saved !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+        if (saved === 'dark' || saved === 'light') document.documentElement.dataset.theme = saved;
+        var meta = document.getElementById('theme-color');
+        if (meta) meta.setAttribute('content', dark ? '#08080a' : '#ffffff');
+      } catch (e) { /* no localStorage: the stylesheet's own media query decides, which is right anyway */ }
+    })();
+  </script>
   <link rel="stylesheet" href="css/style.css">
   <!-- ES modules and service workers don't run from file://, so flag it early. -->
   <script>if (location.protocol === 'file:') document.documentElement.classList.add('no-server');</script>
