@@ -391,7 +391,7 @@ function followBars(lists, { own = false } = {}) {
   return html`<div class="follow-bars">
     ${bar('Followers', lists.followers, {
       note: own
-        ? 'members who follow you. Removing one takes their follow back off; they can follow you again.'
+        ? 'members who follow you.'
         : 'members who follow them.',
       /* The button is the profile owner's, so somebody looking at another dancer's profile reads the
        * list and nothing more. */
@@ -399,12 +399,12 @@ function followBars(lists, { own = false } = {}) {
       empty: own ? 'Nobody follows you yet.' : 'Nobody follows them yet.',
     })}
     ${bar('Friends', lists.friends, {
-      empty: 'No friends yet. When you and another dancer follow each other, they appear here.',
+      empty: 'No friends yet.',
     })}
     ${bar('Following', lists.following, {
-      note: 'members this account follows who have not followed back yet.',
+      note: 'members this account follows',
       empty: own
-        ? 'You are not following anyone yet. Find members on the Community tab.'
+        ? 'You are not following anyone yet.'
         : 'Not following anyone yet.',
     })}</div>`;
 }
@@ -1134,8 +1134,7 @@ function mediaSection({ title, hint, rows, note, canUpload, me, panel = false })
           <button type="button" class="btn small" id="media-add">+ Add photo or video</button>
           <br>
         </div>` : ''}
-        <span>   <span>
-         <span class="muted upload-note">JPG, PNG, WebP, GIF or MP4/WebM/MOV, up to ${megabytes(store.MAX_UPLOAD_BYTES)} MB each.</span>
+      ${canUpload ? html`<span class="muted upload-note">JPG, PNG, WebP, GIF or MP4/WebM/MOV, up to ${megabytes(store.MAX_UPLOAD_BYTES)} MB each.</span>` : ''}
 
     </div>`;
 }
@@ -2182,7 +2181,6 @@ async function viewCommunity(query) {
    * short and the panel below names the contents in full. */
   show(html`
     <div class="page-head">
-      <div><p class="eyebrow">Community</p><h1>${tab === 'members' ? 'Members' : 'Activity'}</h1></div>
     </div>
     <div class="seg seg-tabs" role="group" aria-label="What to show">
       <button type="button" class="seg-btn" data-tab="feed" aria-pressed="${tab === 'feed'}">Activity</button>
@@ -2209,7 +2207,7 @@ async function drawFeed() {
 
   body.innerHTML = String(html`
     <div class="panel-head">
-      <h2 class="subhead">Community updates</h2>
+      <h2 class="subhead">Updates</h2>
       ${store.socialEnabled() ? html`
         <div class="seg seg-sm" role="group" aria-label="Whose posts to show">
           <button type="button" class="seg-btn" data-feed="all" aria-pressed="${feedFilter === 'all'}">Everyone</button>
@@ -2280,7 +2278,6 @@ async function drawmembers() {
 
   body.innerHTML = String(html`
     <div class="filter-bar">
-      <label class="set-label" for="member-search">Search</label>
       <div class="search-field">
         ${searchIcon}
         <input id="member-search" type="search" aria-label="Search members by name or studio" autocomplete="off" value="${memberQuery}">
@@ -2310,11 +2307,13 @@ async function drawmembers() {
         const studio = store.studioOf(u);
         const place = studio ? store.studioLabel(studio) : (u.city ?? '');
         return html`<li class="row">
-          <a class="feed-who" href="#/user/${u.id}">${avatarOf(u, 'avatar-sm')}</a>
-          <div class="row-main">
-            <strong><a class="entry-link" href="#/user/${u.id}">${u.username}</a></strong>
-            <span class="muted">${plural(sum.total, 'move')} logged${place ? ` · ${place}` : ''}${u.polingSince ? ` · Poler since ${u.polingSince}` : ''}</span>
-          </div>
+          <a class="member-card-link" href="#/user/${u.id}">
+            <span class="feed-who">${avatarOf(u, 'avatar-sm')}</span>
+            <div class="row-main">
+              <strong><span class="entry-link">${u.username}</span></strong>
+              <span class="muted">${plural(sum.total, 'move')} logged${place ? ` · ${place}` : ''}${u.polingSince ? ` · Poler since ${u.polingSince}` : ''}</span>
+            </div>
+          </a>
           ${store.socialEnabled() ? html`<div class="actions">
             <button type="button" class="btn small ${following ? '' : 'primary'}" data-follow="${u.id}"
               aria-pressed="${following}">${following ? 'Following' : 'Follow'}</button>
@@ -2322,7 +2321,7 @@ async function drawmembers() {
         </li>`;
       })}
     </ul>` : html`<div class="empty"><p>${q
-      ? 'No one matches that search.' : 'No other members yet.'}</p></div>`}
+      ? 'No users found' : 'No other members yet.'}</p></div>`}
     ${store.socialEnabled() ? '' : html`<p class="muted fineprint">Following needs
       <code>supabase/social.sql</code> run once in the Supabase SQL editor.</p>`}`);
     wireFollowActions(drawmembers);
@@ -2442,7 +2441,6 @@ async function viewStudio(id) {
   /* A failure here is the ordinary way to find out the studios file has not been run, so the page
    * carries on and simply has nobody to list. */
   const members = await store.membersAtStudio(studio.id).catch(() => []);
-  const others = members.filter((u) => u.id !== me.id);
   const links = store.instagramEnabled() ? store.listStudioInstagrams(studio.id) : [];
 
   /* Whoever contributed a handle may be nobody on this page - anyone signed in can add one - so their
@@ -2488,16 +2486,12 @@ async function viewStudio(id) {
         <button class="btn primary" type="submit">Add account</button>
       </form>`}
 
-    <!-- The heading is the count, because that is the question this section answers - how many
-         members call this place home - and the list underneath is who they are. -->
+    <!-- The heading is the count; linked avatars show who has listed this studio. -->
     <h2 class="subhead">${plural(members.length, 'member')}</h2>
-    ${!members.length
-      ? '' : members.some((u) => u.id === me.id)
-        ? html`<p class="muted subnote">You train here too.</p>`
-        : html`<p class="muted subnote">Members who have listed this studio as somewhere they train.</p>`}
-    ${others.length ? html`<ul class="list">${others.map((u) => personRow(u))}</ul>`
-      : html`<div class="empty"><p>${members.length
-        ? 'Nobody else has picked this studio yet.' : 'Nobody has picked this studio yet.'}</p></div>`}
+    ${members.length ? html`<div class="studio-members" role="group" aria-label="Studio members">
+      ${members.map((u) => html`<a href="#/user/${u.id}" title="${u.username}"
+        aria-label="${u.username}">${avatarOf(u, 'avatar-sm')}</a>`)}
+    </div>` : html`<div class="empty"><p>Nobody has picked this studio yet.</p></div>`}
   `);
 
   $('#studio-link-form')?.addEventListener('submit', (e) => {
@@ -2585,10 +2579,6 @@ let openEditor = null;
  * is closed. */
 let studioDraft = null;
 
-/* The value of the "Add a studio I cannot find" choice in the studio chooser. A sentinel rather than a
- * real id, because that choice selects no studio: it opens the two boxes that add one. */
-const ADD_STUDIO = '__add-studio';
-
 async function viewAccount() {
   setTitle('Account');
   const me = store.currentUser();
@@ -2649,7 +2639,7 @@ async function viewAccount() {
         <a class="link-row" href="#/support">
           ${supportIcon}
           <span><strong>Contact support</strong>
-            <small class="muted">Something broken, or a question about your account?</small></span>
+            <small class="muted">Comments, questions, complaints or concerns</small></span>
           ${chevronIcon}
         </a>
       </li>
@@ -2670,7 +2660,7 @@ async function viewAccount() {
         <a class="link-row" href="#/settings">
           ${settingsIcon}
           <span><strong>Settings</strong>
-            <small class="muted">Appearance, downloading your moves, closing your account</small></span>
+            <small class="muted">Appearance, download data, delete account</small></span>
           ${chevronIcon}
         </a>
       </li>
@@ -2749,10 +2739,9 @@ async function viewAccount() {
 
     /* Only the studios that are not already listed, so the chooser cannot offer a duplicate. */
     pick.innerHTML = String(html`
-      <option value="">Add a studio…</option>
+      <option value="" disabled selected>Add a studio…</option>
       ${studios.filter((s) => !studioDraft.includes(s.id))
-        .map((s) => html`<option value="${s.id}">${store.studioLabel(s)}</option>`)}
-      <option value="${ADD_STUDIO}">+ Add a studio</option>`);
+        .map((s) => html`<option value="${s.id}">${store.studioLabel(s)}</option>`)}`);
     const row = $('#studio-add-row');
     if (row) row.hidden = true;
   };
@@ -2779,17 +2768,16 @@ async function viewAccount() {
     }
   });
 
-  /* Picking a studio from the list adds it at once - there is no second button. Choosing "Add a studio I
-   * cannot find" opens the two boxes that add one instead. */
+  /* Picking a studio from the list adds it at once. A separate button opens the fields for adding one
+   * that is not in the directory. */
   $('#studio-pick')?.addEventListener('change', (e) => {
     const picked = e.target.value;
-    if (picked === ADD_STUDIO) {
-      $('#studio-add-row').hidden = false;
-      $('#studio-name').focus();
-      return;
-    }
     if (picked && !studioDraft.includes(picked)) studioDraft = [...studioDraft, picked];
     drawStudios();
+  });
+  $('#studio-add-toggle')?.addEventListener('click', () => {
+    $('#studio-add-row').hidden = false;
+    $('#studio-name').focus();
   });
 
   /* Adding a studio puts it in the shared directory and puts it in the list here; the form's own Save
@@ -2898,6 +2886,7 @@ function profileEditor(me, thisYear) {
             <ul class="studio-draft" id="studio-draft" aria-labelledby="studios-label"></ul>
             <div class="field-row">
               <select id="studio-pick" aria-label="Pick a studio to add"></select>
+              <button type="button" class="btn small" id="studio-add-toggle">Add a studio</button>
             </div>
             <div class="field-row" id="studio-add-row" hidden>
               <input type="text" id="studio-name" maxlength="80" placeholder="Name of the studio">
@@ -2952,16 +2941,15 @@ function viewSettings() {
    * one of them until you actually read it, which is what "equal groupings" buys. Support used to be
    * a fourth group here and has moved to the profile, where a dancer actually looks for it. */
   show(html`
+    ${backLink('#/account', 'Back')}
     <div class="page-head">
       <div><p class="eyebrow">Account</p><h1>Settings</h1></div>
     </div>
-    <p class="lede">How the app looks, your data, and the way out.</p>
 
     <div class="set-grid">
       <section class="set-card">
         <h2 class="set-title">Appearance</h2>
-        <p class="set-help">System follows this device. A choice here is remembered on this device
-          only.</p>
+        <p class="set-help">Applies to his device only</p>
         <div class="seg" role="group" aria-label="Colour theme">
           ${THEMES.map((t) => html`<button type="button" class="seg-btn" data-theme-pick="${t.value}"
             aria-pressed="${pref === t.value}">${t.label}</button>`)}
@@ -2970,8 +2958,7 @@ function viewSettings() {
 
       <section class="set-card">
         <h2 class="set-title">Your data</h2>
-        <p class="set-help">Moves, notes, entries, exits and collections, as one JSON file. Photos and
-          videos stay with their moves.</p>
+        <p class="set-help">Moves, notes, entries, exits, collections, and media as one JSON file.</p>
         <div class="set-actions">
           <button type="button" class="btn" id="export">Download my moves (JSON)</button>
         </div>
@@ -2979,8 +2966,7 @@ function viewSettings() {
 
       <section class="set-card">
         <h2 class="set-title">Delete my account</h2>
-        <p class="set-help">Your moves, collections, uploads and the tricks you suggested that are
-          still waiting for review go with it. Tricks that were approved stay in the dictionary.
+        <p class="set-help">
           Type your username to confirm.</p>
         <div class="set-actions">
           <input type="text" id="confirm-name" placeholder="${me.username}" autocomplete="off"
@@ -3261,7 +3247,7 @@ function journalDrawer() {
         <p class="journal-day"><time id="journal-day"></time></p>
         <label class="field"><span>What did you work on?</span>
           <textarea name="body" id="journal-body" rows="4" maxlength="2000" required
-            placeholder="e.g. Spin drills, 20 minutes of climbs, chair work"></textarea>
+            placeholder="e.g. flips, inverts, a combo, etc..."></textarea>
         </label>
         <div class="actions"><button type="submit" class="btn primary">Add entry</button></div>
       </form>
