@@ -97,11 +97,11 @@ const UNRATED = 'unrated';
  * as the tooltip when the dashes are hovered, and in the accessible name - so nothing is lost, it is
  * only no longer said twice. */
 const diffMeter = (n) => {
-  if (n === UNRATED) return html`<span class="diff-unrated" title="Nobody has rated this trick yet">Unrated</span>`;
+  if (n === UNRATED) return html`<span class="diff-unrated" data-tip="Nobody has rated this trick yet">Unrated</span>`;
   const value = Math.min(5, Math.max(1, Number(n) || 3));
   const label = store.difficultyLabel(value);
   const said = `Difficulty ${value} of 5: ${label}`;
-  return html`<span class="diff" role="img" aria-label="${said}" title="${said}">
+  return html`<span class="diff" role="img" aria-label="${said}" data-tip="${said}">
     <span class="diff-dots" aria-hidden="true">${
       [1, 2, 3, 4, 5].map((i) => html`<i class="${i <= value ? 'on' : ''}"></i>`)}</span>
   </span>`;
@@ -225,6 +225,10 @@ const chevronIcon = html`<svg viewBox="0 0 24 24" width="18" height="18" fill="n
 const crossIcon = html`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>`;
+
+const trashIcon = html`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`;
 
 const settingsIcon = html`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -466,17 +470,18 @@ function renderNav(section) {
     ['community', '#/community', 'Community'],
   ];
   if (me.isAdmin) items.push(['review', '#/review', 'Review']);
-  items.push(['account', '#/account', 'Account', profileIcon]);
   const pending = store.pendingCount();
-  nav.innerHTML = items.map(([key, href, label, icon]) => {
+  const link = ([key, href, label, icon]) => {
     const here = key === section ? raw('aria-current="page"') : '';
     const pill = key === 'review' && pending ? html`<span class="pill">${pending}</span>` : '';
     /* An item with an icon shows only the icon, so the label moves into an accessible name. */
     return icon
       ? String(html`<a class="icon-only" href="${href}" ${here} aria-label="${label}" title="${label}">${icon}${pill}</a>`)
       : String(html`<a href="${href}" ${here}>${label}${pill}</a>`);
-  }).join('');
-  nav.insertAdjacentHTML('beforeend', '<button type="button" class="journal-open" id="journal-open" aria-haspopup="dialog">Journal</button>');
+  };
+  nav.innerHTML = items.map(link).join('')
+    + '<button type="button" class="journal-open" id="journal-open" aria-haspopup="dialog">Journal</button>'
+    + link(['account', '#/account', 'Account', profileIcon]);
   mountJournal();
 }
 const raw = (s) => new Safe(s);
@@ -1731,12 +1736,8 @@ async function viewdictionary() {
   const list = $('#dict-list');
   const draw = () => {
     const q = dictQuery.trim().toLowerCase();
-    /* Counted once per trick: the badge, the filter and the sort all read the same numbers. */
     const info = new Map(entries.map((e) => [e.id, store.entryLevel(e.id)]));
 
-    /* A trick answers to its own name and to every nickname filed for it. Which nickname matched is
-     * remembered, because a row that appears under a search for a word it does not contain has to say
-     * where the word came from. */
     const matchedAlias = new Map();
     let rows = entries.filter((e) => {
       const hit = entryMatch(e, dictQuery);
@@ -1745,8 +1746,6 @@ async function viewdictionary() {
     });
     if (dictLevel !== 'any') rows = rows.filter((e) => info.get(e.id).lead === dictLevel);
 
-    /* Sorting by level means sorting by the average answer. A trick nobody has marked has no
-     * average, so it goes last whichever way you sort rather than looking easiest by default. */
     const byAverage = (dir) => (a, b) => {
       const x = info.get(a.id).average;
       const y = info.get(b.id).average;
@@ -1762,9 +1761,6 @@ async function viewdictionary() {
 
     list.innerHTML = rows.length ? rows.map((e) => {
       const linked = mineByEntry.get(e.id);
-      /* One line, or two when a search matched a nickname. Nobody's face here: the card names the trick,
-       * and the members who log it are answered on that name's own page. The level shows as the dashes
-       * (the average vote, scaled to five), and a trick nobody has rated shows none. */
       const avg = info.get(e.id).average;
       return String(html`<div class="card">${trickPreview({
         href: `#/dictionary/${e.id}`,
@@ -2202,8 +2198,6 @@ async function viewCommunity(query) {
   else await drawmembers();
 }
 
-/* The newest public moves and uploads. Row level security decides what this dancer may see, which
- * is why nothing here filters by privacy: a private account's rows never arrive in the first place. */
 async function drawFeed() {
   const body = $('#community-body');
   const me = store.currentUser();
@@ -2211,12 +2205,8 @@ async function drawFeed() {
   const keep = (ownerId) => feedFilter === 'all' || mine.has(ownerId);
 
   const onlyMine = feedFilter === 'following';
-  /* Moves and uploads in one list, already ordered together by the store. */
   const activity = (await store.feedActivity()).filter((it) => keep(it.owner.id));
 
-  /* The audience filter is a filter, not a second navigation, so it rides beside the heading that
-   * names the list and is drawn smaller and quieter than the page's own control above it. One row,
-   * two questions, each answered in the place a dancer would look for it. */
   body.innerHTML = String(html`
     <div class="panel-head">
       <h2 class="subhead">Community updates</h2>
@@ -2270,8 +2260,6 @@ async function drawFeed() {
     feedFilter = btn.dataset.feed;
     drawFeed();
   }));
-  /* Reuses the media wiring: there is no upload control on the feed, only the remove button on
-   * your own posts. */
   wireMedia({
     parent: null,
     rows: activity.filter((it) => it.kind === 'media').map((it) => it.media),
@@ -2285,15 +2273,11 @@ const feedParentHref = (m) => (m.parent.kind === 'move' ? `#/move/${m.parent.id}
 /* The members list: the old Directory, now a tab, with avatars and a follow button each. */
 async function drawmembers() {
   const body = $('#community-body');
-  /* Everyone, A to Z by name. Case is ignored so "zoe" sits with "Zoe". */
   const all = (await store.listOtherUsers())
     .sort((a, b) => a.username.localeCompare(b.username, undefined, { sensitivity: 'base' }));
-  /* Summaries for public accounts, fetched together so the list doesn't wait one by one. */
   const sums = new Map(await Promise.all(all.filter((u) => !u.isPrivate)
     .map(async (u) => [u.id, await store.summary(u.id)])));
 
-  /* The search box is drawn once and only the rows beneath it are redrawn, so the field keeps its
-   * focus while someone types. */
   body.innerHTML = String(html`
     <div class="filter-bar">
       <label class="set-label" for="member-search">Search</label>
@@ -3320,11 +3304,11 @@ async function drawJournal() {
         <li class="journal-entry">
           <div class="journal-entry-head">
             <time datetime="${e.date}">${dayLabel(e.date)}</time>
-            <button type="button" class="btn small" data-journal-delete="${e.id}">Delete</button>
+            <button type="button" class="icon-btn plain" data-journal-delete="${e.id}" title="Delete entry" aria-label="Delete entry">${trashIcon}</button>
           </div>
           <p class="journal-entry-body">${e.body}</p>
         </li>`)).join('')
-    : '<li class="muted">Nothing logged yet. Your first entry will show here.</li>';
+    : '<li class="muted"></li>';
 }
 
 async function openJournal() {

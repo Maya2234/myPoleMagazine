@@ -1,13 +1,5 @@
--- Community activity: a record each time a public dancer adds a move to their goals (their Current
--- goals collection) or marks a move achieved.
---
--- Run this once in the Supabase SQL editor, after media.sql (it uses account_is_public from there)
--- and current-goals.sql (it uses categories.is_default). It is safe to run again.
---
--- Rows are written only by the triggers below, which run as the table owner. Dancers cannot insert,
--- change or delete activity rows directly. Only public accounts produce rows, and reading is limited
--- the same way: your own rows, or rows from a public account. So an account that goes private later
--- disappears from the feed.
+-- Community activity: public dancers adding a move to Current goals, or marking one achieved.
+-- Run after media.sql (account_is_public) and current-goals.sql (categories.is_default). Repeatable.
 
 create table if not exists public.activity (
   id uuid primary key default gen_random_uuid(),
@@ -26,7 +18,6 @@ drop policy if exists activity_read on public.activity;
 create policy activity_read on public.activity for select to authenticated
   using (user_id = auth.uid() or public.account_is_public(user_id));
 
--- A move is added to a goals collection: a row in move_categories pointing at a default collection.
 create or replace function public.record_goal_activity()
 returns trigger
 language plpgsql
@@ -50,8 +41,6 @@ create trigger activity_goal
   after insert on public.move_categories
   for each row execute function public.record_goal_activity();
 
--- A move becomes achieved: on insert already achieved, or changed to achieved from something else.
--- Moving it back and forth between achieved and something else records each time it is reached.
 create or replace function public.record_achieved_activity()
 returns trigger
 language plpgsql

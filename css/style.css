@@ -416,7 +416,7 @@ a.card:hover { border-color: var(--accent); }
 .badge.is-unrated { background: var(--surface-2); color: var(--muted); }
 /* A suggestion waiting for review, in a dictionary row: a pink asterisk instead of a word. The reason
    is in its tooltip, so the row itself stays quiet. */
-.pending-mark { flex: none; color: var(--accent-strong); font: 800 1.15rem/1 var(--sans); margin-left: 6px; }
+.pending-mark { flex: none; color: var(--accent-strong); font: 800 1.15rem/1 var(--sans); margin-left: 6px; cursor: default; }
 
 .badge-goal     { background: var(--goal-bg);     color: var(--goal-fg); }
 .badge-progress { background: var(--progress-bg); color: var(--progress-fg); }
@@ -438,12 +438,22 @@ a.card:hover { border-color: var(--accent); }
 .diff {
   display: inline-flex; align-items: center; min-width: 0; white-space: nowrap;
   /* A round hit area around the dashes, so hovering near them still shows the level. */
-  padding: 6px 8px; border-radius: 999px;
+  padding: 6px 8px; border-radius: 999px; cursor: default;
 }
-.diff:hover { background: var(--surface-2); }
+/* An instant tooltip, shown below the level: the native title attribute waits about a second before it
+   shows. The level is not a button, so it keeps the default cursor and no hover change. */
+.diff[data-tip], .diff-unrated[data-tip] { position: relative; }
+.diff[data-tip]::after, .diff-unrated[data-tip]::after {
+  content: attr(data-tip); position: absolute; top: calc(100% + 6px); left: 50%;
+  transform: translateX(-50%); padding: 4px 8px; border-radius: 6px; z-index: 10;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--line);
+  font-size: .75rem; font-weight: 600; white-space: nowrap; pointer-events: none;
+  opacity: 0; visibility: hidden; transition: none;
+}
+.diff[data-tip]:hover::after, .diff-unrated[data-tip]:hover::after { opacity: 1; visibility: visible; }
 .diff-unrated {
   display: inline-flex; align-items: center; white-space: nowrap;
-  padding: 1px 7px; border: 1px solid var(--line); border-radius: 999px;
+  padding: 1px 7px; border: 1px solid var(--line); border-radius: 999px; cursor: default;
   background: var(--surface-2); color: var(--muted); font-size: .62rem; font-weight: 600;
 }
 .diff-dots { display: inline-flex; gap: 2px; }

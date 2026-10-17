@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 /* supabase/functions/support/index.ts
  *
  * The contact form on #/support posts here, and this does two things with it: it writes the message

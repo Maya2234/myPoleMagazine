@@ -1593,8 +1593,7 @@ export async function removeStudioInstagram(id) {
  * query - but the merge belongs here rather than in the view, because the ordering is the whole
  * point of a feed and it should not depend on which screen is drawing it. `kind` says which of the
  * two shapes the item carries. */
-/* Recorded by the database when a public dancer adds a move to their goals or marks it achieved.
- * Only the rows the policies allow arrive, and a row whose move or owner can't be read is dropped. */
+/* Goal and achieved events written by the database triggers. */
 export async function feedEvents(limit = 24) {
   requireUser();
   const rows = must(await supabase.from('activity').select('*')
