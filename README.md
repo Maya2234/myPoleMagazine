@@ -41,8 +41,6 @@ Service Workers and reload.
 in with the email; the username is the public handle other members see. Confirming your email
 address is on in the Supabase project, so click the link before your first login.
 
-The old seeded demo logins (`juniper` / `pat` / `admin`) only exist if you recreated them in
-Supabase - accounts now live there, not in the browser.
 
 **Forgot a password?** The login screen links to a screen that emails a Supabase recovery link,
 and the link comes back to the app to set a new one. No SQL is involved - the only setup is in the
@@ -51,9 +49,8 @@ add that same origin to **Redirect URLs**, or Supabase refuses to send a dancer 
 screen reports the link as expired. A stale or already-used link says so and offers to send a
 fresh one rather than failing silently.
 
-**Something wrong, or locked out?** `#/support` - linked from the login screen and from the row under
-**Profile → Support** - is a contact form that needs no account, which is the point: a dancer who
-cannot get in is the one most likely to need it. Sending writes the message down in the app first
+**User Support** `#/support` - linked from the login screen and from the row under
+**Profile → Support** - is a contact form that needs no account. Sending writes the message down in the app first
 (`supabase/support.sql`, item 15 below) and emails it second through the `support` Edge Function,
 so a mail failure leaves a message an admin can still read rather than nothing at all. The form
 itself holds no address and no key. Where the mail lands is decided in that function: `SUPPORT_TO`,
