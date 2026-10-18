@@ -62,37 +62,28 @@ sender `onboarding@resend.dev`. Both are secrets on the function, not values in 
 | Story | Where |
 |---|---|
 | Track what you are working on | **Home** is your **Current goals** collection, created with your profile; add any of your moves to it - each one arrives as a card - and take one off with **Remove**. **Collections** for your own groupings (a move can be in several). The add panel names its three sources down the side of the box - one of your moves, a trick from the dictionary, a move that is not in the dictionary yet - and shows the one you pick, so the box is only ever as tall as the way in you are using; it closes on the cross in its corner rather than a Close button |
-| Say where a move has got to | Every card in the **Current goals** window, and a move's own page: **Not started**, **In progress** or **Achieved**, as a dropdown painted in the colour of the answer it holds. It writes the moment it changes, so there is no Save button to forget. A move nobody has said anything about reads **Not started** rather than nothing, which is the honest name for a move you have logged and not started working on. The status is *read* in the Current goals window only, so the Moves page stays a list of what you know rather than a board of what you are doing |
 | Detail page per move with entries, exits, combos | **Moves → a move**; add or edit with chips (type, press Enter), and a chip whose text is a dictionary trick's name links to that trick |
 | Photos and videos on a move | While logging it: "+ Add photo or video" in the move form, which uploads what you picked as soon as the move is saved, and lists the clips already on it when you edit |
 | Browse and share collections (standardized naming) | **Community → Members** → a dancer → their moves and collections; "Save to my goals" copies the name into your list and into your current goals |
-| See what the community is doing | **Community → Activity**, whose panel is **New moves & uploads**: the newest public moves and photos/videos. A move post is the same preview card the Moves page and the dictionary use - the name with its dashes, and who posted it when underneath - with the poster's avatar beside it; an upload keeps its picture. The view is one segmented control at the top of the page and the audience is a smaller switch beside that panel's heading - Everyone, or only the members you follow - so the two questions are answered in two different places |
+| Community Updates | **Community → Activity**, whose panel is **New moves & uploads**: the newest public moves and photos/videos. A move post is the same preview card the Moves page and the dictionary use - the name with its dashes, and who posted it when underneath - with the poster's avatar beside it; an upload keeps its picture. The view is one segmented control at the top of the page and the audience is a smaller switch beside that panel's heading - Everyone, or only the members you follow - so the two questions are answered in two different places |
 | Follow other members | **Community → Members**, or the button on a dancer's page; **Account** shows nothing to manage - a follow is yours to give and take back |
 | Show how long you have been Poler | **Account → Edit profile → Poler since** (a year), shown on your profile next to your avatar |
 | Pick an avatar | **Account → Edit profile → Avatar**: five pleaser photos, or your initial on one of the two brand colours - hot pink or black, picked stably from your name. The picker is behind Edit profile because a row of six circles is not worth scrolling past on every visit |
 | Register / login | Landing screen |
-| Pole dictionary, linked or newly suggested, admin review | **dictionary** to search and suggest; the move form auto-links on a name match; **Review** (admin only, once `supabase/admins.sql` has made someone an admin) approves or rejects. One queue lives there now - new tricks waiting to be published - and the count in the navigation is that queue's length |
-| Another name for a trick (standardized naming) | **dictionary → a trick → Also known as**: write down what members actually call it - a nickname, the word one studio uses, the description that never had a name - and the dictionary finds the trick by it. Any signed-in dancer may add one; whoever added it, or an admin, can take it off. Nothing is renamed and nothing is queued: the trick keeps the one name every move links to, and the other names sit under it where a search can reach them |
-| Find a trick by the name you know it by | The **dictionary**'s search box matches a trick's own name and every nickname filed under it, and the card that matched on one says which - "also called ...". The add-a-goal panel searches the dictionary the same way, so a dancer who types the name their studio uses gets the trick, not an empty list |
-| See how the community gets into a trick | **dictionary → a trick → Entries & exits**: every entry and exit members have written on their own moves of that trick, counted and gathered together, commonest first. A name that is itself a dictionary trick links to that trick's page, so a move description can be walked rather than read |
+| Pole dictionary | **dictionary** to search and suggest; the move form auto-links on a name match; **Review** (admin only, once `supabase/admins.sql` has made someone an admin) approves or rejects. One queue lives there now - new tricks waiting to be published - and the count in the navigation is that queue's length |
+| AKAs | **dictionary → a trick → Also known as**: write down what members actually call it - a nickname, the word one studio uses, the description that never had a name - and the dictionary finds the trick by it. Any signed-in dancer may add one; whoever added it, or an admin, can take it off. Nothing is renamed and nothing is queued: the trick keeps the one name every move links to, and the other names sit under it where a search can reach them |
+| search by AKAs| The **dictionary**'s search box matches a trick's own name and every nickname filed under it, and the card that matched on one says which - "also called ...". The add-a-goal panel searches the dictionary the same way, so a dancer who types the name their studio uses gets the trick, not an empty list |
 | Private accounts | **Account → Private account** |
 | Community difficulty | **dictionary → a trick**: mark it beginner, intermediate or advanced and see what share of members chose each; the **dictionary** page filters and sorts by level. The bars only appear once somebody has answered - until then there is nothing to show, so they are not drawn, and the panel says in words that nobody has marked it yet |
-| See how hard a trick is without opening it | The **dictionary**'s filter and sort read the community level for you - easiest first, hardest first, most answers first - but no level is printed beside a name: a number about a trick belongs on that trick's page, not against its name in a list whose job is to find names. A trick nobody has marked reads **Unrated** on its own page rather than showing a blank or a 0% |
 | Add a trick from the dictionary to your own moves | Every card in the **dictionary** carries **+ Add to My Moves** at the right of the trick's name, which opens the move form with the trick already linked to it - and reads **In your moves** once you have logged it, linking to your move. The button is on the card rather than appearing when you hover: the list is cards now, and a control that hides itself until a pointer arrives is one half the members never find |
-| Suggest a trick, and say how hard it is | **dictionary → Add a trick** opens a dialogue: the name is the only required answer, with an optional level and optional photos that attach to the trick itself. The level starts on **Unrated**, which is the honest answer for a trick nobody has an opinion about yet - one dancer picking a level is the first vote, not the verdict |
-| Read a trick at a glance | **dictionary → a trick** is a short article rather than a pile of cards: what the trick is and who logs it, then the facts worth having before you read anything else, then the community's difficulty, the names it goes by, how members get into and out of it, and the clips last |
-| Rate your own moves 1-5 | **Add or edit a move**: Beginner, Beginner+, Intermediate, Intermediate+, Advanced. It is your own rating, one per move, and it shows as five pink dashes at the far end of the name on every card that previews a move - the Moves page, the Current goals window and the Community feed. The dashes are the whole reading; the written level (*Intermediate*, say) is the tooltip when you hover them, and the accessible name a screen reader reads, so the level is there when it is asked for and never competes with the name it belongs to |
 | Light or dark mode | **Account → Settings → Appearance**: System follows this device's own setting, Light and Dark override it, and the choice is remembered on that device only |
-| Get your data out, or close your account | **Account → Settings** (`#/settings`): download your moves as JSON, or delete the account behind a type-your-username confirmation. The three groups on that screen are one shape each, so nothing there is louder than anything else until you read it |
+| Delete Account | **Account → Settings** (`#/settings`): download your moves as JSON, or delete the account behind a type-your-username confirmation. The three groups on that screen are one shape each, so nothing there is louder than anything else until you read it |
 | Ask for help, signed in or not | **Profile → Support** (`#/support`), also linked from the login screen: writes to the owner's inbox and needs no account. The message is written down in the app before any email is attempted, so a mail outage cannot lose it. It sits on the profile rather than in Settings, and logging out sits apart from both, past a rule |
 | Read what people send you (admin) | **Account → Support inbox** (`#/support/inbox`): every message the contact form has taken, newest first, each saying whether the email actually went, with a **Mark handled** toggle for the ones dealt with |
-| Find members who train where you do | **Account → the pencil beside your name → Home studios**: add every place you train, move them up and down with the arrows, or **+ Add a studio...** from the same list and give it its town. All optional, and **Community → Members** then filters to a studio and starts on your own - a dancer who trains in two places is found under both. There is no city field of your own: a studio already carries one, so a profile has nothing extra to keep true. A studio with no town shows as just its name until someone adds one. A studio's name on a profile is a link to its own page |
-| A page per studio, and the accounts to follow | **Community → Members** → pick a studio → **Studio page**, or follow the studio's name on any profile: the members who have added it, counted in the heading, each with a follow button, and the Instagram accounts its members have added. Anyone signed in can add one; whoever added it, or an admin, can take it off |
-| Show your Instagram | **Account → the pencil → Instagram**: optional, and just the @ name - your profile then links to instagram.com/yours. A studio's accounts live on the studio's page rather than on a profile, because a studio usually has more than one (`supabase/instagram.sql`) |
+| Studio pages and studio members| **Community → Members** → pick a studio → **Studio page**, or follow the studio's name on any profile: the members who have added it, counted in the heading, each with a follow button, and the Instagram accounts its members have added. Anyone signed in can add one; whoever added it, or an admin, can take it off |
+| Connect your Instagram to your profile | **Account → the pencil → Instagram**: optional, and just the @ name - your profile then links to instagram.com/yours. A studio's accounts live on the studio's page rather than on a profile, because a studio usually has more than one (`supabase/instagram.sql`) |
 
-Not built (per our scoping): congratulating someone on a new move, and the instructor view.
-
-## How it is organized
+## Organization
 
 ```
 index.html              page shell
@@ -104,21 +95,13 @@ sw.js                   service worker (offline app shell)
 manifest.webmanifest    makes it installable
 icons/                  app icons
 icons/avatars/          the built-in avatar photos
-supabase/               the SQL the project needs (nothing here is run by the app)
+supabase/               SQL run for project database, not used by application
 supabase/functions/     Edge Functions - the support form's mail sender, and the reason
                         the email provider's key is never in a file the browser can read
 tools/check-palette.mjs checks the stylesheet; see "Checking the palette" below
 ```
 
-**The one design decision that matters:** `app.js` never touches storage. Every action goes through a function in `store.js` (`saveMove`, `submitEntry`, `reviewEntry`, `addEntryAlias`...). That is why swapping localStorage for Supabase only meant rewriting `store.js` and adding `await` in the screens: the router and the views kept their shape. Every store function that talks to the database is async, so every call site in `app.js` awaits it.
-
-The rules themselves - you can only edit your own moves, private accounts are invisible, pending dictionary suggestions are only visible to their submitter and admins - now live in Postgres row-level security policies in the Supabase project rather than in this repo.
-
 **Light, dark, or the device's own choice.** There is no second stylesheet. The whole palette is six colours in `css/style.css` - black, white, hot pink and three greys - and a theme is a second set of values for the same token names. Which set applies is decided by `html[data-theme="light"|"dark"]`, which **Account → Settings → Appearance** writes and remembers in `localStorage`; when no choice has been made the attribute is absent and a `prefers-color-scheme` media query decides, which is what makes "System" mean the same thing as having never chosen. A small inline script in `index.html` applies the saved value before the first paint, so a dancer who chose dark never sees a white flash. The one cost of doing it this way is that the light values appear twice in the file and the dark values twice more, because a media query cannot be reused for an attribute selector -the file says so where it matters, and the two copies of each set have to be changed together.
-
-**Two hot pinks, and the rule that keeps them apart.** `--accent` is the pink you *see*; `--accent-strong` is the pink you *read*. They are not interchangeable. `--accent` (#ff2d85 on light) is a fill - a button, an active pill, a meter bar, a selected row's border on a neutral card - and a dark label or a neutral background sits on it. `--accent-strong` (#a8004a on light) is ink, for anything legible against a light background: links, the eyebrow labels, the count pill. The same pink cannot do both jobs: `--accent` as text on white is only ~3.5:1, and `--accent-strong` as a button fill would hide its own label. There is a third case that is easy to miss - a shape drawn on a *pink* fill rather than a neutral one. There the edge has to be `--accent-strong` too, because `--accent` on `--accent-soft` is 2.99:1 and the edge stops reading as an edge; the rule is therefore decided by the background, not by the element. Ten rules do this - among them the open follow bar, a ticked checkbox row, the pressed icon button and the chosen source in the add-a-goal rail - and `tools/check-palette.mjs` fails the build if one of them draws an `--accent` edge on that fill.
-
-**Checking the palette.** Two mistakes are possible in that duplicated token set and neither is visible in a browser: a colour changed in three of the four blocks, and a text pair that has slipped below WCAG AA. `node tools/check-palette.mjs` covers both - it asserts the light copies match each other and the dark copies match each other, that light and dark declare the same colour names, that every text pair the app renders clears 4.5:1 in each theme, that a shape on a neutral surface clears 3:1, and that nothing draws the low-contrast `--accent` on an `--accent-soft` fill. It reads the real `css/style.css`, prints the measured ratio for every pair, and exits non-zero on the first problem, so it is safe to run before a commit. The syntax of the scripts is a separate check: `node --check js/app.js`, `node --check js/store.js`, `node --check sw.js`.
 
 **Two difficulty scales, deliberately not the same thing.** A move's own `difficulty` is one dancer's rating of one dancer's move: a number 1-5, shown as *Beginner, Beginner+, Intermediate, Intermediate+, Advanced*, owned by whoever logged it and changeable whenever it feels different. A trick's community level is the `entry_levels` table in the dictionary, where every member's answer counts and `levels.sql` keeps the individual answers private while publishing only the totals. The screens never mix them: five pink dashes on your own move, with the written level on them as a tooltip, and the community's answer on a shared trick as a level in the facts strip with three bars under it - and no bars at all until somebody has answered, with the fact strip and the panel both reading *Unrated* until then.
 
@@ -128,17 +111,15 @@ The rules themselves - you can only edit your own moves, private accounts are in
 
 ```
 profiles            id, username, is_private, is_admin, poling_since, avatar, city,
-                    home_studio_id, instagram   (the last four are optional; home_studio_id is the
-                    older single studio, still written while profile_studios is missing)
-studios             id, name, city, created_by           (the shared studio directory)
+                    home_studio_id, instagram
+studios             id, name, city, created_by
 profile_studios     user_id, studio_id, position, added_at  (where a dancer trains, in their order)
 moves               id, user_id, name, status, difficulty, entries[], exits[], combos[],
                     notes, dictionary_entry_id (optional), achieved_at, updated_at
-categories          id, user_id, name, is_default           (your collections)
-move_categories     move_id, category_id                    (a move can be in several)
+categories          id, user_id, name, is_default
+move_categories     move_id, category_id
 dictionary_entries  id, name, status (approved | pending), submitted_by
 entry_aliases       id, dictionary_entry_id, alias, added_by, created_at
-                    (the other names a trick goes by: one row per nickname, added by any member)
 entry_edits         id, dictionary_entry_id, submitted_by, proposed_name, note,
                     status (pending | approved | rejected), reviewed_at, reviewed_by
                     (retired: nothing reads or writes it any more, and nobody can file one)
@@ -151,38 +132,9 @@ support_messages    id, name, email, subject, message, username, emailed, email_
                     handled, created_at
 ```
 
-**The screens say `dictionary`, which is the word the database has always used.** The trick list spent a
-while being called the *Bible* in the app, and the wording has since been brought back to the schema's
-own word: the screens, the `#/dictionary` route and every label a dancer reads say *dictionary*, and
-nothing in Postgres had to move for that. The direction matters, because it is the reverse of the usual
-mistake - a find-and-replace that renames the tables to match the screens is exactly what breaks these
-pages, since the app then asks for something that does not exist (`Could not find the table
-'public.Bible_entries'`). If you do want the tables renamed, rename them in Postgres first (`alter table
-... rename to ...`), then update every reference in one commit. Which tab a route lights up - and
-therefore which of an older link's names still lands somewhere real - is decided by the `SECTION` map in
-`app.js`, so that is the place to look when a link from before the rename goes nowhere.
-
-`status` on a move is `goal | progress | achieved`, and `achieved_at` records when it got there. Both are columns and both are part of the JSON export, and the app now shows and sets them: the three answers are labelled **Not started**, **In progress** and **Achieved** in `store.STATUSES`, and a dancer changes one with a dropdown on any card in the **Current goals** window or on a move's own page. The labels are wording rather than data - `goal` is what a freshly logged move has always stored, and nothing in Postgres moved - so a move you have logged and not started working on reads *Not started* instead of claiming to be a goal. Where the status is *read* is one screen: the Current goals window, which is the list the answer is about. `is_default` marks the one collection the home screen uses.
-
 **Two tables that arrived later, and both of them optional.** `entry_aliases` is where the other names a trick goes by live: one row per nickname, readable and addable by any signed-in dancer, and removable by whoever added it or an admin. That is what lets the dictionary's search box answer to the name a dancer's own studio uses - the row that matched says "also called ..." rather than appearing out of nowhere. `profile_studios` is where a dancer trains, one row per studio with the position they put it in, because plenty of dancers train in more than one place and a single column makes them pick a favourite and throw the rest away. Neither is needed to use the app: without `aliases.sql` a trick simply has one name, and without `home-studios.sql` a profile shows the one studio the older `home_studio_id` column holds.
 
-### What the Supabase project has to provide
-
-The SQL lives in your Supabase project, not in this repo. A few things have to be true, and each
-one fails in a way that looks like an app bug:
-
-1. **A `profiles` row per user.** A trigger on `auth.users` insert creates it, copying
-   `raw_user_meta_data ->> 'username'` into `profiles.username`. Without it, logging in succeeds
-   and then drops you back at the login screen - the app now names this case explicitly.
-2. **Table privileges for the `authenticated` role.** Privileges and row-level security are
-   different layers: a missing policy returns no rows, while a missing privilege throws
-   `permission denied for table ...`. If you hit that, run:
-
-   ```sql
-   grant usage on schema public to authenticated;
-   grant select, insert, update, delete on all tables in schema public to authenticated;
-   ```
-
+###SupaBase
 3. **Policies for the rules** (you can only edit your own moves, private accounts are invisible,
    pending suggestions only visible to their submitter and admins). Those live in `pg_policies`.
 4. **Optional: the signup availability check.** Running `supabase/signup-availability.sql` installs
@@ -260,23 +212,6 @@ service role key that Edge Functions are given. The message
     `supabase/support.sql` has been run but the function has, the form still sends and still
     emails - it simply has nowhere to write the copy down, and the inbox says so.
 
-    **No domain is needed for this to work, and there is nothing to pay.** The app is served
-    from GitHub Pages, and a `*.github.io` address cannot carry the DNS records a verified
-    domain needs - so verify-a-domain is not an option here, and happily it is not a
-    requirement either. Sign up to Resend *with `mayato223@gmail.com`* and leave the defaults
-    alone: the shared `onboarding@resend.dev` sender can only deliver to the address on the
-    Resend account, which is exactly the address this form writes to. The Free plan is $0
-    for 3,000 emails a month and 100 a day, which is far more than a contact form needs. Sign
-    up with any other address and every send comes back 403; the function says so on the page
-    rather than failing quietly. A domain changes only one thing - it lets the sender be at
-    your own domain instead of `onboarding@resend.dev`, via `SUPPORT_FROM`.
-
-    **Why not self-host a Resend clone on Amazon SES instead of using Resend?** Because the
-    free part of SES went away: as of 21 July 2026 new AWS accounts start on a paid SES plan,
-    with only a time-limited credit, and SES additionally requires a verified domain. A
-    self-hosted clone would mean paying AWS, buying a domain, and running a Postgres database
-    and a Next.js server forever - to replace a $0 account. Worth revisiting only if this ever
-    outgrows 100 messages a day or needs to mail addresses other than the owner's.
 
 12. **Studios and cities: `supabase/studios.sql`.** A `studios` table the app itself can add to,
     plus optional `city` and `home_studio_id` columns on `profiles`. The point is the one thing
@@ -378,7 +313,7 @@ select policyname, cmd, roles from pg_policies where schemaname = 'public';
 
 `dictEntryId` is optional on purpose: a dancer can log a move before it exists in the dictionary and link it later. Entries and exits are still text a dancer types on their own move - but a name that is a dictionary trick is linked to it wherever it appears, and a trick's own page gathers what every member wrote for that trick, counted and commonest first, which is the one question a single move's list can never answer. A full move graph - every entry and exit a link the dancer picks, rather than a name matched against the trick list - is the natural next step and would enable combo suggestions.
 
-## Honest limitations (good to say in your writeup)
+## Honest limitations
 
 - **The Supabase project is the security boundary.** `js/supabase.js` holds the project URL and the publishable key, which is meant to be public - so the row-level security policies in Supabase are what actually protect your data. This repo can be public because of them; loosen a policy and the data follows.
 - **Privacy rules are enforced in Postgres**, and `store.js` no longer repeats them. A missing policy shows up as an empty screen rather than an error, so check the Supabase logs when something looks absent.
@@ -419,10 +354,10 @@ select policyname, cmd, roles from pg_policies where schemaname = 'public';
   that row never belonged in it; a nickname is deleted row by row instead, and only by whoever wrote
   it or an admin. There is no history of either - a name that was taken off is simply gone.
 
-## Suggested next steps
+## Future Changes
 
-1. ~~**Backend:** Supabase gives you auth, Postgres and row-level security.~~ **Done:** accounts are Supabase Auth, data is Postgres, and the rules are RLS policies.
-2. ~~**Aliases:** add an `aliases` table (name, entry_id) so one entry collects several names. This is the heart of your standardization idea.~~ **Done:** `entry_aliases` (`supabase/aliases.sql`), with the dictionary's search box reading it - a trick answers to its own name and to every nickname members have filed for it.
-3. **Move graph:** make every entry and exit a link the dancer picks out of the dictionary rather than a name matched to it, which is what would let the app suggest combos.
-4. **Friends and activity feed**, then the instructor view as a permission on top of friends.
-5. **Native stores:** wrap the PWA with Capacitor if you ever need App Store / Play Store listings.
+1. Shared / Collaborative Collections, Class collections
+2. Messaging
+   
+## AI Experience and Protocol
+This appliction was wrote with the assistance of FreeBuff and Github Copilot. This was spec driven developed with several hours with of prompting and edits. Although AI was used to write specific features and files, there was very heavy manual editing and testing required. I am quite certain that the manual testing was necessary to achieve a high performance quality and ensure the application performs as expected.
