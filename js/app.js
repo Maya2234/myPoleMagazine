@@ -289,9 +289,6 @@ function followBars(lists, { own = false } = {}) {
     </details>`;
   return html`<div class="follow-bars">
     ${bar('Followers', lists.followers, {
-      note: own
-        ? 'members who follow you.'
-        : 'members who follow them.',
       canRemove: own,
       empty: own ? 'Nobody follows you yet.' : 'Nobody follows them yet.',
     })}
@@ -299,7 +296,6 @@ function followBars(lists, { own = false } = {}) {
       empty: 'No friends yet.',
     })}
     ${bar('Following', lists.following, {
-      note: 'members this account follows',
       empty: own
         ? 'You are not following anyone yet.'
         : 'Not following anyone yet.',
@@ -645,7 +641,7 @@ async function loadAddPanel(moves, target) {
 }
 
 function addPanelHtml(target, moves) {
-  const verb = target.isDefault ? 'Add to goals' : 'Add to collection';
+  const verb = target.isDefault ? 'Add to goals' : 'Add Moves';
   /* My Moves shows every move, not only the ones that could still be added. A list that hides what is
    * already in the collection answers "can I add this?" by omission, so a dancer hunting for a move
    * they are sure they logged finds nothing and assumes it is gone. Shown and disabled instead: the
@@ -1261,7 +1257,7 @@ async function viewMove(id) {
 
 //---------- chip input ----------
 
-function chipField(el, initial, label) {
+function chipField(el, initial, label, onChange = () => {}) {
   let items = [...initial];
   const input = document.createElement('input');
   input.type = 'text';
@@ -1296,6 +1292,7 @@ function chipField(el, initial, label) {
     });
     syncPlaceholder();
     el.append(input);
+    onChange(items.length > 0);
   };
 
   input.addEventListener('keydown', (e) => {
@@ -1318,15 +1315,34 @@ function chipField(el, initial, label) {
  * until the pencil beside its label is tapped. Nothing is thrown away in between - the control inside
  * is drawn once and the pencil only hides its buttons and its box to type in - so a half-typed entry
  * survives the pencil being closed again. */
-const lockedField = (label, control, id) => html`
+/* The one control beside a field's label: a + while the field is empty, so the way to start is the
+ * thing a dancer can see, and the pencil once there is something to edit. Both open and close the
+ * field the same way; only what the mark promises changes. */
+const fieldEditButton = (label, id, filled, controls = `f-${id}`) => html`<button type="button"
+  class="icon-btn plain" data-edit="${id}" aria-expanded="false" aria-controls="${controls}"
+  aria-label="${filled ? 'Edit' : 'Add'} ${label}"
+  title="${filled ? 'Edit' : 'Add'} ${label}">${filled ? pencilIcon : plusIcon}</button>`;
+
+const lockedField = (label, control, id, filled = false) => html`
   <div class="field" id="field-${id}" data-editing="off">
     <div class="field-head">
       <span class="label">${label}</span>
-      <button type="button" class="icon-btn plain" data-edit="${id}" aria-expanded="false"
-        aria-controls="f-${id}" aria-label="Edit ${label}" title="Edit ${label}">${pencilIcon}</button>
+      ${fieldEditButton(label, id, filled)}
     </div>
     ${control}
   </div>`;
+
+/* Swap that control as chips are added or removed. The label is read from the field, so the
+ * accessible name keeps matching the words on screen beside it. */
+const setFieldFilled = (id, filled) => {
+  const field = $(`#field-${id}`);
+  const btn = field?.querySelector('[data-edit]');
+  if (!field || !btn) return;
+  const label = field.querySelector('.field-head .label')?.textContent ?? '';
+  btn.innerHTML = String(filled ? pencilIcon : plusIcon);
+  btn.setAttribute('aria-label', `${filled ? 'Edit' : 'Add'} ${label}`);
+  btn.title = `${filled ? 'Edit' : 'Add'} ${label}`;
+};
 
 async function viewMoveForm(id, query) {
   const me = store.currentUser();
@@ -1396,9 +1412,9 @@ async function viewMoveForm(id, query) {
           <small>An admin reviews it before it appears for everyone.</small></span>
       </label>
 
-      ${lockedField('Entries', html`<div class="chip-field" id="f-entries"></div>`, 'entries')}
-      ${lockedField('Exits', html`<div class="chip-field" id="f-exits"></div>`, 'exits')}
-      ${lockedField('Combines well with...', html`<div class="chip-field" id="f-combos"></div>`, 'combos')}
+      ${lockedField('Entries', html`<div class="chip-field" id="f-entries"></div>`, 'entries', m.entries.length > 0)}
+      ${lockedField('Exits', html`<div class="chip-field" id="f-exits"></div>`, 'exits', m.exits.length > 0)}
+      ${lockedField('Combines well with...', html`<div class="chip-field" id="f-combos"></div>`, 'combos', m.combos.length > 0)}
 
       <fieldset class="field"><legend>Collections</legend>
         <div class="checks">
@@ -1425,15 +1441,14 @@ async function viewMoveForm(id, query) {
       <div class="field" id="field-notes" data-editing="off">
         <div class="field-head">
           <label class="label" for="notes-text">Notes</label>
-          <button type="button" class="icon-btn plain" data-edit="notes" aria-expanded="false"
-            aria-controls="notes-text" aria-label="Edit notes" title="Edit notes">${pencilIcon}</button>
+          ${fieldEditButton('Notes', 'notes', Boolean((m.notes ?? '').trim()), 'notes-text')}
         </div>
         <p class="notes-read" id="notes-read"></p>
         <textarea class="notes-input" id="notes-text" name="notes" maxlength="2000" placeholder="">${m.notes}</textarea>
       </div>
 
       <div class="actions">
-        <button class="btn primary" type="submit">Save move</button>
+        <button class="btn primary" type="submit">Save</button>
         ${move ? html`<button type="button" class="btn danger" id="delete">Delete from My Moves</button>`
           : html`<a class="btn" href="${backHref}">Cancel</a>`}
       </div>
@@ -1473,9 +1488,12 @@ async function viewMoveForm(id, query) {
   });
 
   const form = $('#move-form');
-  const getEntries = chipField($('#f-entries'), m.entries, 'entries');
-  const getExits = chipField($('#f-exits'), m.exits, 'exits');
-  const getCombos = chipField($('#f-combos'), m.combos, 'combos');
+  const getEntries = chipField($('#f-entries'), m.entries, 'entries',
+    (filled) => setFieldFilled('entries', filled));
+  const getExits = chipField($('#f-exits'), m.exits, 'exits',
+    (filled) => setFieldFilled('exits', filled));
+  const getCombos = chipField($('#f-combos'), m.combos, 'combos',
+    (filled) => setFieldFilled('combos', filled));
 
   /* The pencil beside a label opens that one field. `data-editing` carries the state, which is all the
    * stylesheet needs to swap a chip that can be deleted for plain pills and text (see .field[data-
@@ -1494,8 +1512,9 @@ async function viewMoveForm(id, query) {
   const notesRead = $('#notes-read');
   const syncNotes = () => {
     const text = notesInput.value.trim();
-    notesRead.textContent = text || 'None yet';
+    notesRead.textContent = text;
     notesRead.classList.toggle('is-empty', !text);
+    setFieldFilled('notes', Boolean(text));
   };
   notesInput.addEventListener('input', syncNotes);
   syncNotes();
@@ -1657,8 +1676,8 @@ async function viewCollection(id) {
       </div>
     </div>
     ${mine ? html`
-      <div class="actions"><button type="button" class="btn primary" id="add-to-collection-toggle"
-        aria-haspopup="dialog">+ Add to collection</button></div>` : ''}
+      <div class="actions"><button type="button" class="btn primary" style="margin-bottom:1rem;" id="add-to-collection-toggle"
+        aria-haspopup="dialog">+ Add Moves</button></div>` : ''}
 
     ${moves.length ? html`<div class="stack" id="collection-moves">${moves.map((m) => moveCard(m))}</div>`
       : html`<div class="empty"><p>No moves in this collection yet.</p></div>`}
@@ -1671,7 +1690,6 @@ async function viewCollection(id) {
           <button class="btn" type="submit">Rename</button>
         </form>
         <button type="button" class="btn danger" id="delete">Delete collection</button>
-        <p class="muted fineprint">Deleting a collection never deletes its moves.</p>
       </div>`}`);
 
   $('#add-to-collection-toggle')?.addEventListener('click', () => attempt(() => openGoalPanel(cat, `“${cat.name}”`)));
@@ -1784,7 +1802,7 @@ async function viewdictionary() {
         actions: linked
           ? html`<a class="icon-btn" href="#/move/${linked.id}" title="In your moves"
               aria-label="In your moves: ${e.name}">${checkIcon}</a>`
-          : html`<a class="icon-btn" href="#/move/new?entry=${e.id}" title="Add to my moves"
+          : html`<a class="icon-btn-hover" href="#/move/new?entry=${e.id}" title="Add to my moves"
               aria-label="Add ${e.name} to my moves">${plusIcon}</a>`,
       })}</div>`);
     }).join('') : String(html`<div class="empty"><p>${dictLevel === 'any'
@@ -2055,6 +2073,8 @@ async function viewEntry(id) {
     ${backLink('#/dictionary', 'Pole dictionary')}
     <article class="entry">
       <div class="entry-hero">
+        <button type="button" class="icon-btn request-edit" data-flag-open
+          title="Request edit" aria-label="Request an edit to ${entry.name}">${pencilIcon}</button>
         <header class="entry-head">
           <p class="eyebrow">Pole Dictionary</p>
           <div class="entry-title">
@@ -2100,9 +2120,11 @@ async function viewEntry(id) {
         title: 'Media',
         rows: media, note: mediaNote, canUpload: true, me, panel: true,
       })}
-    </article>`);
+    </article>
+    ${flagDialog({ kind: 'trick', name: entry.name })}`);
 
   wireLevelVote(entry);
+  wireFlagDialog({ kind: 'trick', name: entry.name });
   wireMedia({ parent: { entryId: entry.id }, rows: media, refresh: () => route({ keepScroll: true }) });
 
   $('#alias-form')?.addEventListener('submit', (e) => {
@@ -2162,7 +2184,7 @@ async function drawFeed() {
       ${store.socialEnabled() ? html`
         <div class="seg seg-sm" role="group" aria-label="Whose posts to show">
           <button type="button" class="seg-btn" data-feed="all" aria-pressed="${feedFilter === 'all'}">Everyone</button>
-          <button type="button" class="seg-btn" data-feed="following" aria-pressed="${onlyMine}">People I follow (${mine.size})</button>
+          <button type="button" class="seg-btn" data-feed="following" aria-pressed="${onlyMine}">Following (${mine.size})</button>
         </div>` : ''}
     </div>
     ${activity.length ? html`<ul class="list">
@@ -2202,7 +2224,7 @@ async function drawFeed() {
           </div>` : ''}
         </li>`))}
     </ul>` : html`<div class="empty"><p>${onlyMine
-      ? 'Nobody you follow has posted anything yet.' : 'Nothing has been posted yet.'}</p></div>`}
+      ? 'Nothing here.' : 'Nothing here.'}</p></div>`}
   `);
 
   $$('[data-feed]').forEach((btn) => btn.addEventListener('click', () => {
@@ -2259,7 +2281,7 @@ async function drawmembers() {
             <span class="feed-who">${avatarOf(u, 'avatar-sm')}</span>
             <div class="row-main">
               <strong><span class="entry-link">${u.username}</span></strong>
-              <span class="muted">${plural(sum.total, 'move')} logged${place ? ` · ${place}` : ''}${u.polingSince ? ` · Poler since ${u.polingSince}` : ''}${u.isAdmin ? ' · Admin' : ''}</span>
+              <span class="muted">${plural(sum.total, 'move')}${place ? ` · ${place}` : ''}${u.polingSince ? ` · Poler since ${u.polingSince}` : ''}${u.isAdmin ? ' · Admin' : ''}</span>
             </div>
           </a>
           ${store.socialEnabled() ? html`<div class="actions">
@@ -2314,16 +2336,20 @@ async function viewUser(id) {
 
   show(html`
     ${backLink('#/community?tab=members', 'Members')}
-    <div class="page-head profile-head">
+    <div class="page-head profile-head no-pencil">
       <div class="who">
         ${avatarOf(user, 'avatar-lg')}
         <div>
           <div class="name-row">
             <h1>${user.username}</h1>
           </div>
-          ${followBars(social)}
-          ${!counts ? '' : html`<button type="button" class="btn small ${following ? '' : 'primary'}" id="follow"
-            aria-pressed="${following ? 'true' : 'false'}">${following ? 'Following' : 'Follow'}</button>`}
+          <div class="follow-row">
+            ${followBars(social)}
+            ${!counts ? '' : html`<button type="button" class="icon-btn follow-toggle" id="follow"
+              aria-pressed="${following ? 'true' : 'false'}"
+              aria-label="${following ? `Following ${user.username}` : `Follow ${user.username}`}"
+              title="${following ? 'Following' : 'Follow'}">${following ? checkIcon : plusIcon}</button>`}
+          </div>
           ${user.polingSince ? html`<p class="muted">Poler since ${user.polingSince}</p>` : ''}
           ${place.length ? html`<p class="muted">${place}</p>` : ''}
           ${user.instagram ? html`<p>${instagramLink(user.instagram)}</p>` : ''}
@@ -2352,11 +2378,63 @@ async function viewUser(id) {
   wireFollowActions(() => route({ keepScroll: true }));
 }
 
-const addedByLine = (link, me) => (link.addedBy === me.id
-  ? 'Added by you'
-  : link.addedBy
-    ? `Added by ${store.usernameOf(link.addedBy)}`
-    : 'Added by a member who has since closed their account');
+//---------- flagging a page ----------
+
+/* Anyone can ask an admin to look at a studio or a trick. A flag is not a second queue: it goes
+ * through the same support message road as the contact form, so it lands in the support inbox and
+ * the admin email, with the page it came from in the body. */
+function flagDialog({ kind, name }) {
+  return html`<dialog class="sheet" id="flag-dialog" aria-labelledby="flag-title">
+    <form class="form" id="flag-form">
+      <h2 id="flag-title">Request an edit to this ${kind}</h2>
+      <p class="muted subnote">Tell an admin what needs changing. It goes to the support inbox.</p>
+      <label class="field"><span>${kind === 'studio' ? 'Studio' : 'Trick'}: ${name}</span>
+        <textarea name="comment" rows="5" maxlength="2000" minlength="10" required
+          placeholder="Wrong name, wrong account, something that should not be here..."></textarea>
+      </label>
+      <div class="actions">
+        <button class="btn primary" type="submit">Send to admins</button>
+        <button class="btn" type="button" data-flag-cancel>Cancel</button>
+      </div>
+    </form>
+  </dialog>`;
+}
+
+function wireFlagDialog({ kind, name }) {
+  const dialog = $('#flag-dialog');
+  const form = $('#flag-form');
+  if (!dialog || !form) return;
+
+  $('[data-flag-open]')?.addEventListener('click', () => dialog.showModal());
+  $('[data-flag-cancel]')?.addEventListener('click', () => dialog.close());
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const button = form.querySelector('button[type="submit"]');
+    const comment = String(new FormData(form).get('comment') ?? '').trim();
+    if (!comment) return;
+    attempt(async () => {
+      button.disabled = true;
+      try {
+        const username = store.currentUser()?.username ?? 'a member';
+        const receipt = await store.sendSupportMessage({
+          name: username,
+          email: store.myEmail(),
+          subject: `Edit request for ${kind}: ${name}`.slice(0, 120),
+          message: `${comment}\n\nPage: ${location.href}\nRequested by: @${username}`.slice(0, 4000),
+          website: '',
+        });
+        dialog.close();
+        form.reset();
+        toast(receipt?.emailed === false
+          ? 'Thank you - the request is saved for the admins.'
+          : 'Thank you - the admins have been sent this.');
+      } finally {
+        button.disabled = false;
+      }
+    });
+  });
+}
 
 //---------- studio ----------
 
@@ -2364,13 +2442,10 @@ async function viewStudio(id) {
   const studio = store.studioById(id);
   if (!studio) return notFound('That studio is not in the list.');
   setTitle(studio.name);
-  const me = store.currentUser();
 
   const members = await store.membersAtStudio(studio.id).catch(() => []);
-  const links = store.instagramEnabled() ? store.listStudioInstagrams(studio.id) : [];
-
-  await Promise.all([...new Set(links.map((l) => l.addedBy).filter(Boolean))]
-    .map((id) => store.userById(id).catch(() => null)));
+  const handle = studio.instagram;
+  const instagramReady = store.studioInstagramEnabled();
 
   show(html`
     ${backLink('#/community?tab=members', 'Members')}
@@ -2382,31 +2457,34 @@ async function viewStudio(id) {
           <p class="muted">${studio.city ?? 'City not given'}</p>
         </div>
       </div>
+      <button type="button" class="icon-btn request-edit" data-flag-open
+        title="Request edit" aria-label="Request an edit to ${studio.name}">${pencilIcon}</button>
     </div>
 
     <h2 class="subhead">Instagram</h2>
-    ${!store.instagramEnabled() ? html`<p class="muted">Studio accounts are not switched on for this
-      project yet: run <code>supabase/instagram.sql</code> in the Supabase SQL editor, then reload.</p>`
+    ${!instagramReady ? html`<p class="muted">Studio accounts are not switched on for this project
+      yet: run <code>supabase/studio-instagram.sql</code> in the Supabase SQL editor, then reload.</p>`
       : html`
-      ${links.length ? html`<ul class="list">
-        ${links.map((l) => html`
-          <li class="row">
-            <div class="row-main">
-              ${instagramLink(l.handle)}
-              <span class="muted">${addedByLine(l, me)}</span>
-            </div>
-            ${(l.addedBy === me.id || me.isAdmin) ? html`<div class="actions">
-              <button type="button" class="btn small danger" data-unlink="${l.id}">Remove</button>
-            </div>` : ''}
-          </li>`)}
-      </ul>` : html`<p class="muted">No Instagram account is listed for this studio yet.</p>`}
-
-      <form class="form card" id="studio-link-form">
-        <label class="field"><span>Add an Instagram account</span>
+      <div class="studio-instagram">
+        ${handle
+          ? html`${instagramLink(handle)}
+            <button type="button" class="icon-btn plain" data-instagram-edit
+              aria-label="Change the Instagram account for ${studio.name}"
+              title="Change Instagram">${pencilIcon}</button>`
+          : html`<button type="button" class="icon-btn" data-instagram-add
+              aria-label="Add an Instagram account for ${studio.name}"
+              title="Add Instagram">${plusIcon}</button>`}
+      </div>
+      <form class="form card studio-instagram-form" id="studio-instagram-form" hidden>
+        <label class="field"><span>Instagram handle</span>
           <input type="text" name="handle" maxlength="60" autocapitalize="none" spellcheck="false"
-            placeholder="@thestudio" required>
-          <small>Just the part after the @. Anyone who trains here can add one.</small></label>
-        <button class="btn primary" type="submit">Add account</button>
+            placeholder="@thestudio" value="${handle ?? ''}" required>
+          <small>Just the part after the @. Any member can change this.</small></label>
+        <div class="actions">
+          <button class="btn primary" type="submit">Save</button>
+          <button class="btn" type="button" data-instagram-cancel>Cancel</button>
+          ${handle ? html`<button class="btn danger" type="button" data-instagram-remove>Remove</button>` : ''}
+        </div>
       </form>`}
 
     <h2 class="subhead">${plural(members.length, 'member')}</h2>
@@ -2414,24 +2492,42 @@ async function viewStudio(id) {
       ${members.map((u) => html`<a href="#/user/${u.id}" title="${u.username}"
         aria-label="${u.username}">${avatarOf(u, 'avatar-sm')}</a>`)}
     </div>` : html`<div class="empty"><p>Nobody has picked this studio yet.</p></div>`}
+
+    ${flagDialog({ kind: 'studio', name: studio.name })}
   `);
 
-  $('#studio-link-form')?.addEventListener('submit', (e) => {
+  const instagramForm = $('#studio-instagram-form');
+  const openInstagram = () => {
+    if (!instagramForm) return;
+    instagramForm.hidden = false;
+    instagramForm.querySelector('input[name="handle"]').focus();
+  };
+  $('[data-instagram-add]')?.addEventListener('click', openInstagram);
+  $('[data-instagram-edit]')?.addEventListener('click', openInstagram);
+  $('[data-instagram-cancel]')?.addEventListener('click', () => { instagramForm.hidden = true; });
+
+  instagramForm?.addEventListener('submit', (e) => {
     e.preventDefault();
     const input = e.target.querySelector('input[name="handle"]');
     attempt(async () => {
-      const added = await store.addStudioInstagram(studio.id, input.value);
-      toast(`@${added.handle} is listed for ${studio.name}.`);
+      const saved = await store.setStudioInstagram(studio.id, input.value);
+      toast(saved
+        ? `@${saved} is listed for ${studio.name}.`
+        : `The Instagram account is off ${studio.name}.`);
       await route({ keepScroll: true });
     });
   });
 
-  $$('[data-unlink]').forEach((btn) => btn.addEventListener('click', () => attempt(async () => {
-    await store.removeStudioInstagram(btn.dataset.unlink);
-    toast('That account is off the studio page.');
-    await route({ keepScroll: true });
-  })));
+  $('[data-instagram-remove]')?.addEventListener('click', () => {
+    if (!handle || !confirm(`Remove @${handle} from ${studio.name}?`)) return;
+    attempt(async () => {
+      await store.setStudioInstagram(studio.id, '');
+      toast(`The Instagram account is off ${studio.name}.`);
+      await route({ keepScroll: true });
+    });
+  });
 
+  wireFlagDialog({ kind: 'studio', name: studio.name });
   wireFollowActions(() => route({ keepScroll: true }));
 }
 
@@ -2501,7 +2597,7 @@ async function viewAccount() {
             title="Change avatar" aria-label="Change avatar">${cameraIcon}</button>` : ''}
         </span>
         <div>
-          ${me.isAdmin ? html`<p class="eyebrow">Admin account</p>` : ''}
+          ${me.isAdmin ? html`<p class="eyebrow">Admin</p>` : ''}
           <div class="name-row">
             <h1>${me.username}</h1>
           </div>
@@ -2523,6 +2619,20 @@ async function viewAccount() {
       <span><strong>Private account</strong>
         <small class="muted">Other members can't see your moves or collections. Dictionary suggestions are still reviewed as usual.</small></span>
     </label>
+    ${!me.isAdmin ? '' : html`
+    <ul class="list">
+      <li>
+      <br>
+        <a class="link-row" class="subhead" style="border-top: 1px solid #ccc;" href="#/review">
+          ${checkIcon}
+          <span><strong>Review</strong>
+            <small class="muted">${pending
+              ? `${plural(pending, 'new trick')} need review.`
+              : ''}</small></span>
+          ${chevronIcon}
+        </a>
+      </li>
+    </ul>`}
 
     <h2 class="subhead">Support</h2>
     <ul class="list">
@@ -2544,21 +2654,6 @@ async function viewAccount() {
         </a>
       </li>`}
     </ul>
-
-    ${!me.isAdmin ? '' : html`
-    <h2 class="subhead">Moderation</h2>
-    <ul class="list">
-      <li>
-        <a class="link-row" href="#/review">
-          ${checkIcon}
-          <span><strong>Review</strong>
-            <small class="muted">${pending
-              ? `${plural(pending, 'new trick')} waiting to be published.`
-              : 'New tricks waiting to be published, and the dictionary you moderate.'}</small></span>
-          ${chevronIcon}
-        </a>
-      </li>
-    </ul>`}
 
     <h2 class="subhead">Settings</h2>
     <ul class="list">
@@ -2602,6 +2697,21 @@ async function viewAccount() {
     $('#avatar-dialog').showModal();
   });
   $('#avatar-cancel').addEventListener('click', () => $('#avatar-dialog').close());
+  $('#avatar-upload')?.addEventListener('click', () => $('#avatar-file').click());
+  $('#avatar-file')?.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    attempt(async () => {
+      await store.uploadAvatar(file);
+      /* Clearing this before the route matters: `close` is delivered in a later task, so a redraw
+       * that happened first would read the old value and open the dialog again. */
+      openEditor = null;
+      $('#avatar-dialog').close();
+      toast('Avatar saved.');
+      await route({ keepScroll: true });
+    });
+  });
   if (openEditor) $(`#${openEditor}-dialog`)?.showModal();
 
   $$('[data-avatar]').forEach((btn) => btn.addEventListener('click', () => {
@@ -2708,6 +2818,7 @@ async function viewAccount() {
     const picked = $('[data-avatar][aria-pressed="true"]');
     attempt(async () => {
       await store.saveProfile({ avatar: picked?.dataset.avatar || null });
+      openEditor = null;
       $('#avatar-dialog').close();
       toast('Avatar saved.');
       await route({ keepScroll: true });
@@ -2779,7 +2890,15 @@ function profileEditor(me, thisYear) {
     <dialog class="sheet" id="avatar-dialog" aria-labelledby="avatar-title">
       <form class="form" id="avatar-form">
         <h2 id="avatar-title">Change avatar</h2>
+        <div class="avatar-upload">
+          <input type="file" id="avatar-file" accept="image/*" hidden>
+          <button type="button" class="btn small" id="avatar-upload">Upload a photo</button>
+          <span class="muted upload-note">JPG, PNG, WebP or GIF, up to ${megabytes(store.MAX_AVATAR_BYTES)} MB.</span>
+        </div>
         <div class="avatar-picker" role="group" aria-labelledby="avatar-title">
+          ${store.isUploadedAvatar(me.avatar) ? html`
+            <button type="button" class="avatar-opt" data-avatar="${me.avatar}" aria-pressed="true"
+              aria-label="My uploaded photo">${avatarOf({ avatar: me.avatar }, 'avatar-md')}</button>` : ''}
           ${store.AVATARS.map((key) => html`
             <button type="button" class="avatar-opt" data-avatar="${key}" aria-pressed="${me.avatar === key}"
               aria-label="Avatar: ${key.replace('pleaser-', '').replace(/[-_]/g, ' ')}">${avatarOf({ avatar: key }, 'avatar-md')}</button>`)}
@@ -2943,8 +3062,8 @@ async function viewSupportInbox() {
       <div><p class="eyebrow">Support</p><h1>Support inbox</h1></div>
       <span class="count">${waiting}</span>
     </div>
-    <p class="lede">Everything the contact form has taken, newest first${!waiting
-      ? '.' : ` - ${plural(waiting, 'message')} still to deal with.`}</p>
+    <p class="lede">Everything sent to support - the contact form, and flags from studio and trick
+      pages - newest first${!waiting ? '.' : ` - ${plural(waiting, 'message')} still to deal with.`}</p>
     ${note ? html`<div class="empty"><h3>Support inbox is not set up</h3><p>${note}</p></div>` : ''}
     ${!note && unsent ? html`<p class="muted subnote">${plural(unsent, 'message')} never reached an
       inbox by email. They are here, which is the point of keeping them.</p>` : ''}
@@ -2966,8 +3085,8 @@ async function viewSupportInbox() {
               aria-pressed="${m.handled ? 'true' : 'false'}">${m.handled ? 'Handled' : 'Mark handled'}</button>
           </div>
         </li>`)}
-    </ul>` : html`<div class="empty"><h3>No messages</h3><p>Nothing has come in through the contact
-      form yet.</p></div>`}
+    </ul>` : html`<div class="empty"><h3>No messages</h3><p>Nothing has come in through support
+      yet.</p></div>`}
   `);
 
   $$('[data-handled]').forEach((btn) => btn.addEventListener('click', () => attempt(async () => {
@@ -3231,6 +3350,22 @@ const dayLabel = (iso) => {
   return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 };
 
+/* Files chosen for the entry being written. They live until the form is submitted or the drawer is
+ * reopened, so picking a photo and then writing a longer note does not lose it. */
+let journalPicked = [];
+
+function drawJournalPicked() {
+  const list = $('#journal-file-list');
+  if (!list) return;
+  list.innerHTML = journalPicked.map((f, i) => String(html`
+    <li class="file-chip">
+      <span class="file-chip-name">${f.name}</span>
+      <span class="file-chip-size">${fileSize(f.size)}</span>
+      <button type="button" class="file-chip-x" data-journal-unpick="${i}"
+        aria-label="Remove ${f.name}">×</button>
+    </li>`)).join('');
+}
+
 function journalDrawer() {
   return html`
     <dialog class="journal-drawer" id="journal-drawer" aria-labelledby="journal-title">
@@ -3244,6 +3379,15 @@ function journalDrawer() {
           <textarea name="body" id="journal-body" rows="4" maxlength="2000" required
             placeholder="e.g. flips, inverts, a combo, etc..."></textarea>
         </label>
+        <div class="field">
+          <span>Photos and videos <span class="muted">optional</span></span>
+          <input type="file" id="journal-files" accept="image/*,video/*" multiple hidden>
+          <div class="upload-row">
+            <button type="button" class="btn small" id="journal-files-add">+ Add photo or video</button>
+            <span class="muted upload-note">Up to ${megabytes(store.MAX_UPLOAD_BYTES)} MB each.</span>
+          </div>
+          <ul class="file-list" id="journal-file-list"></ul>
+        </div>
         <div class="actions"><button type="submit" class="btn primary">Add entry</button></div>
       </form>
       <ol class="journal-list" id="journal-list" aria-label="Past entries"></ol>
@@ -3258,12 +3402,39 @@ function mountJournal() {
   $('#journal-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const body = $('#journal-body').value;
+    const files = [...journalPicked];
     attempt(async () => {
-      await store.addJournalEntry({ date: localDay(), body });
+      const entry = await store.addJournalEntry({ date: localDay(), body });
+      let attached = 0;
+      let failed = null;
+      for (const file of files) {
+        try { await store.uploadJournalMedia(file, entry.id); attached += 1; }
+        catch (err) { failed = { file, err }; break; }
+      }
+      journalPicked = [];
       $('#journal-form').reset();
-      toast('Logged in your journal.');
+      drawJournalPicked();
+      if (failed) toast(`${failed.file.name}: ${failed.err.message}`, true);
+      else toast(attached ? `Logged with ${plural(attached, 'file')}.` : 'Logged in your journal.');
       await drawJournal();
     });
+  });
+  $('#journal-files-add').addEventListener('click', () => $('#journal-files').click());
+  $('#journal-files').addEventListener('change', (e) => {
+    const files = [...e.target.files];
+    e.target.value = '';
+    const tooBig = files.filter((f) => f.size > store.MAX_UPLOAD_BYTES);
+    if (tooBig.length) {
+      toast(`${tooBig.map((f) => f.name).join(', ')} is over the ${megabytes(store.MAX_UPLOAD_BYTES)} MB limit.`, true);
+    }
+    journalPicked = journalPicked.concat(files.filter((f) => f.size <= store.MAX_UPLOAD_BYTES));
+    drawJournalPicked();
+  });
+  $('#journal-file-list').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-journal-unpick]');
+    if (!btn) return;
+    journalPicked.splice(Number(btn.dataset.journalUnpick), 1);
+    drawJournalPicked();
   });
   $('#journal-list').addEventListener('click', (e) => {
     const btn = e.target.closest('[data-journal-delete]');
@@ -3276,6 +3447,15 @@ function mountJournal() {
   });
 }
 
+const journalMedia = (rows) => (rows?.length ? html`<div class="media-grid journal-media">
+  ${rows.map((m) => html`
+    <figure class="media-item">
+      ${m.kind === 'video'
+        ? html`<video src="${m.url}" controls preload="metadata" playsinline></video>`
+        : html`<img src="${m.url}" alt="Journal photo" loading="lazy">`}
+    </figure>`)}
+</div>` : '');
+
 async function drawJournal() {
   const list = $('#journal-list');
   const entries = await store.listJournal();
@@ -3287,6 +3467,7 @@ async function drawJournal() {
             <button type="button" class="icon-btn plain" data-journal-delete="${e.id}" title="Delete entry" aria-label="Delete entry">${trashIcon}</button>
           </div>
           <p class="journal-entry-body">${e.body}</p>
+          ${journalMedia(e.media)}
         </li>`)).join('')
     : '<li class="muted"></li>';
 }
@@ -3298,6 +3479,8 @@ async function openJournal() {
   $('#journal-day').textContent = dayLabel(today);
   $('#journal-day').setAttribute('datetime', today);
   $('#journal-form').reset();
+  journalPicked = [];
+  drawJournalPicked();
   drawer.showModal();
   $('#journal-body').focus();
   await attempt(drawJournal);

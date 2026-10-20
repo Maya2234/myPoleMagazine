@@ -1,10 +1,10 @@
 {
-  "cache": "mypolemagazine-v62",
+  "cache": "mypolemagazine-v69",
   "files": {
     "index.html": "6db674602182680d",
-    "css/style.css": "712041252dc7f77b",
-    "js/app.js": "07d3c02e6e873b08",
-    "js/store.js": "c330f381ba6bcc77",
+    "css/style.css": "6da133925b43fda2",
+    "js/app.js": "1e1210c745015814",
+    "js/store.js": "8721934cdbc1dc8d",
     "js/supabase.js": "229207f435f682ec",
     "manifest.webmanifest": "d5ee8f6ff7022cec",
     "icons/icon.svg": "b1560b85eb4c0b57",

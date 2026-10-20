@@ -352,13 +352,13 @@ p { max-width: 68ch; }
 .btn[disabled] { opacity: .45; cursor: not-allowed; }
 .btn[disabled]:hover { border-color: var(--line); }
 /* An icon-only button: the collection pencil, beside the move count in a page head. */
-.icon-btn {
+.icon-btn, .icon-btn-hover {
   display: inline-flex; align-items: center; justify-content: center;
   width: 40px; height: 40px; padding: 0; flex: none;
   border: 1px solid var(--line); border-radius: var(--radius-sm);
   background: var(--surface); color: var(--ink); cursor: pointer;
 }
-.icon-btn:hover { border-color: var(--accent); color: var(--accent-strong); }
+.icon-btn-hover:hover { border-color: var(--accent); color: var(--accent-strong); }
 .icon-btn[aria-expanded="true"] { border-color: var(--accent-strong); color: var(--accent-strong); background: var(--accent-soft); }
 .head-actions { display: flex; align-items: center; gap: 10px; }
 
@@ -463,8 +463,8 @@ a.card:hover { border-color: var(--accent); }
 .trick-card .trick-alias { font-style: italic; }
 .trick-actions { display: flex; align-items: center; gap: 8px;}
 /* The add and in-your-moves marks on a dictionary row are a small mark beside the name, not a big button. */
-.trick-tail .icon-btn { width: 32px; height: 32px; }
-.trick-tail .icon-btn svg { width: 15px; height: 15px; }
+.trick-tail .icon-btn, .trick-tail .icon-btn-hover { width: 32px; height: 32px; }
+.trick-tail .icon-btn svg, .trick-tail .icon-btn-hover svg { width: 15px; height: 15px; }
 .trick-actions .btn { margin: 0; }
 .trick-actions .remove-dash { margin-left: auto; }
 
@@ -641,6 +641,11 @@ a.chip:hover { outline: 1px solid var(--accent); }
 }
 .feed-post .card { flex: 1 1 auto; min-width: 0; }
 .feed-post .card:has(.trick-card):hover { border-color: var(--line); }
+/* One Instagram account on a studio page: the chip and the pencil that changes it, or the + that
+ * starts one. The form is hidden until either is tapped, so the section is one line at rest. */
+.studio-instagram { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.studio-instagram-form { margin-top: 12px; }
+
 .studio-members { display: flex; flex-wrap: wrap; gap: 10px; }
 .studio-members a { display: inline-flex; flex: none; border-radius: 50%; line-height: 0; }
 .studio-members a:hover { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -722,14 +727,12 @@ a.chip:hover { outline: 1px solid var(--accent); }
 /* A label and the pencil that opens its field for editing, on one line. */
 .field-head { display: flex; align-items: center; gap: 4px; }
 
-/* What a field reads as before its pencil is tapped: the chip field loses its box and its × buttons
- * and shows plain pills, and an empty one says so rather than sitting there as a blank box. */
+/* What a field reads as before its control is tapped: the chip field loses its box and its × buttons
+ * and shows plain pills. An empty one is not given words of its own - the + beside the label is the
+ * way in, and it turns into a pencil once there is something to edit. */
 .field[data-editing="off"] .chip-field { padding: 0; border: 0; background: none; cursor: default; }
 .field[data-editing="off"] .chip-x,
 .field[data-editing="off"] .chip-text { display: none; }
-.field[data-editing="off"] .chip-field:not(:has(.chip))::before {
-  content: "None yet"; color: var(--muted); font-size: .85rem;
-}
 
 /* Notes: the paragraph the move's own page draws, or the box to write in, never both. */
 .field[data-editing="off"] .notes-input { display: none; }
@@ -741,7 +744,8 @@ a.chip:hover { outline: 1px solid var(--accent); }
   max-width: none;   /* the 68ch that prose paragraphs keep: this one stands in for a field, so it lines
                         up with the box it replaces rather than reading short of it on a wide screen */
 }
-.notes-read.is-empty { color: var(--muted); border-left-style: dashed; }
+/* An empty note has no box of its own: the + beside the label is the whole empty state. */
+.notes-read.is-empty { display: none; }
 
 input[type="text"], input[type="search"], input[type="password"], input[type="email"], input[type="number"], select, textarea {
   width: 100%; min-height: 44px; padding: 10px 12px; border-radius: var(--radius-sm);
@@ -960,9 +964,10 @@ img.avatar { background: #fff; padding: calc(5px * var(--avatar-scale)); }
 /* The pleaser artwork is dark line work, so its disc stays light in both themes - a dark disc in
  * dark mode would leave nothing to see. A deliberate exception to the palette, not an oversight. */
 img.avatar-art { background: #f2f2f5; }
-/* No picture: the initial is drawn in one of the two loud brand colours, picked stably from the
-   name, so a list of them does not read as the same disc repeated. */
-.avatar-letter { background: var(--accent); color: var(--accent-ink); font: 700 calc(1rem * var(--avatar-scale))/1 var(--sans); border: 0; }
+/* No picture: the initial sits on the same light disc and pink rim as the heel photos, with the
+   letter in the brand pink. The rim comes from .avatar, so the only thing this rule changes is the
+   fill and the letter colour; the alt variant is the dark disc with the same pink rim. */
+.avatar-letter { background: var(--surface); color: var(--accent-strong); font: 700 calc(1rem * var(--avatar-scale))/1 var(--sans); }
 .avatar-letter.alt { background: var(--ink); color: var(--paper); }
 .avatar-xs { width: calc(20px * var(--avatar-scale)); height: calc(20px * var(--avatar-scale)); }
 .avatar-sm { width: calc(34px * var(--avatar-scale)); height: calc(34px * var(--avatar-scale)); }
@@ -980,18 +985,28 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
 
 /* avatar beside a name in a page head. min-width: 0 lets the block beside the avatar give way when
  * there is not room, so the follow bars below it wrap instead of pushing the page sideways. */
-.who { display: flex; align-items: center; gap: 14px; min-width: 0; }
+/* The block beside the avatar takes the rest of the head's width rather than shrink-wrapping its
+   content, so a control that belongs at the far end of one of its lines has somewhere to go. */
+.who { display: flex; flex: 1 1 auto; align-items: center; gap: 14px; min-width: 0; }
 
 /* A profile head: who it is on the left, and the follow lists beside the name. flex-start so a taller
  * open bar lines up with the top of the block instead of stretching its closed neighbours, and it
  * wraps instead of squeezing the name. */
 .profile-head { align-items: flex-start; flex-wrap: wrap; gap: 14px 18px; }
-.who > div { min-width: 0; }
+.who > div { flex: 1 1 auto; min-width: 0; }
 .who p { margin: 0; }
-/* Somebody else's profile keeps its follow button under the name, where the question "do I follow
-   them" belongs to the name rather than to the counts at the other end of the head. The lines it sits
-   between carry no margin of their own, so it brings its own room. */
+/* Somebody else's profile keeps its follow control on the same line as the count bars, at the far
+   end of it: the bars answer "who", and the one thing you can do about it sits at the end of that
+   sentence rather than halfway down the page. It brings its own room because the lines it sits
+   between carry no margin of their own. The bars grow and the button does not, so the button stays
+   pinned right even when the bars wrap onto a second line on a phone. */
 .who .btn { margin: 8px 0; }
+.follow-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin: 8px 0; }
+.follow-row .follow-bars { flex: 1 1 auto; }
+.follow-toggle { width: 30px; height: 30px; }
+.follow-toggle svg { width: 16px; height: 16px; }
+.follow-toggle:hover { border-color: var(--accent); color: var(--accent-strong); }
+.follow-toggle[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-strong); }
 .who .eyebrow { margin-bottom: 6px; }
 
 /* ---------- the follow bars in a page head ---------- */
@@ -1077,6 +1092,8 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
 .journal-entry-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .journal-entry-head time { color: var(--muted); font-size: .9rem; font-weight: 600; }
 .journal-entry-body { margin: 6px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.journal-media { margin-top: 10px; }
+.journal-media .media-item img, .journal-media .media-item video { aspect-ratio: 4 / 3; }
 
 /* ---------- a dialogue ----------
    The browser owns the backdrop, the Escape key and the focus trap; this is only the box. Used by
@@ -1167,7 +1184,14 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
 /* The profile's edit pencil sits in the top right corner of the head, out of the name's way. */
 .profile-head { position: relative; padding-right: 56px; }
 .profile-edit { position: absolute; top: 0; right: 0; }
+/* A member page has no corner pencil, so the room it reserves would leave its follow control short
+   of the edge every other row on the page ends at. */
+.profile-head.no-pencil { padding-right: 0; }
+/* The same corner pencil asks an admin for a correction on studio and trick pages. */
+.request-edit { position: absolute; top: 0; right: 0; }
+.request-edit:hover { border-color: var(--accent); color: var(--accent-strong); }
 
+.avatar-upload { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 12px 0 0; }
 .avatar-picker { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0 0; }
 .avatar-opt {
   padding: 3px; border: 2px solid transparent; border-radius: 50%;
@@ -1316,10 +1340,10 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
    gave the name and the page's last paragraph the same weight. */
 .entry { display: grid; gap: 30px; }
 .entry > *, .entry-hero > * { margin-top: 0; margin-bottom: 0; }
-.entry-hero { display: grid; gap: 18px; }
+.entry-hero { display: grid; gap: 18px; position: relative; }
 .entry-head {
   display: grid; gap: 8px;
-  padding-bottom: 16px; border-bottom: 2px solid var(--accent);
+  padding: 0 52px 16px 0; border-bottom: 2px solid var(--accent);
 }
 .entry-title { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; }
 .entry-title h1 { margin: 0; }

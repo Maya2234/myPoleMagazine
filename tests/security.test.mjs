@@ -150,6 +150,18 @@ test('no policy allows a write unconditionally', () => {
   assert.deepEqual(offenders, [], `these policies give away a write:\n  ${offenders.join('\n  ')}`);
 });
 
+test('the studio Instagram setter is authenticated and column-limited', () => {
+  /* This is the one write that deliberately reaches a row the caller does not own: any member may
+   * correct a studio's handle. Because it is SECURITY DEFINER it bypasses RLS, so the auth check
+   * inside it and the grant to authenticated only are what keep it from becoming an anon endpoint. */
+  const file = read('supabase/studio-instagram.sql');
+  assert.match(file, /security definer/i);
+  assert.match(file, /if auth\.uid\(\) is null/i);
+  assert.match(file, /update public\.studios set instagram = clean where id = p_studio/i);
+  assert.match(file, /grant execute on function public\.set_studio_instagram\(uuid, text\) to authenticated/i);
+  assert.match(file, /revoke all on function public\.set_studio_instagram\(uuid, text\) from public, anon/i);
+});
+
 test('the tables readable without an ownership rule are the documented ones', () => {
   /* Reference data two dancers have to see the same copy of: who trains where, the studio list, the
    * studio Instagrams, and who follows whom. Anything else answering `true` to a read is either a

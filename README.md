@@ -101,7 +101,8 @@ phone.
 | Community Updates | **Community → Activity**, whose panel is **New moves & uploads**: the newest public moves and photos/videos. A move post is the same preview card the Moves page and the dictionary use - the name with its dashes, and who posted it when underneath - with the poster's avatar beside it; an upload keeps its picture. The view is one segmented control at the top of the page and the audience is a smaller switch beside that panel's heading - Everyone, or only the members you follow - so the two questions are answered in two different places |
 | Follow other members | **Community → Members**, or the button on a dancer's page; **Account** shows nothing to manage - a follow is yours to give and take back |
 | Show how long you have been Poler | **Account → Edit profile → Poler since** (a year), shown on your profile next to your avatar |
-| Pick an avatar | **Account → Edit profile → Avatar**: five pleaser photos, or your initial on one of the two brand colours - hot pink or black, picked stably from your name. The picker is behind Edit profile because a row of six circles is not worth scrolling past on every visit |
+| Pick or upload an avatar | **Account → the camera on your photo → Upload a photo**, or choose one of the five pleaser photos or your initial on one of the two brand colours - hot pink or black, picked stably from your name. A letter avatar wears the same pink rim as the heel photos. Uploads are your own public bucket file, and replacing one removes the file it replaced (`supabase/custom-avatars.sql`). The picker is behind Edit profile because a row of circles is not worth scrolling past on every visit |
+| Keep a private journal, with photos or videos | The floating notepad opens a drawer for today's entry; **+ Add photo or video** stages files beside the note, and they upload when the entry is saved. Entries are private to you, files live in their own bucket, and deleting an entry removes its files (`supabase/journal.sql`). The notepad itself can be dragged anywhere on screen |
 | Register / login | Landing screen |
 | Pole dictionary | **dictionary** to search and suggest; the move form auto-links on a name match; **Review** (admin only, once `supabase/admins.sql` has made someone an admin) approves or rejects. One queue lives there now - new tricks waiting to be published - and the count in the navigation is that queue's length |
 | AKAs | **dictionary → a trick → Also known as**: write down what members actually call it - a nickname, the word one studio uses, the description that never had a name - and the dictionary finds the trick by it. Any signed-in dancer may add one; whoever added it, or an admin, can take it off. Nothing is renamed and nothing is queued: the trick keeps the one name every move links to, and the other names sit under it where a search can reach them |
@@ -176,7 +177,11 @@ entry_levels        dictionary_entry_id, user_id, level (beginner | intermediate
 follows             follower_id, followee_id                (one row per follow)
 media               id, owner_id, move_id | dictionary_entry_id, storage_path, kind,
                     mime_type, size_bytes, caption, created_at
-studio_instagrams   id, studio_id, handle, added_by    (a studio's accounts, contributed by members)
+studio_instagrams   id, studio_id, handle, added_by    (retired: its oldest handle was copied into
+                    studios.instagram; nothing reads it any more)
+journal_entries     id, user_id, entry_date, body, created_at  (private to its author)
+journal_media       id, journal_entry_id, owner_id, storage_path, kind, mime_type, size_bytes,
+                    created_at   (photos and videos attached to one journal entry)
 support_messages    id, name, email, subject, message, username, emailed, email_error,
                     handled, created_at
 ```
@@ -321,18 +326,19 @@ service role key that Edge Functions are given. The message
     why the admin Review queue is one list rather than two, and why a member who calls a trick
     something else writes that down where a search finds it instead of arguing it into a new name.
 
-14. **Instagram: `supabase/instagram.sql`.** One optional `instagram` handle on a profile - a
-    column, because a dancer has one account - and a `studio_instagrams` table for the accounts a
-    studio's members contribute, because a studio usually has more than one and that list has to
-    be able to grow from the app. Only the handle is stored, never a URL: `readInstagram` in
-    `store.js` reduces whatever somebody pastes - `@name`, `instagram.com/name`, a trailing slash,
-    a query string - to the one form Instagram itself treats as the account name, and the app
-    builds `instagram.com/...` from that. Any signed-in dancer who trains somewhere may add an
-    account to that studio's page; the row records who did, and only that member or an admin can
-    take it off. The studio's own name and town stay with whoever added the studio. The file also
-    re-grants the browser's `update` on `profiles` with `instagram` on the list. Until it is run,
-    a studio page says what to run instead of offering the form, and a saved profile leaves the
-    handle alone rather than failing - nothing else changes.
+14. **Instagram: `supabase/instagram.sql`, then `supabase/studio-instagram.sql`.** The first gives
+    a dancer one optional `instagram` handle on their profile - a column, because a dancer has one
+    account - and re-grants the browser's `update` on `profiles` with `instagram` on the list. The
+    second gives a studio one optional `instagram` handle on its own row, which is what the studio
+    page now shows as an account or a **+**. Only the handle is stored, never a URL: `readInstagram`
+    in `store.js` reduces whatever somebody pastes - `@name`, `instagram.com/name`, a trailing
+    slash, a query string - to the one form Instagram itself treats as the account name, and the app
+    builds `instagram.com/...` from that. Any signed-in member may set or clear the studio's one
+    handle; the write goes through `set_studio_instagram()`, a security-definer function that can
+    change that column and nothing else, so a member cannot rename the studio or move it to another
+    town. The older `studio_instagrams` table is left in place for its history, and the oldest handle
+    for each studio is copied into the column once. Until the second file is run the studio page
+    says what to run instead of offering the control.
 
 15. **The order of your goals: `supabase/goal-order.sql`.** Adds `move_categories.position` and the
     policy that lets a dancer renumber their own links, which is what a dragged card in Current goals
@@ -345,7 +351,9 @@ service role key that Edge Functions are given. The message
 
 16. **A stored copy of every support message: `supabase/support.sql`.** The `support_messages`
     table the Edge Function writes into *before* it tries to email, so the row is the record and
-    the email is a notification about the record. Only an admin can read it - the policies call
+    the email is a notification about the record. The **Request edit** pencil on a studio or
+    trick page uses the same road: its comment, the page address and the member who sent it arrive
+    here as a message rather than in a queue of their own. Only an admin can read it - the policies call
     `public.is_admin()`, which comes from `supabase/admins.sql` - and no browser can insert into
     it at all: the one writer is the function, with the service role key. Spam never reaches the
     table either, because the honeypot is checked first. Every row says whether Resend accepted
@@ -353,6 +361,20 @@ service role key that Edge Functions are given. The message
     state you can see in **Account → Support inbox** (`#/support/inbox`) rather than a message
     that quietly went nowhere. Until this file is run the form still sends and still emails, and
     the inbox says what is missing.
+
+17. **Uploaded profile photos: `supabase/custom-avatars.sql`.** A public `avatars` bucket with a
+    5 MB image limit, where a dancer may write only inside their own `<user-id>/` folder. The file
+    path is stored in the existing `profiles.avatar` column as `user:<path>`; a preset key is still
+    the same column's other form, so no profile grant changed. Only the owner may replace or delete
+    a photo, and the app removes the object it replaced. Until this file is run the upload button
+    says what to run, and the preset and letter avatars keep working.
+
+18. **Journal photos and videos: `supabase/journal.sql`.** The private `journal_entries` table (if
+    your project does not already have one), `journal_media` for the files attached to an entry,
+    and the private `journal` bucket. Every policy is owner-only, including the storage folder
+    rule, because a journal is not part of the public profile. Text entries keep working without
+    the file - `listJournal` falls back to notes only when the media table is missing - and the
+    UI says what to run when a file upload is attempted.
 
 **To check the rules rather than trust them: `supabase/security-check.sql`.** Run it in the SQL
 editor after any change to a policy or a grant. It impersonates three sessions - a dancer, an admin
@@ -382,7 +404,7 @@ select policyname, cmd, roles from pg_policies where schemaname = 'public';
 - **Following is one-directional and unlocks nothing.** Following a private account does not let you see their moves - the policies on `moves` still decide that. A follow only fills the "People I follow" filter on the Community page.
 - **Friends are worked out, not stored.** A friendship is two `follows` rows pointing at each other, so the Friends list on a profile is the intersection of the two lists and Following is the rest of what that account follows. Nothing to keep in step, and no friendship table to fall out of agreement with `follows`. Removing a follower deletes the row they made, so they can follow again; it does not block them.
 - **The Community feed is the newest 24 moves and 12 uploads**, with no paging and no ranking. Two queries, both filtered by row level security, which is why a private account can never appear in it.
-- **Avatars are a name and a file, not a file name.** `AVATAR_FILES` in `store.js` maps an id (what `profiles.avatar` stores) to a file in `icons/avatars/`, and its order is the order of the picker. The file's real extension decides how it is drawn: an `.svg` gets a light disc behind it as line art, anything else fills the circle like a photo. To add one, drop the file in and add a line - `'my-avatar': 'my-photo.jpg'` - then add the file to `SHELL` in `sw.js` and bump `CACHE`. The file must actually be the format its extension claims: a JPEG saved as `.svg` is served as `image/svg+xml`, fails to parse, and renders as nothing. An id that is no longer in the map is not an error: `avatarSrc` returns null and that dancer falls back to their initial.
+- **Avatars are a name and a file, not a file name.** `AVATAR_FILES` in `store.js` maps an id (what `profiles.avatar` stores for a preset) to a file in `icons/avatars/`, and its order is the order of the picker. An uploaded photo is the same column with a `user:` prefix followed by its public storage path, so `avatarSrc` returns a URL for it and a local path for a preset. The file's real extension decides how a preset is drawn: an `.svg` gets a light disc behind it as line art, anything else fills the circle like a photo. To add a preset, drop the file in and add a line - `'my-avatar': 'my-photo.jpg'` - then add the file to `SHELL` in `sw.js` and bump `CACHE`. The file must actually be the format its extension claims: a JPEG saved as `.svg` is served as `image/svg+xml`, fails to parse, and renders as nothing. An id that is no longer in the map is not an error: `avatarSrc` returns null and that dancer falls back to their initial.
 - **Difficulty is the community's opinion, not a fact.** Every signed-in dancer gets one answer per
   trick and can change it as often as they like; a trick's level is what most of those answers say,
   with a tie going to the gentler one, and a trick nobody has marked shows no level at all. It is

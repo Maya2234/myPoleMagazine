@@ -87,7 +87,7 @@ const toUser = (r) => ({
 });
 
 const toStudio = (r) => ({
-  id: r.id, name: r.name, city: r.city ?? null,
+  id: r.id, name: r.name, city: r.city ?? null, instagram: r.instagram ?? null,
   createdBy: r.created_by ?? null, createdAt: r.created_at,
 });
 
@@ -145,7 +145,7 @@ async function loadMe() {
   await refreshFollowing();     // who I follow, so the views can ask synchronously
   await refreshStudios();       // the studio directory, so the dropdowns can be drawn synchronously
   await refreshHomeStudios();   // which studios everyone lists, in their order
-  await refreshStudioLinks();   // and the Instagram handles its members have added
+  await refreshInstagram();     // whether a profile can carry a handle
   await refreshAliases();       // and every nickname the dictionary can be searched by
 }
 
@@ -348,9 +348,28 @@ export const AVATAR_FILES = {
 /* The ids on offer. Derived, so the list and the files can never drift apart. */
 export const AVATARS = Object.keys(AVATAR_FILES);
 
+/* An uploaded photo lives in its own public bucket, and profiles.avatar stores the path with this
+ * prefix rather than a URL. Keeping the two forms in one column is why an upload needed no profile
+ * column or grant of its own; a preset key never contains a slash. */
+const AVATAR_BUCKET = 'avatars';
+const USER_AVATAR = 'user:';
+const AVATAR_HINT = 'Profile photo uploads are not switched on for this project yet: run supabase/custom-avatars.sql in the Supabase SQL editor, then reload.';
+export const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+
 /* The address of a stored avatar id, or null when this build no longer ships that one - a preset
- * that was removed, or a row someone edited by hand. Callers fall back to the letter avatar. */
-export const avatarSrc = (key) => (key && AVATAR_FILES[key] ? `icons/avatars/${AVATAR_FILES[key]}` : null);
+ * that was removed, a custom file that is gone, or a row someone edited by hand. Callers fall back
+ * to the letter avatar. */
+export const avatarSrc = (key) => {
+  if (!key) return null;
+  if (key.startsWith(USER_AVATAR)) {
+    return supabase.storage.from(AVATAR_BUCKET)
+      .getPublicUrl(key.slice(USER_AVATAR.length)).data.publicUrl;
+  }
+  return AVATAR_FILES[key] ? `icons/avatars/${AVATAR_FILES[key]}` : null;
+};
+
+/* True for the ids that name an uploaded file rather than a built-in picture. */
+export const isUploadedAvatar = (key) => typeof key === 'string' && key.startsWith(USER_AVATAR);
 
 const SOCIAL_HINT = 'Avatars, Poler since and following are not switched on for this project yet: run supabase/social.sql in the Supabase SQL editor, then reload.';
 
@@ -363,6 +382,7 @@ const explainSocial = (message) =>
  * deserve different answers, so they are told apart here. */
 const STUDIOS_HINT = 'Studios and cities are not switched on for this project yet: run supabase/studios.sql in the Supabase SQL editor, then reload.';
 const HOME_STUDIOS_HINT = 'Listing more than one studio is not switched on for this project yet: run supabase/home-studios.sql in the Supabase SQL editor, then reload.';
+const STUDIO_INSTAGRAM_HINT = 'Studio Instagram handles are not switched on for this project yet: run supabase/studio-instagram.sql in the Supabase SQL editor, then reload.';
 const INSTAGRAM_HINT = 'Instagram is not switched on for this project yet: run supabase/instagram.sql in the Supabase SQL editor, then reload.';
 const PROFILE_GRANT_HINT = 'This profile cannot be saved from the app: run supabase/studios.sql and supabase/instagram.sql, which grant update on the columns the app writes. supabase/admins.sql narrows that list, so every file that names a column has to be run.';
 
@@ -441,7 +461,13 @@ export async function saveProfile({ avatar, polingSince, homeStudioIds, city, in
   const studios = homeStudioIds === undefined ? null : [...new Set(homeStudioIds.filter(Boolean))];
 
   if (avatar !== undefined) {
-    if (avatar !== null && !AVATARS.includes(avatar)) throw new Error('That is not one of the built-in avatars.');
+    const custom = typeof avatar === 'string' && avatar.startsWith(USER_AVATAR);
+    if (avatar !== null && !AVATARS.includes(avatar) && !custom) {
+      throw new Error('That is not one of the built-in avatars.');
+    }
+    if (custom && !avatar.slice(USER_AVATAR.length).startsWith(`${user.id}/`)) {
+      throw new Error('That photo does not belong to this account.');
+    }
     patch.avatar = avatar;
   }
 
@@ -483,6 +509,13 @@ export async function saveProfile({ avatar, polingSince, homeStudioIds, city, in
   }
   if (studios && homeStudiosReady) await replaceHomeStudios(user.id, studios);
 
+  /* An upload replaced by a preset leaves its object behind unless it is taken out here. A missing
+   * file is not worth failing a save that already succeeded. */
+  if (patch.avatar !== undefined && me.avatar?.startsWith(USER_AVATAR) && me.avatar !== patch.avatar) {
+    await supabase.storage.from(AVATAR_BUCKET)
+      .remove([me.avatar.slice(USER_AVATAR.length)]).catch(() => {});
+  }
+
   me = {
     ...me,
     ...(patch.avatar !== undefined ? { avatar: patch.avatar } : {}),
@@ -495,6 +528,43 @@ export async function saveProfile({ avatar, polingSince, homeStudioIds, city, in
   return me;
 }
 
+/* Uploads a profile photo and makes it the avatar. The old file is removed after the row has been
+ * written, so a failed save cannot leave the dancer with no picture at all. */
+export async function uploadAvatar(file) {
+  const user = requireUser();
+  if (!file) throw new Error('Pick a photo first.');
+  if (!file.type.startsWith('image/')) throw new Error('A profile photo has to be an image.');
+  if (file.size > MAX_AVATAR_BYTES) {
+    throw new Error(`That photo is ${(file.size / 1048576).toFixed(1)} MB. Keep it under ${Math.round(MAX_AVATAR_BYTES / 1048576)} MB.`);
+  }
+
+  const ext = (file.name.split('.').pop() ?? '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5) || 'jpg';
+  const path = `${user.id}/${uuid()}.${ext}`;
+  const previous = me.avatar;
+
+  const { error } = await supabase.storage.from(AVATAR_BUCKET).upload(path, file, { upsert: false });
+  if (error) {
+    throw new Error(/bucket/i.test(error.message) ? AVATAR_HINT : error.message);
+  }
+
+  const avatar = `${USER_AVATAR}${path}`;
+  try {
+    must(await supabase.from('profiles').update({ avatar }).eq('id', user.id));
+  } catch (err) {
+    await supabase.storage.from(AVATAR_BUCKET).remove([path]);
+    throw new Error(explainProfile(err.message));
+  }
+
+  me = { ...me, avatar };
+  profiles.set(me.id, me);
+
+  if (previous?.startsWith(USER_AVATAR)) {
+    try { await supabase.storage.from(AVATAR_BUCKET).remove([previous.slice(USER_AVATAR.length)]); }
+    catch { /* the new photo is saved; a stale old file is not worth failing over */ }
+  }
+  return avatar;
+}
+
 /* Deletes this account and everything in it. The database work lives in
  * supabase/delete-account.sql, because a browser can never remove a row from auth.users.
  *
@@ -503,9 +573,12 @@ export async function saveProfile({ avatar, polingSince, homeStudioIds, city, in
 export async function deleteAccount() {
   const user = requireUser();
 
-  const { data: files } = await supabase.storage.from(BUCKET).list(user.id, { limit: 1000 });
-  if (files?.length) {
-    await supabase.storage.from(BUCKET).remove(files.map((f) => `${user.id}/${f.name}`));
+  /* Every folder this account can own. A bucket that has not been set up simply answers empty. */
+  for (const bucket of [BUCKET, AVATAR_BUCKET, JOURNAL_BUCKET]) {
+    const { data: files } = await supabase.storage.from(bucket).list(user.id, { limit: 1000 });
+    if (files?.length) {
+      await supabase.storage.from(bucket).remove(files.map((f) => `${user.id}/${f.name}`));
+    }
   }
 
   const { error } = await supabase.rpc('delete_my_account');
@@ -1195,6 +1268,7 @@ export async function reviewEntry(id, approve) {
 /* ---------- photos & videos ---------- */
 
 const BUCKET = 'media';
+const JOURNAL_BUCKET = 'journal';
 /* Keep in step with file_size_limit in supabase/media.sql, and with the project's own limit in
  * Supabase -> Storage -> Settings. */
 export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
@@ -1446,8 +1520,9 @@ export async function feedMedia(limit = 12) {
 
 /* ---------- studios ---------- */
 
-let studios = [];          // the directory, sorted for a dropdown
-let studiosReady = true;   // false once the studios table turns out to be missing
+let studios = [];              // the directory, sorted for a dropdown
+let studiosReady = true;       // false once the studios table turns out to be missing
+let studioInstagramReady = true;   // false until studios.instagram exists
 
 /* False when supabase/studios.sql has not been run, so a screen can say what to do rather than
  * drawing an empty dropdown and letting the dancer wonder whether anyone is on it. */
@@ -1457,6 +1532,10 @@ const explainStudios = (message) =>
 export const studiosEnabled = () => studiosReady;
 export const listStudios = () => studios;
 export const studioById = (id) => studios.find((s) => s.id === id) ?? null;
+
+/* True once supabase/studio-instagram.sql has added the column, so the page can say what to run
+ * instead of offering a + that cannot save. */
+export const studioInstagramEnabled = () => studioInstagramReady;
 
 /* "Studio 54 - Leeds", or just the name when nobody said which city. Used for the dropdown, which
  * is where two studios with the same name have to be told apart. */
@@ -1517,6 +1596,9 @@ async function refreshStudios() {
   try {
     const rows = must(await supabase.from('studios').select('*'));
     studios = rows.map(toStudio).sort(byStudioName);
+    /* PostgREST simply omits a column that does not exist, so one row answers whether the file has
+     * been run. An empty directory has no page to draw yet; the next addStudio catches up. */
+    studioInstagramReady = rows.length ? Object.hasOwn(rows[0], 'instagram') : true;
   } catch {
     /* Like the social layer and the levels: the rest of the app carries on without it. */
     studiosReady = false;
@@ -1556,7 +1638,32 @@ export async function addStudio({ name, city } = {}) {
 
   const studio = toStudio(row);
   studios = [...studios, studio].sort(byStudioName);
+  if (!Object.hasOwn(row, 'instagram')) studioInstagramReady = false;
   return studio;
+}
+
+/* Sets, changes or clears the one Instagram handle on a studio. The write is a function rather than
+ * an UPDATE on the table because the column grant is table-wide: this way any member can change the
+ * handle without being able to rename the studio or move it to another town.
+ *
+ * `readInstagram` returns null for an empty box, which is the clear instruction. */
+export async function setStudioInstagram(studioId, value) {
+  requireUser();
+  if (!studioId || !studioById(studioId)) throw new Error('That studio is not in the list.');
+  const handle = readInstagram(value);
+
+  let saved;
+  try {
+    saved = must(await supabase.rpc('set_studio_instagram', { p_studio: studioId, p_handle: handle }));
+  } catch (err) {
+    throw new Error(/does not exist|schema cache|permission denied|could not find/i.test(err.message)
+      ? STUDIO_INSTAGRAM_HINT : err.message);
+  }
+
+  studioInstagramReady = true;
+  const studio = studioById(studioId);
+  if (studio) studio.instagram = saved ?? null;
+  return studio?.instagram ?? null;
 }
 
 /* Everyone who has listed this studio - the answer to "who else trains here". The list is the join
@@ -1616,102 +1723,30 @@ export async function replaceHomeStudios(userId, ids) {
   return wanted;
 }
 
-/* ---------- the Instagram accounts a studio's members have added ---------- */
+/* ---------- the handle on a profile ---------- */
 
-/* A dancer has one handle and it is a column on their profile; a studio has as many as its members
- * care to contribute, so that is a table of its own - same fact, different number of them. Both come
- * from supabase/instagram.sql, which is why one flag covers the pair: until that file has been run
- * the studio page offers no form and a profile save leaves the handle alone.
- *
- * The whole table is read in one call, like the studio directory: it is small, every studio page
- * needs its own rows anyway, and a page that has already loaded them draws without waiting. */
-let studioLinks = [];          // every contributed handle, loaded with the directory
-let instagramReady = true;     // false once the table turns out to be missing
+/* A dancer has one handle and it is a column on their profile. Studio handles are a column on the
+ * studio now (supabase/studio-instagram.sql) and are checked in the studios section below; this
+ * flag only says whether a profile save can send `instagram` at all. */
+let instagramReady = true;
 
 /* True once supabase/instagram.sql has been run. */
 export const instagramEnabled = () => instagramReady;
-
-const explainInstagram = (message) =>
-  (/does not exist|schema cache|permission denied|could not find/i.test(message) ? INSTAGRAM_HINT : message);
 
 /* Named separately from the studios hint because the two files are two problems: a missing
  * profile_studios table is home-studios.sql, and anything else about studios is studios.sql. */
 const explainHomeStudios = (message) =>
   (/profile_studios/i.test(message) ? HOME_STUDIOS_HINT : explainStudios(message));
 
-const toStudioLink = (r) => ({
-  id: r.id, studioId: r.studio_id, handle: r.handle,
-  addedBy: r.added_by ?? null, createdAt: r.created_at,
-});
-
-/* Synchronous, reads the cache. Ordered oldest first, because a list of accounts reads as a history
- * of who said what - and the row that says who added it makes that readable either way. */
-export const listStudioInstagrams = (studioId) => studioLinks.filter((l) => l.studioId === studioId);
-
-async function refreshStudioLinks() {
-  studioLinks = [];
+/* One probe is enough: asking for a column that is not there is the error this flag reports. */
+async function refreshInstagram() {
   instagramReady = true;
-  if (!me) return studioLinks;
+  if (!me) return;
   try {
-    const rows = must(await supabase.from('studio_instagrams').select('*').order('created_at'));
-    studioLinks = rows.map(toStudioLink);
+    must(await supabase.from('profiles').select('instagram').limit(1));
   } catch {
-    /* Like the levels, the studios and the follows: the rest of the app carries on without it. */
     instagramReady = false;
   }
-  return studioLinks;
-}
-
-/* Adds a handle to a studio, or hands back the one already listed.
- *
- * instagram.sql has a unique index on the studio and the handle, so adding the same account twice
- * would fail - and "that is already on the page" is not a mistake worth an error message. Matching
- * here means the button does the obvious thing, the way addStudio does. */
-export async function addStudioInstagram(studioId, value) {
-  requireUser();
-  if (!studioId || !studioById(studioId)) throw new Error('That studio is not in the list.');
-  const handle = readInstagram(value);
-  if (!handle) throw new Error("Type the studio's Instagram name first - the part after the @.");
-
-  const same = (a, b) => a.toLowerCase() === b.toLowerCase();
-  const existing = studioLinks.find((l) => l.studioId === studioId && same(l.handle, handle));
-  if (existing) return existing;
-
-  let row;
-  try {
-    row = must(await supabase.from('studio_instagrams')
-      .insert({ studio_id: studioId, handle }).select().single());
-  } catch (err) {
-    /* Lost a race with another member adding the same account: hand back theirs. */
-    if (/duplicate key|unique/i.test(err.message)) {
-      await refreshStudioLinks();
-      const now = studioLinks.find((l) => l.studioId === studioId && same(l.handle, handle));
-      if (now) return now;
-    }
-    throw new Error(explainInstagram(err.message));
-  }
-
-  const link = toStudioLink(row);
-  studioLinks = [...studioLinks, link];
-  return link;
-}
-
-/* Takes an account off a studio. The rules are the ones instagram.sql writes: the member who added
- * it, or an admin. Asking for the deleted row back is what tells a refusal from a success - a policy
- * that matches nothing still answers without an error - which is the same reason removeFollower
- * asks (see social.sql). */
-export async function removeStudioInstagram(id) {
-  requireUser();
-  let rows;
-  try {
-    rows = must(await supabase.from('studio_instagrams').delete().eq('id', id).select());
-  } catch (err) {
-    throw new Error(explainInstagram(err.message));
-  }
-  if (!rows.length) {
-    throw new Error('That account could not be removed: only the member who added it, or an admin, can take it off.');
-  }
-  studioLinks = studioLinks.filter((l) => l.id !== id);
 }
 
 /* ---------- the community feed ---------- */
@@ -1756,14 +1791,42 @@ export async function feedActivity({ moves: moveLimit = 24, media: mediaLimit = 
 
 /* ---------- journal (private: the policies only let a dancer read their own entries) ---------- */
 
+const JOURNAL_HINT = 'Journal photos and videos are not switched on for this project yet: run supabase/journal.sql in the Supabase SQL editor, then reload.';
 const toJournal = (r) => ({ id: r.id, date: r.entry_date, body: r.body, createdAt: r.created_at });
+const toJournalMedia = (r) => ({
+  id: r.id, entryId: r.journal_entry_id, ownerId: r.owner_id, path: r.storage_path,
+  kind: r.kind, mime: r.mime_type, size: r.size_bytes, createdAt: r.created_at,
+});
 
-/* Newest day first, then the most recent write first within a day. */
+/* Newest day first, then the most recent write first within a day. Text entries still open when the
+ * media table is missing; only the photos that go with them need supabase/journal.sql. */
 export async function listJournal(limit = 60) {
   const user = requireUser();
   const rows = must(await supabase.from('journal_entries').select('*').eq('user_id', user.id)
     .order('entry_date', { ascending: false }).order('created_at', { ascending: false }).limit(limit));
-  return rows.map(toJournal);
+  const entries = rows.map(toJournal);
+  if (!entries.length) return entries;
+
+  let mediaRows = [];
+  try {
+    mediaRows = must(await supabase.from('journal_media').select('*')
+      .in('journal_entry_id', entries.map((e) => e.id)));
+  } catch {
+    return entries;
+  }
+  if (!mediaRows.length) return entries.map((e) => ({ ...e, media: [] }));
+
+  const { data: signed } = await supabase.storage.from(JOURNAL_BUCKET)
+    .createSignedUrls(mediaRows.map((r) => r.storage_path), 3600);
+  const urls = new Map((signed ?? []).map((s) => [s.path, s.signedUrl]));
+  const byEntry = new Map();
+  for (const r of mediaRows) {
+    byEntry.set(r.journal_entry_id, [
+      ...(byEntry.get(r.journal_entry_id) ?? []),
+      { ...toJournalMedia(r), url: urls.get(r.storage_path) ?? '' },
+    ]);
+  }
+  return entries.map((e) => ({ ...e, media: byEntry.get(e.id) ?? [] }));
 }
 
 /* `date` is the dancer's own local day, YYYY-MM-DD, so the entry lands on the day they see. */
@@ -1777,9 +1840,56 @@ export async function addJournalEntry({ date, body } = {}) {
     .insert({ user_id: user.id, entry_date: date, body: text }).select().single()));
 }
 
+/* One photo or video for one of my entries. The storage path starts with my id, which is the whole
+ * of the bucket's ownership rule. */
+export async function uploadJournalMedia(file, entryId) {
+  const user = requireUser();
+  if (!file) throw new Error('Pick a photo or a video first.');
+  if (!entryId) throw new Error('That journal entry is missing.');
+  if (file.size > MAX_UPLOAD_BYTES) {
+    throw new Error(`${file.name || 'That file'} is ${(file.size / 1048576).toFixed(1)} MB. Keep uploads under ${Math.round(MAX_UPLOAD_BYTES / 1048576)} MB.`);
+  }
+  const kind = file.type.startsWith('video/') ? 'video' : file.type.startsWith('image/') ? 'photo' : null;
+  if (!kind) throw new Error('Only photos and videos can be added to a journal entry.');
+
+  const ext = (file.name.split('.').pop() ?? '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5)
+    || (kind === 'photo' ? 'jpg' : 'mp4');
+  const path = `${user.id}/${uuid()}.${ext}`;
+
+  const { error } = await supabase.storage.from(JOURNAL_BUCKET).upload(path, file, { upsert: false });
+  if (error) throw new Error(/bucket/i.test(error.message) ? JOURNAL_HINT : error.message);
+
+  try {
+    const row = must(await supabase.from('journal_media').insert({
+      journal_entry_id: entryId,
+      owner_id: user.id,
+      storage_path: path,
+      kind,
+      mime_type: file.type || null,
+      size_bytes: file.size,
+    }).select().single());
+    return toJournalMedia(row);
+  } catch (err) {
+    await supabase.storage.from(JOURNAL_BUCKET).remove([path]);
+    throw /does not exist|schema cache|permission denied/i.test(err.message)
+      ? new Error(JOURNAL_HINT) : err;
+  }
+}
+
 export async function deleteJournalEntry(id) {
   requireUser();
+  let paths = [];
+  try {
+    const rows = must(await supabase.from('journal_media').select('storage_path')
+      .eq('journal_entry_id', id));
+    paths = rows.map((r) => r.storage_path);
+  } catch { /* the entry may predate journal.sql and have no media at all */ }
+
   must(await supabase.from('journal_entries').delete().eq('id', id));
+  if (paths.length) {
+    try { await supabase.storage.from(JOURNAL_BUCKET).remove(paths); }
+    catch { /* the rows are gone; a leftover object is not worth failing the delete */ }
+  }
 }
 
 export async function exportMine() {
