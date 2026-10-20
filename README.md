@@ -35,7 +35,7 @@ network-first now, so a reload picks up your edits - but if you ever get stuck o
 (which is what the old cache-first version did), unregister it in DevTools → Application →
 Service Workers and reload.
 
-**On your phone:** run the server, find your computer's local IP, open `http://<that-ip>:8000` on the same wifi, then use "Add to Home Screen". Note that installing and offline mode need HTTPS, which `localhost` counts as but a LAN IP does not. For a real install on your phone, deploy the folder to any static host (GitHub Pages, Netlify, Cloudflare Pages), which gives you HTTPS for free.
+**On your phone:** run the server, find your computer's local IP, open `http://<that-ip>:8000` on the same wifi, then use "Add to Home Screen". Note that installing and offline mode need HTTPS, which `localhost` counts as but a LAN IP does not. For a real install on your phone, deploy the folder to any static host (GitHub Pages, Netlify, Cloudflare Pages), which gives you HTTPS for free. The full pre-publish pass on a real device - the tunnel, the install, and the things only a phone shows you, like the notch, the keyboard and the Photos picker - is in [docs/iphone-testing.md](docs/iphone-testing.md).
 
 **Accounts.** Register on the landing screen with an email, a password and a username. You log
 in with the email; the username is the public handle other members see. Confirming your email
@@ -49,6 +49,10 @@ add that same origin to **Redirect URLs**, or Supabase refuses to send a dancer 
 screen reports the link as expired. A stale or already-used link says so and offers to send a
 fresh one rather than failing silently.
 
+**Something wrong, or locked out?** `#/support` - linked from the login screen and from the row under
+**Profile → Support** - is a contact form that needs no account, which is the point: a dancer who
+cannot get in is the one most likely to need it. Sending writes the message down in the app first
+(`supabase/support.sql`, item 16 below) and emails it second through the `support` Edge Function,
 **User Support** `#/support` - linked from the login screen and from the row under
 **Profile → Support** - is a contact form that needs no account. Sending writes the message down in the app first
 (`supabase/support.sql`, item 15 below) and emails it second through the `support` Edge Function,
@@ -57,10 +61,39 @@ itself holds no address and no key. Where the mail lands is decided in that func
 which defaults to `mayato223@gmail.com`, sent from `SUPPORT_FROM`, which defaults to Resend's test
 sender `onboarding@resend.dev`. Both are secrets on the function, not values in this repo.
 
+## Checks and tests
+
+Two things can be checked without a browser, and both are one command:
+
+```
+npm run check      # the palette check, then the test suite
+```
+
+40 tests in `tests/`, on Node's own runner, with nothing to install. They cover what nothing else
+notices, because nothing at runtime compares them: that `CACHE` in `sw.js` was bumped when a cached
+file changed - the rule at the top of that file, now enforced rather than remembered - that every
+avatar in `AVATAR_FILES` is in `SHELL`, that every hash the app links to is one the router renders,
+that every table in `supabase/` has row level security and no policy answers `true` to a write, and
+that no secret value is committed. `docs/production-readiness.md` walks a standard pre-launch
+checklist against this repo: what is tested, what is missing, and what is a decision rather than a
+bug.
+
+After bumping `CACHE`, record the new state so the next run compares against it:
+
+```
+npm run stamp
+```
+
+Rendering is deliberately not covered here - `docs/iphone-testing.md` is the pass you run on a real
+phone.
+
 ## Your user stories and where they live
 
 | Story | Where |
 |---|---|
+| Track what you are working on | **Home** is your **Current goals** collection, created with your profile; add any of your moves to it - each one arrives as a card - and take one off with **Remove**. **Collections** for your own groupings (a move can be in several). The add panel names its two ways in down the side of the box - one of your moves, or a trick from the dictionary - and shows the one you pick, so the box is only ever as tall as the way in you are using; the **My Moves** side carries a **+ New move** for the move the app has not got yet, which opens the move form with this list already ticked. It closes on the cross in its corner rather than a Close button |
+| Say where a move has got to | Every card in the **Current goals** window, and the top of a move's own page - there it sits beside the name, under the label **Current goal** (everywhere else the pill is under the move's name and needs no label): **Not started**, **In progress** or **Achieved**, as a dropdown painted in the colour of the answer it holds. It writes the moment it changes, so there is no Save button to forget. A move nobody has said anything about reads **Not started** rather than nothing, which is the honest name for a move you have logged and not started working on. The status is *read* in the Current goals window only, so the Moves page stays a list of what you know rather than a board of what you are doing |
+| Detail page per move with entries, exits, combos | **Moves → a move**; entries, exits, combos and notes each read as what they hold until the pencil beside the label is tapped, and then it is chips you type and press Enter on. A chip whose text is a dictionary trick's name links to that trick |
 | Track what you are working on | **Home** is your **Current goals** collection, created with your profile; add any of your moves to it - each one arrives as a card - and take one off with **Remove**. **Collections** for your own groupings (a move can be in several). The add panel names its three sources down the side of the box - one of your moves, a trick from the dictionary, a move that is not in the dictionary yet - and shows the one you pick, so the box is only ever as tall as the way in you are using; it closes on the cross in its corner rather than a Close button |
 | Detail page per move with entries, exits, combos | **Moves → a move**; add or edit with chips (type, press Enter), and a chip whose text is a dictionary trick's name links to that trick |
 | Photos and videos on a move | While logging it: "+ Add photo or video" in the move form, which uploads what you picked as soon as the move is saved, and lists the clips already on it when you edit |
@@ -76,6 +109,9 @@ sender `onboarding@resend.dev`. Both are secrets on the function, not values in 
 | Private accounts | **Account → Private account** |
 | Community difficulty | **dictionary → a trick**: mark it beginner, intermediate or advanced and see what share of members chose each; the **dictionary** page filters and sorts by level. The bars only appear once somebody has answered - until then there is nothing to show, so they are not drawn, and the panel says in words that nobody has marked it yet |
 | Add a trick from the dictionary to your own moves | Every card in the **dictionary** carries **+ Add to My Moves** at the right of the trick's name, which opens the move form with the trick already linked to it - and reads **In your moves** once you have logged it, linking to your move. The button is on the card rather than appearing when you hover: the list is cards now, and a control that hides itself until a pointer arrives is one half the members never find |
+| Suggest a trick, and say how hard it is | **dictionary → Add a trick** opens a dialogue: the name is the only required answer, with an optional level and optional photos that attach to the trick itself. The level starts on **Unrated**, which is the honest answer for a trick nobody has an opinion about yet - one dancer picking a level is the first vote, not the verdict |
+| Read a trick at a glance | **dictionary → a trick** is a short article rather than a pile of cards: what the trick is and who logs it, then the facts worth having before you read anything else, then the community's difficulty, the names it goes by, how members get into and out of it, and the clips last |
+| Rate your own moves 1-5 | **Add or edit a move**: Beginner, Beginner+, Intermediate, Intermediate+, Advanced. It is your own rating, one per move, and it shows as five pink dashes at the far end of the name on every card that previews a move - the Moves page, the Current goals window and the Community feed - and on the move's own page the same five dashes sit beside the name, where they are the thing you change. The dashes are the whole reading; the written level (*Intermediate*, say) is the tooltip when you hover them, and the accessible name a screen reader reads, so the level is there when it is asked for and never competes with the name it belongs to |
 | Light or dark mode | **Account → Settings → Appearance**: System follows this device's own setting, Light and Dark override it, and the choice is remembered on that device only |
 | Delete Account | **Account → Settings** (`#/settings`): download your moves as JSON, or delete the account behind a type-your-username confirmation. The three groups on that screen are one shape each, so nothing there is louder than anything else until you read it |
 | Ask for help, signed in or not | **Profile → Support** (`#/support`), also linked from the login screen: writes to the owner's inbox and needs no account. The message is written down in the app before any email is attempted, so a mail outage cannot lose it. It sits on the profile rather than in Settings, and logging out sits apart from both, past a rule |
@@ -103,9 +139,19 @@ tools/check-palette.mjs checks the stylesheet; see "Checking the palette" below
 
 **Light, dark, or the device's own choice.** There is no second stylesheet. The whole palette is six colours in `css/style.css` - black, white, hot pink and three greys - and a theme is a second set of values for the same token names. Which set applies is decided by `html[data-theme="light"|"dark"]`, which **Account → Settings → Appearance** writes and remembers in `localStorage`; when no choice has been made the attribute is absent and a `prefers-color-scheme` media query decides, which is what makes "System" mean the same thing as having never chosen. A small inline script in `index.html` applies the saved value before the first paint, so a dancer who chose dark never sees a white flash. The one cost of doing it this way is that the light values appear twice in the file and the dark values twice more, because a media query cannot be reused for an attribute selector -the file says so where it matters, and the two copies of each set have to be changed together.
 
+**Two hot pinks, and the rule that keeps them apart.** `--accent` is the pink you *see*; `--accent-strong` is the pink you *read*. They are not interchangeable. `--accent` (#ff2d85 on light) is a fill - a button, the active tab in the bar, a meter bar, a selected row's border on a neutral card - and a dark label or a neutral background sits on it. `--accent-strong` (#a8004a on light) is ink, for anything legible against a light background: links, the eyebrow labels, the count pill. The same pink cannot do both jobs: `--accent` as text on white is only ~3.5:1, and `--accent-strong` as a button fill would hide its own label. There is a third case that is easy to miss - a shape drawn on a *pink* fill rather than a neutral one. There the edge has to be `--accent-strong` too, because `--accent` on `--accent-soft` is 2.99:1 and the edge stops reading as an edge; the rule is therefore decided by the background, not by the element. Ten rules do this - among them the open follow bar, a ticked checkbox row, the pressed icon button and the chosen source in the add-a-goal rail - and `tools/check-palette.mjs` fails the build if one of them draws an `--accent` edge on that fill.
+
+**Checking the palette.** Two mistakes are possible in that duplicated token set and neither is visible in a browser: a colour changed in three of the four blocks, and a text pair that has slipped below WCAG AA. `node tools/check-palette.mjs` covers both - it asserts the light copies match each other and the dark copies match each other, that light and dark declare the same colour names, that every text pair the app renders clears 4.5:1 in each theme, that a shape on a neutral surface clears 3:1, and that nothing draws the low-contrast `--accent` on an `--accent-soft` fill. It reads the real `css/style.css`, prints the measured ratio for every pair, and exits non-zero on the first problem, so it is safe to run before a commit. The syntax of the scripts is a separate check: `node --check js/app.js`, `node --check js/store.js`, `node --check sw.js`.
+
 **Two difficulty scales, deliberately not the same thing.** A move's own `difficulty` is one dancer's rating of one dancer's move: a number 1-5, shown as *Beginner, Beginner+, Intermediate, Intermediate+, Advanced*, owned by whoever logged it and changeable whenever it feels different. A trick's community level is the `entry_levels` table in the dictionary, where every member's answer counts and `levels.sql` keeps the individual answers private while publishing only the totals. The screens never mix them: five pink dashes on your own move, with the written level on them as a tooltip, and the community's answer on a shared trick as a level in the facts strip with three bars under it - and no bars at all until somebody has answered, with the fact strip and the panel both reading *Unrated* until then.
 
-**One preview shape, four lists.** A trick or a move is previewed by one piece of `app.js` - `trickPreview`, styled as `.trick-card` and friends in the stylesheet - and every list that shows one draws it through that: the Moves page's cards, every card in the **Current goals** window, the **dictionary**'s list and the move posts in the Community feed. The shape is a name, the dashes at the far end of that line, one line of detail underneath and the action on the right; what changes from screen to screen is only which of those slots are filled - a status dropdown and a Remove button under the name in the goals window, a *Pending* mark in the dictionary, who posted it and when in the feed. The one action that belongs to the name it sits beside, *+ Add to My Moves*, rides on the name's own line at the right-hand edge of the card (`actionsInHead`), because it is a thing you do about that trick rather than a step in the card. A long name on a phone can use the whole line, and then the action wraps onto a line of its own - still against the right edge (`.trick-tail` carries `margin-left: auto`), so it is never left starting back at the left under the name as though it were a second thing rather than the end of the first. Every one of these cards takes the pink border on hover, the way the Moves page's and the collections' cards always have: in the stylesheet it is `.card:has(.trick-card):hover`, so it follows the preview rather than the container, and the anchor that a Moves card happens to be is no longer what earns the edge. Three things follow from doing it once. The dictionary's list is cards rather than table-like rows; its cards carry no level at all, since your own 1-5 difficulty is a rating of your own move and a trick's community level is everybody's answer, which belongs in that trick's facts strip rather than beside its name in a list whose job is to find names; and they no longer carry a row of the members who log the trick, for the same reason - who logs a shared trick is a fact about the trick, and it is on the trick's page under its name.
+**Shown before offered.** A move you own is a card of what you know about it, so it reads as one: entries, exits and combos are plain pills, notes is the paragraph the move's own page draws, and a field with nothing in it says *None yet* rather than sitting there as an empty box. Each of the four carries a pencil beside its label, and one tap turns that one field into the one you write in - the × on every pill, the box to type in - which is also how the card stops being nine inputs at once. The chip fields are drawn once and the pencil only hides their × buttons and their box, never clears them, so a half-typed entry survives the pencil being closed and is committed when it is: what you finally Save is what the field holds, whether you last touched it open or shut. The **+** that adds a collection follows the same rule as the collections themselves: it sits in the row of the ones the move is already in, at the end of it, rather than on a line of its own underneath, and the box to name a new one opens in that row.
+
+**Three facts on the first line.** A move's own page used to introduce the move and then ask about it further down: the name at the top, where it had got to underneath, and how hard it is buried among the fields. All three are things you would say about the move in one breath, so they now sit together in the page head - the name, the status dropdown, and the five difficulty dashes with the written level beside them. The status carries the label **Current goal**, because a pink pill on its own reads as a state of the page rather than of this move, and the dashes carry **Difficulty**, because five dashes on their own read as decoration. Both labels go quiet (they are not the thing you are reading) and both controls wrap: on a phone the pair drops under the name and the written level drops under its dashes, so nothing is squeezed to fit a line it cannot hold. The dashes are the same control they were in the form - tapped, they write the answer the form saves - and the hidden input that carries it stays inside the form, since that is what `saveMove` reads.
+
+**Writing a move down from the list it belongs to.** The add panel once had a third way in - *New Move*, which filled in a whole move form inside the panel - and it was removed, because the page for writing a move down already exists and a panel for picking something to add to a list is the wrong place to grow a second, smaller one. What was missing was the way *to* that page: a dancer in **Current goals**, with nothing logged yet, was told to go and find the + on My Moves. So the **My Moves** side of the panel now carries **+ New move**, which opens the move form with the list you opened the panel from already ticked, so a move written down from here lands in it. It is a link rather than a button because it navigates - and the sheet closes itself on the hash change, the same way it does for every other row that goes somewhere. The dictionary side has no such +: writing a move down is not what that side is for.
+
+**One preview shape, four lists.** A trick or a move is previewed by one piece of `app.js` - `trickPreview`, styled as `.trick-card` and friends in the stylesheet - and every list that shows one draws it through that: the Moves page's cards, every card in the **Current goals** window, the **dictionary**'s list and the move posts in the Community feed. The shape is a name, the dashes at the far end of that line, one line of detail underneath and the action on the right; what changes from screen to screen is only which of those slots are filled - a drag grip, a status dropdown and a Remove button under the name in the goals window, a *Pending* mark in the dictionary, who posted it and when in the feed. The one action that belongs to the name it sits beside, *+ Add to My Moves*, rides on the name's own line at the right-hand edge of the card (`actionsInHead`), because it is a thing you do about that trick rather than a step in the card. A long name on a phone can use the whole line, and then the action wraps onto a line of its own - still against the right edge (`.trick-tail` carries `margin-left: auto`), so it is never left starting back at the left under the name as though it were a second thing rather than the end of the first. Every one of these cards takes the pink border on hover, the way the Moves page's and the collections' cards always have: in the stylesheet it is `.card:has(.trick-card):hover`, so it follows the preview rather than the container, and the anchor that a Moves card happens to be is no longer what earns the edge. The same relationship decides where a click goes: the name's link is stretched over the card by a pseudo-element, so the whole card opens the move or the trick. It is not done by wrapping the card in an anchor, because these cards hold a status dropdown, a Remove button and a drag grip, and a browser treats the first click on any of those inside an anchor as a navigation. The link does the work - still focusable, still the href a status bar shows - the controls are given a stacking order to sit above the overlay, and the difficulty tooltip moved to card hover, since the overlay is what the pointer now meets where the dashes are. Three things follow from doing it once. The dictionary's list is cards rather than table-like rows; its cards carry no level at all, since your own 1-5 difficulty is a rating of your own move and a trick's community level is everybody's answer, which belongs in that trick's facts strip rather than beside its name in a list whose job is to find names; and they no longer carry a row of the members who log the trick, for the same reason - who logs a shared trick is a fact about the trick, and it is on the trick's page under its name.
 
 ### Data model
 
@@ -116,6 +162,9 @@ studios             id, name, city, created_by
 profile_studios     user_id, studio_id, position, added_at  (where a dancer trains, in their order)
 moves               id, user_id, name, status, difficulty, entries[], exits[], combos[],
                     notes, dictionary_entry_id (optional), achieved_at, updated_at
+categories          id, user_id, name, is_default           (your collections)
+move_categories     move_id, category_id, position          (a move can be in several, in its own
+                    place in each)
 categories          id, user_id, name, is_default
 move_categories     move_id, category_id
 dictionary_entries  id, name, status (approved | pending), submitted_by
@@ -204,7 +253,7 @@ support_messages    id, name, email, subject, message, username, emailed, email_
     has to reach while signed out, because somebody locked out of their account is exactly who
     needs to write in - so it pays for that with a honeypot field and hard length caps instead
     of a session. It cannot read the database at all, and the one thing it writes is the message
-itself, in a table the browser may not insert into (`supabase/support.sql`, item 15), using the
+itself, in a table the browser may not insert into (`supabase/support.sql`, item 16), using the
 service role key that Edge Functions are given. The message
     goes to `mayato223@gmail.com` unless you set `SUPPORT_TO`, and comes from `onboarding@
     resend.dev` until you verify a domain in Resend and set `SUPPORT_FROM`. Until the function
@@ -227,9 +276,11 @@ service role key that Edge Functions are given. The message
 
     `profiles.city` is still a column and still comes out in the JSON export, but the profile no
     longer edits it: a studio carries its own town, and a profile carrying a second copy of the same
-    fact is a second thing that can be wrong or out of date. Which town your profile shows is the
-    town of the studio you train at - see `studioLabel` in `store.js` - and a studio saved without
-    one shows as just its name until somebody adds it.
+    fact is a second thing that can be wrong or out of date. A profile names the studio and nothing
+    else - "Studio 54", not "Studio 54 — Leeds" - because the dash is a directory label: it is how
+    `store.studioLabel` tells two studios with the same name apart in a dropdown, and read as prose
+    in a sentence it is just punctuation in the middle of it. The town has not gone anywhere: it is
+    the link's title, and the studio's own page leads with it.
 
     It also re-grants the browser's `update` on `profiles` with the two new columns on the list.
     That part matters: `supabase/admins.sql` narrows that grant to named columns so nobody can
@@ -283,7 +334,16 @@ service role key that Edge Functions are given. The message
     a studio page says what to run instead of offering the form, and a saved profile leaves the
     handle alone rather than failing - nothing else changes.
 
-15. **A stored copy of every support message: `supabase/support.sql`.** The `support_messages`
+15. **The order of your goals: `supabase/goal-order.sql`.** Adds `move_categories.position` and the
+    policy that lets a dancer renumber their own links, which is what a dragged card in Current goals
+    writes. The place belongs to the link rather than to the move, because the same move can sit in
+    Current goals and in a collection of your own, first in one and last in the other. Until it is
+    run the app is exactly as it was: the home screen lists goals newest-edit first, the grip still
+    appears so the list is not lying about what it can do, and letting one go says which file to run
+    instead of silently forgetting the order. The backfill numbers every existing link in the order
+    the list already reads in, so the first visit after running it looks the same as the one before.
+
+16. **A stored copy of every support message: `supabase/support.sql`.** The `support_messages`
     table the Edge Function writes into *before* it tries to email, so the row is the record and
     the email is a notification about the record. Only an admin can read it - the policies call
     `public.is_admin()`, which comes from `supabase/admins.sql` - and no browser can insert into

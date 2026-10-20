@@ -1,0 +1,14 @@
+# Nothing here is generated - the app is served as it sits. This file exists to keep out the two
+# things that would otherwise creep in and matter: an .env holding a key, in a repo that is public on
+# purpose because the only key in it is the publishable one, and an installed tool's folder.
+
+node_modules/
+.env
+.env.*
+!*.env.example
+
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

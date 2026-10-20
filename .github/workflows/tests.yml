@@ -1,0 +1,29 @@
+# Runs what can be run without a browser: the palette check and the test suite. Both are pure Node
+# with no dependencies, so there is nothing to install and the whole thing takes seconds - which is
+# the point, because the checks that matter here are the ones nothing else would notice: a cache
+# version that was not bumped, an avatar missing from the offline copy, a route that no longer
+# renders, a table without row level security.
+#
+# The suite deliberately does not cover rendering. That is docs/iphone-testing.md.
+
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: colours and contrast (css/style.css)
+        run: node tools/check-palette.mjs
+
+      - name: tests
+        run: npm test

@@ -1,0 +1,21 @@
+{
+  "cache": "mypolemagazine-v62",
+  "files": {
+    "index.html": "6db674602182680d",
+    "css/style.css": "712041252dc7f77b",
+    "js/app.js": "07d3c02e6e873b08",
+    "js/store.js": "c330f381ba6bcc77",
+    "js/supabase.js": "229207f435f682ec",
+    "manifest.webmanifest": "d5ee8f6ff7022cec",
+    "icons/icon.svg": "b1560b85eb4c0b57",
+    "icons/icon-192.png": "0bd6308d8129780d",
+    "icons/icon-512.png": "03c9fcdad6198795",
+    "icons/icon-maskable-512.png": "8e3ea6efa13d0b3a",
+    "icons/apple-touch-icon.png": "046764e722260c07",
+    "icons/avatars/pleaser-black.jpg": "682ffe9c0f44e83f",
+    "icons/avatars/pleaser-blue.jpg": "d18ee5d392ddfbab",
+    "icons/avatars/pleaser-boot.jpg": "c3ea480b39d17823",
+    "icons/avatars/pleaser-orange.jpg": "2e744800795702f3",
+    "icons/avatars/pleaser-pink.jpg": "109dee5ced9f0f9b"
+  }
+}

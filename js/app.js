@@ -1,12 +1,6 @@
-/* app.js — router and views.
- *
- * One hash route per screen (#/, #/move/:id, #/dictionary ...). Each view is a
- * function that builds an HTML string and wires up its own events. All data
- * comes from store.js, so nothing here knows where data is kept.
- */
 import * as store from './store.js';
 
-/* ---------- tiny templating: values are HTML-escaped unless wrapped as Safe ---------- */
+//---------- templating ----------
 
 class Safe {
   constructor(s) { this.s = s; }
@@ -29,7 +23,7 @@ const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const app = $('#app');
 const show = (view) => { app.innerHTML = String(view); };
 
-/* ---------- routing helpers ---------- */
+//---------- routing helpers ----------
 
 function parseHash() {
   const [path, qs] = (location.hash.replace(/^#/, '') || '/').split('?');
@@ -49,12 +43,8 @@ const attempt = async (fn) => {
   try { return await fn(); } catch (err) { toast(err.message, true); return undefined; }
 };
 
-/* ---------- light, dark, or follow the device ---------- */
+//---------- light, dark, or follow the device ----------
 
-/* A device preference rather than account data, so it lives in localStorage and needs no round
- * trip: the inline script in index.html reads the same key before the first paint, which is what
- * stops a dancer who chose dark from seeing a white flash on every load. Change the key here and you
- * must change it there too. */
 const THEME_KEY = 'mypolemagazine-theme';
 const THEMES = [
   { value: 'system', label: 'System' },
@@ -63,8 +53,6 @@ const THEMES = [
 ];
 const systemPrefersDark = () => matchMedia('(prefers-color-scheme: dark)').matches;
 
-/* Anything unrecognised - a stale value, or a browser with localStorage switched off - falls back to
- * following the device rather than to a blank screen. */
 function themePref() {
   try {
     const saved = localStorage.getItem(THEME_KEY);
@@ -72,13 +60,9 @@ function themePref() {
   } catch { return 'system'; }
 }
 
-/* Writes the choice to the document, remembers it, and keeps the browser's own chrome in step through
- * the theme-color meta tag - the one part of the theme the stylesheet cannot reach. */
 function applyTheme(value) {
   const pref = THEMES.some((t) => t.value === value) ? value : 'system';
   const root = document.documentElement;
-  /* No attribute at all means "the stylesheet's media query decides", which is exactly what system
-   * means; the CSS is written to read it that way. */
   if (pref === 'system') delete root.dataset.theme;
   else root.dataset.theme = pref;
   try { localStorage.setItem(THEME_KEY, pref); } catch { /* private mode; the choice just won't stick */ }
@@ -86,50 +70,35 @@ function applyTheme(value) {
   $('#theme-color')?.setAttribute('content', dark ? '#08080a' : '#ffffff');
 }
 
-/* ---------- shared bits ---------- */
+//---------- shared bits ----------
 
-/* Passed as the level of a trick nobody has rated: it draws the Unrated pill instead of the dashes. */
 const UNRATED = 'unrated';
 
-/* A dancer's own 1-5 rating, as five pink dashes and nothing else. The dashes are the whole reading:
- * they say where the move sits in the scale without a word next to them, which is what lets one line
- * hold a name, a level and a status at once. The written level is still there for anybody who asks -
- * as the tooltip when the dashes are hovered, and in the accessible name - so nothing is lost, it is
- * only no longer said twice. */
 const diffMeter = (n) => {
-  if (n === UNRATED) return html`<span class="diff-unrated" data-tip="Nobody has rated this trick yet">Unrated</span>`;
+  if (n === UNRATED) return html`<span class="diff-badge diff-unrated">Unrated</span>`;
   const value = Math.min(5, Math.max(1, Number(n) || 3));
   const label = store.difficultyLabel(value);
-  const said = `Difficulty ${value} of 5: ${label}`;
-  return html`<span class="diff" role="img" aria-label="${said}" data-tip="${said}">
-    <span class="diff-dots" aria-hidden="true">${
-      [1, 2, 3, 4, 5].map((i) => html`<i class="${i <= value ? 'on' : ''}"></i>`)}</span>
-  </span>`;
+  return html`<span class="diff-badge">${label}</span>`;
 };
 
-/* Where a move has got to, in the words a dancer reads. Not Started is the state of a move nobody has
- * said anything about yet, and it is a real answer rather than a blank: every move has one of the
- * three. */
+//statuses of moves in current goals
 const statusValue = (value) =>
   (store.STATUSES.find((s) => s.value === value) ?? store.STATUSES[0]).value;
 
-/* The status of one move, as a dropdown that is also the place the status is read: it paints itself in
- * the colour of the answer it is showing, so a card says where the move has got to and changing it is
- * one click in the same spot. It writes the moment it changes - there is no Save button to forget -
- * and the screen redraws, which is what keeps the colour in step with the value. */
-const statusSelect = (move) => html`
+/* `headingId` names a visible label beside the control - the move's own page says *Current goal* next
+ * to it - and takes over as the accessible name when it is given, since that is what the dancer can
+ * see. Everywhere else the sr-only text carries it: on a goals card the pill sits under the move's
+ * name, and a visible label there would say the same thing twice. */
+const statusSelect = (move, headingId = '') => html`
   <label class="status-pick status-${statusValue(move.status)}">
     <span class="sr-only">Where ${move.name} has got to</span>
-    <select data-status="${move.id}" aria-label="Where ${move.name} has got to">
+    <select data-status="${move.id}" ${headingId ? raw(`aria-labelledby="${headingId}"`) : ''}
+      aria-label="Where ${move.name} has got to">
       ${store.STATUSES.map((s) => html`<option value="${s.value}"
         ${statusValue(move.status) === s.value ? raw('selected') : ''}>${s.label}</option>`)}
     </select>
   </label>`;
 
-/* Wires every status dropdown a screen has drawn. The store writes the new value, then the screen
- * redraws itself: the dropdown paints itself in the colour of the answer, so a value that changed
- * without a redraw would be showing the wrong colour. `moves` is what the selectors were drawn for,
- * used only to name the move in the toast. */
 function wireStatusSelects(moves) {
   $$('[data-status]').forEach((sel) => sel.addEventListener('change', () => attempt(async () => {
     const move = moves.find((m) => m.id === sel.dataset.status);
@@ -140,15 +109,9 @@ function wireStatusSelects(moves) {
   })));
 }
 
-/* One trick or move, previewed. Every list that shows a preview draws it through here, so the name,
- * the level beside it, the line underneath and the action on the right are one shape on the Moves
- * page, in the Current goals window, in the Dictionary and in the Community feed - the same shape a
- * dancer learns once. What differs between the screens is what goes in the slots: a status badge and
- * a dropdown here, a "Pending" mark and an add button there. */
+//---------- trick preview cards ----------
 const trickPreview = ({ href, name, mark = '', difficulty = null, badge = '', alias = '',
   detail = '', extra = '', actions = '', actionsInHead = false }) => {
-  /* An empty slot arrives as '', as null, or as an empty list of chips - all three mean "nothing
-   * here", and a slot that is filled with nothing would leave a gap under the name. */
   const blank = (v) => v === '' || v === null || v === undefined || (Array.isArray(v) && !v.length);
   return html`<div class="trick-card">
     <div class="trick-head">
@@ -158,10 +121,6 @@ const trickPreview = ({ href, name, mark = '', difficulty = null, badge = '', al
       <span class="trick-tail">
         ${difficulty === null ? '' : html`<span class="trick-level">${diffMeter(difficulty)}</span>`}
         ${badge}
-        <!-- The one control that belongs to the name it sits beside - "add this trick" - rides with
-             the name rather than under it, which is where the dictionary puts it. Nothing else goes
-             up here: a status and a Remove button are what you do to a move you already have, and
-             they read as the second half of the card. -->
         ${actionsInHead && !blank(actions) ? actions : ''}
       </span>
     </div>
@@ -172,10 +131,15 @@ const trickPreview = ({ href, name, mark = '', difficulty = null, badge = '', al
   </div>`;
 };
 
-/* Plus, check and camera, drawn with the same stroke as the pencil so every icon button reads as one set. */
+// Icons used
 const plusIcon = html`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <path d="M12 5v14M5 12h14"/></svg>`;
+/* Six dots: the one mark everyone already reads as "hold this and move it". */
+const gripIcon = html`<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+  <circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/>
+  <circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/>
+  <circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>`;
 const searchIcon = html`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>`;
@@ -185,112 +149,76 @@ const checkIcon = html`<svg viewBox="0 0 24 24" width="18" height="18" fill="non
 const cameraIcon = html`<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`;
-
-/* The collection pencil. Renaming and deleting live behind it so they are not the first thing a
- * dancer sees when they open a collection. */
 const pencilIcon = html`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <path d="M4 20h4L20 8a2.83 2.83 0 0 0-4-4L4 16v4Z"/><path d="M14.5 5.5l4 4"/></svg>`;
-
-/* A head and shoulders, drawn with the same stroke as the pencil so the two icons match. It stands
- * in for the word "Account" in the navigation, which is why the link that carries it names itself
- * with aria-label: nothing here is readable by voice. */
 const profileIcon = html`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <circle cx="12" cy="8" r="3.75"/><path d="M4.75 20.5a7.25 7.25 0 0 1 14.5 0"/></svg>`;
-
-/* The gear that stands for Settings on the profile page. Feather's settings glyph, drawn with the
- * same stroke as the pencil and the profile head so the three read as one set. */
-/* Feather's help-circle and chevron-right, drawn with the same stroke as the gear, the pencil and
- * the profile head, so every icon in the app reads as one set. */
 const supportIcon = html`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <circle cx="12" cy="12" r="9.5"/><path d="M9.3 9.3a2.9 2.9 0 0 1 5.6 1c0 1.9-2.9 2.4-2.9 2.4"/>
   <path d="M12 16.4h.01"/></svg>`;
-/* Up and down, for the order of a dancer's own list of studios: the top row is the one a profile
- * shows, so the arrows are how that row is chosen. Drawn with the same stroke as the rest. */
 const arrowUpIcon = html`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>`;
 const arrowDownIcon = html`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>`;
-
 const chevronIcon = html`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <path d="m9 18 6-6-6-6"/></svg>`;
-
-/* The cross in the corner of a panel that opened in place: the add-a-goal panel is closed with it.
- * Drawn with the same stroke as the pencil and the chevron so it belongs to the same set. */
 const crossIcon = html`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>`;
-
 const trashIcon = html`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`;
-
 const settingsIcon = html`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <circle cx="12" cy="12" r="3"/>
   <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`;
+const homeIcon = html`<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 3L14.0357 8.16153C14.2236 8.63799 14.3175 8.87622 14.4614 9.0771C14.5889 9.25516 14.7448 9.41106 14.9229 9.53859C15.1238 9.68245 15.362 9.77641 15.8385 9.96432L21 12L15.8385 14.0357C15.362 14.2236 15.1238 14.3175 14.9229 14.4614C14.7448 14.5889 14.5889 14.7448 14.4614 14.9229C14.3175 15.1238 14.2236 15.362 14.0357 15.8385L12 21L9.96432 15.8385C9.77641 15.362 9.68245 15.1238 9.53859 14.9229C9.41106 14.7448 9.25516 14.5889 9.0771 14.4614C8.87622 14.3175 8.63799 14.2236 8.16153 14.0357L3 12L8.16153 9.96432C8.63799 9.77641 8.87622 9.68245 9.0771 9.53859C9.25516 9.41106 9.41106 9.25516 9.53859 9.0771C9.68245 8.87622 9.77641 8.63799 9.96432 8.16153L12 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`
+
 const dateText = (iso) =>
   new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-/* Resolves to a Map so views can look up a collection name by id after awaiting it. */
 const catMap = async (userId) => new Map((await store.listCategories(userId)).map((c) => [c.id, c.name]));
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
-/* Names come from the database in whatever case a dancer typed, so "admin spin" and "Admin Spin"
- * sort together instead of by character code. */
 const compareNames = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
 
-/* The one back control in the app: a small button, the same shape as every other button here, at the
- * top of the screen it returns from. `href` is always a real screen rather than history.back(), so a
- * visitor who followed a link into the middle of the app is not dropped out of it (see backTo). */
 const backLink = (href, label) => html`<a class="btn small page-back" href="${href}" aria-label="${label}" title="${label}">←</a>`;
 
-/* Joins the parts of a one-line fact - "Poler since 2021 · Studio 54 — Leeds" - with the separator
- * a profile line uses. A part may be plain text or markup, so this answers a fragment rather than a
- * string, and a caller asks for `.length` rather than trusting an array to be falsy when empty. */
 const joinText = (bits) => bits.flatMap((bit, i) => (i ? [' · ', bit] : [bit]));
 
-/* A studio's name, linked to the page that says who trains there. */
+/* On a profile the studio is shown as its name alone. "Studio 54 — Leeds" is a directory label - it is
+ * how two studios with the same name are told apart in a dropdown - and read as prose on a profile the
+ * dash is just punctuation in the middle of a sentence. The city is still there for anyone who wants
+ * it: it is the link's title, and the studio's own page leads with it. */
 const studioLink = (studio) =>
-  html`<a class="quiet-link" href="#/studio/${studio.id}">${store.studioLabel(studio)}</a>`;
+  html`<a class="quiet-link" href="#/studio/${studio.id}" title="${store.studioLabel(studio)}">${studio.name}</a>`;
 
-/* The rest of somebody's studios, behind a "+N" that opens where it sits. A dancer may list several
- * places they train (supabase/home-studios.sql) and a one-line profile fact has room for one of them,
- * so the others are folded away rather than dropped - a native <details>, so it works from the
- * keyboard and closes on Escape the way the follow lists do. */
 const studioMore = (rest) => html`<span class="studio-more" tabindex="0"
   aria-label="Also trains at ${rest.map((s) => store.studioLabel(s)).join(', ')}">
   <span class="studio-more-count" aria-hidden="true">+${rest.length}</span>
   <span class="studio-more-panel"><span class="studio-more-box">${rest.map((s) => html`<span class="studio-more-item">${studioLink(s)}</span>`)}</span></span>
 </span>`;
 
-/* An Instagram account, as a link out. The stored value is the bare handle (see readInstagram in
- * store.js), so the address is built there and nothing here has to know its shape. */
 const instagramLink = (handle) => html`<a class="chip" href="${store.instagramUrl(handle)}"
   target="_blank" rel="noopener noreferrer">@${handle}</a>`;
 
-/* ---------- avatars ---------- */
+//---------- avatars ----------
 
-/* A stable yes or no for a name, so a letter avatar always picks the same one of the two loud brand
- * colours and a list of names does not read as the same disc repeated. */
 function avatarAlt(text) {
   let sum = 0;
   for (const ch of String(text ?? '')) sum += ch.codePointAt(0);
   return sum % 2 === 1;
 }
 
-/* The pleaser they picked, or their initial on a brand colour when they have not picked one.
- * `user` may be missing fields - this is also used for a half-built profile on the picker. */
 function avatarOf(user, cls = '') {
-  /* Only an avatar this build ships draws a file. Anything else - a preset that was removed, or a
-   * hand-edited row - falls back to the letter instead of showing a broken image. */
   const src = store.avatarSrc(user?.avatar);
   if (src) {
-    /* The hand-drawn pleasers are dark artwork, so they sit on a light disc; anything else, a photo
-     * for instance, fills the circle. */
     const art = src.endsWith('.svg') ? ' avatar-art' : '';
     return html`<img class="avatar${art} ${cls}" src="${src}" alt="" loading="lazy"
       width="96" height="96">`;
@@ -300,8 +228,6 @@ function avatarOf(user, cls = '') {
     aria-hidden="true">${name.trim().charAt(0).toUpperCase() || '?'}</span>`;
 }
 
-/* The members who logged a trick, as up to three mini avatars with a count for the rest. Draws
- * nothing at all when nobody has logged it, so an unused trick shows no empty row. */
 const LOGGERS_SHOWN = 3;
 function loggerRow(users) {
   if (!users.length) return '';
@@ -315,10 +241,6 @@ function loggerRow(users) {
   </span>`;
 }
 
-/* One row of a follow list: face, name, and a button. The same shape the members tab uses, so a face
- * reads the same way in both places. `canRemove` swaps the follow button for the one only the owner
- * of the profile may use: taking a follower off, which deletes the follow pointing at them rather
- * than one they made. */
 const personRow = (u, canRemove = false) => {
   const following = store.isFollowing(u.id);
   return html`<li class="row">
@@ -336,13 +258,8 @@ const personRow = (u, canRemove = false) => {
   </li>`;
 };
 
-/* Which bar is open. Kept by name rather than by element, because a follow redraws the page and a
- * new element is built each time - without this the list you clicked in would snap shut mid-use. */
 const openBars = new Set();
 
-/* A bar's list sits over the page, so clicking anywhere else or pressing Escape puts it away, the
- * way any dropdown is dismissed. Registered here, once, rather than inside the wiring below: that
- * runs on every render, and a document listener added each time would pile up. */
 const closeFollowBars = () => {
   openBars.clear();
   $$('.follow-bar').forEach((bar) => { bar.open = false; });
@@ -350,24 +267,6 @@ const closeFollowBars = () => {
 document.addEventListener('click', (e) => { if (!e.target.closest('.follow-bars')) closeFollowBars(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeFollowBars(); });
 
-/* The follow lists as bars beside the name in a page head: Followers, Friends, Following, each with
- * its count and each dropping down its list when opened. An empty list still opens, to say what the
- * list means and how to fill it - a bar that is there and empty is findable, which the old version
- * (sections that drew only when somebody was in them) was not.
- *
- * Friends point at each other; Following holds the members this account follows that have not
- * followed back, which is why it says so - without the note it reads as though someone is missing.
- * Followers is drawn on both kinds of profile: it is a count anyone can read, and the only part of it
- * that is not is the button, since removing a follower is an action only the owner of the profile
- * may take. All three carry their own count, which is why the head has no second line repeating the
- * totals - the bars are those totals.
- *
- * The two outbound lists are halves of the same set, so nobody appears in both. Followers is the
- * inbound set, so a friend of yours does appear in Followers as well as Friends - that is what a
- * follower is. */
-/* The one line under a name: how long they have been a poler, and where they train. The studio
- * carries its own city (see studioLabel), so a studio that has one says so here and there is no
- * second place to keep a city in step with it. Either half may be missing. */
 function placeLine(user) {
   const studios = store.studiosOf(user);
   return joinText([
@@ -393,8 +292,6 @@ function followBars(lists, { own = false } = {}) {
       note: own
         ? 'members who follow you.'
         : 'members who follow them.',
-      /* The button is the profile owner's, so somebody looking at another dancer's profile reads the
-       * list and nothing more. */
       canRemove: own,
       empty: own ? 'Nobody follows you yet.' : 'Nobody follows them yet.',
     })}
@@ -409,11 +306,7 @@ function followBars(lists, { own = false } = {}) {
     })}</div>`;
 }
 
-/* Every follow list and the members tab draw the same two controls, so they share their wiring: do
- * the thing, say so, then redraw whichever screen drew the button. */
 function wireFollowActions(refresh) {
-  /* <details> opens itself. This only keeps it to one bar at a time and remembers which, so the
-   * redraw after a follow leaves that bar open. */
   $$('.follow-bar').forEach((bar) => bar.addEventListener('toggle', () => {
     if (bar.open) {
       openBars.add(bar.dataset.bar);
@@ -438,9 +331,6 @@ function wireFollowActions(refresh) {
   })));
 }
 
-/* A move card: the shared preview inside the link that makes the whole card tappable. Used on the
- * Moves page and under a profile's own list of moves. The collections are the line underneath, and
- * are left out rather than drawn empty when a move is in none. */
 const moveCard = (m, names = new Map()) => {
   const tags = m.categoryIds.map((id) => names.get(id)).filter(Boolean);
   return html`<a class="card" href="#/move/${m.id}">
@@ -456,79 +346,85 @@ function setTitle(text) {
   document.title = text ? `${text} · myPoleMagazine` : 'myPoleMagazine';
 }
 
-/* ---------- navigation bar ---------- */
+//---------- navigation bar ----------
 
+/* Five tabs, and two things that deliberately are not here. The journal is a floating notepad now, so
+ * it can be reached from any screen instead of only from the bar (see the journal section below).
+ * Review is admin work on a list - a bigger-screen job that lives under Account, which is also why
+ * its count rides on the profile icon: that way a queue of suggestions is visible from every screen,
+ * not only on the one tab an admin happens to be looking at.
+ *
+ * `data-nav` is on each link because the phone bar is a different order: Home sits in the middle
+ * there, where a thumb lands, with the two lists either side of it (see the mobile rules in
+ * css/style.css). The markup keeps one order so the two layouts cannot drift apart. */
 function renderNav(section) {
   const nav = $('#nav');
   const me = store.currentUser();
   nav.hidden = !me;
+  journalButton().hidden = !me;
+  placeJournalFab();
+  /* Once more on the next frame. The floor the button is held above is measured from the bar, and the
+   * bar's height can still change after this line - a webfont landing, a label wrapping - which left
+   * the button a few pixels off the place it was saved in. On the next frame the number is final. */
+  requestAnimationFrame(placeJournalFab);
   if (!me) return;
+
   const items = [
-    ['home', '#/', 'Home'],
-    ['moves', '#/moves', 'Moves'],
-    ['dictionary', '#/dictionary', 'Dictionary'],
-    ['community', '#/community', 'Community'],
+    { key: 'home', href: '#/', name: 'Home', icon: html`<span class="home-nav-icon">${homeIcon}</span>` },
+    { key: 'moves', href: '#/moves', name: 'My Moves' },
+    { key: 'dictionary', href: '#/dictionary', name: 'Dictionary' },
+    { key: 'community', href: '#/community', name: 'Community' },
+    { key: 'account', href: '#/account', name: 'Account', icon: profileIcon },
   ];
-  if (me.isAdmin) items.push(['review', '#/review', 'Review']);
+
   const pending = store.pendingCount();
-  const link = ([key, href, label, icon]) => {
+  const link = ({ key, href, name, icon }) => {
     const here = key === section ? raw('aria-current="page"') : '';
-    const pill = key === 'review' && pending ? html`<span class="pill">${pending}</span>` : '';
-    /* An item with an icon shows only the icon, so the label moves into an accessible name. */
+    const waiting = key === 'account' && pending;
+    const pill = waiting ? html`<span class="pill" aria-hidden="true">${pending}</span>` : '';
+    /* The count is in the accessible name too, since the pill itself is hidden from a screen reader
+     * in favour of this sentence. */
+    const named = waiting ? `${name}, ${plural(pending, 'suggestion')} waiting for review` : name;
     return icon
-      ? String(html`<a class="icon-only" href="${href}" ${here} aria-label="${label}" title="${label}">${icon}${pill}</a>`)
-      : String(html`<a href="${href}" ${here}>${label}${pill}</a>`);
+      ? String(html`<a class="icon-only" data-nav="${key}" href="${href}" ${here} aria-label="${named}" title="${name}">${icon}${pill}</a>`)
+      : String(html`<a data-nav="${key}" href="${href}" ${here}>${name}</a>`);
   };
-  nav.innerHTML = items.map(link).join('')
-    + '<button type="button" class="journal-open" id="journal-open" aria-haspopup="dialog">Journal</button>'
-    + link(['account', '#/account', 'Account', profileIcon]);
-  mountJournal();
+  nav.innerHTML = items.map(link).join('');
 }
+
 const raw = (s) => new Safe(s);
 
-/* ---------- router ---------- */
+//---------- router ----------
 
-/* The screen on show, and the one it was reached from, so a Back button can go somewhere real.
- * Deliberately not history.back(): a screen opened from a bookmark or a link has nothing of ours
- * behind it, and going back would drop the visitor out of the app entirely. */
 let screenHash = '';
 let cameFromHash = '';
 const backTo = (fallback) => (cameFromHash && cameFromHash !== screenHash ? cameFromHash : fallback);
 
 const SECTION = {
   '': 'home', home: 'home', moves: 'moves', move: 'moves',
-  collections: 'moves', collection: 'moves',   // collections live on the Moves page now
-  dictionary: 'dictionary', Bible: 'dictionary',   // #/Bible was this section's route before the rename
+  collections: 'moves', collection: 'moves',
+  dictionary: 'dictionary', Bible: 'dictionary',   // legacy #/Bible route
   community: 'community', Directory: 'community', browse: 'community', user: 'community',
-  studio: 'community',   // a studio page is reached from the Community tab, so that stays lit
+  studio: 'community',   // keep Community active for studio pages
   review: 'review', account: 'account',
-  reset: 'account',     // the set-a-new-password screen; it has no nav item of its own
-  settings: 'account',  // reached from the Account page, so Account stays the lit nav item
+  reset: 'account',
+  settings: 'account',
   support: 'account',
 };
 
-/* Screens somebody with no session still has to reach: logging in, the two password ones, and
- * support. A reset link signs the dancer in, but a forgotten password starts signed out - and
- * somebody who cannot get into their account is exactly who needs to write to us. */
 const OPEN_WHEN_SIGNED_OUT = ['auth', 'forgot', 'reset', 'support'];
 
 async function route({ keepScroll = false } = {}) {
   const { parts, query } = parseHash();
-  const me = store.currentUser();   // synchronous: the store caches the loaded profile
+  const me = store.currentUser();   // cached in store
 
-  /* Remember how we got here, for whatever Back button this screen renders. */
   const hash = location.hash || '#/';
   if (hash !== screenHash) { cameFromHash = screenHash; screenHash = hash; }
 
   if (!me && !OPEN_WHEN_SIGNED_OUT.includes(parts[0] ?? '')) return go('#/auth');
   if (me && parts[0] === 'auth') return go('#/');
 
-  /* The profile editor is a short-lived form on one screen, so leaving Account closes it - and takes
-   * the studio list being reordered with it, which is why that is state here rather than a screen. */
   if (SECTION[parts[0] ?? ''] !== 'account') { openEditor = null; studioDraft = null; }
-
-  /* The add-a-move panel belongs to the screen it was opened on: a fresh visit (a link, Back, or a tile)
-   * starts closed. Redraws of the same screen pass keepScroll and keep it open. */
 
   renderNav(SECTION[parts[0] ?? ''] ?? '');
 
@@ -542,7 +438,7 @@ async function route({ keepScroll = false } = {}) {
     else if (view === 'move' && a === 'new') await viewMoveForm(null, query);
     else if (view === 'move' && b === 'edit') await viewMoveForm(a, query);
     else if (view === 'move' && a) await viewMove(a);
-    else if (view === 'collections') return go('#/moves');   // old link: collections are on the Moves page
+    else if (view === 'collections') return go('#/moves');   // legacy collection route
     else if (view === 'collection' && a) await viewCollection(a);
     else if ((view === 'dictionary' || view === 'dictionary') && a) await viewEntry(a);
     else if (view === 'dictionary' || view === 'dictionary') await viewdictionary();
@@ -574,10 +470,10 @@ function notFound(message = 'That page does not exist.') {
     <a class="btn" href="#/">Back to my goals</a></div>`);
 }
 
-/* ---------- view: login / register ---------- */
+//---------- view: login / register ----------
 
 let authMode = 'login';
-let authEmail = '';   // kept so switching between the two forms doesn't lose what was typed
+let authEmail = '';   // kept across forms
 
 function viewAuth() {
   setTitle(authMode === 'login' ? 'Log in' : 'Create account');
@@ -620,7 +516,6 @@ function viewAuth() {
       } else {
         authEmail = String(data.get('email') ?? '').trim();
         const { needsConfirmation } = await store.register(authEmail, data.get('username'), data.get('password'));
-        /* Not an error: the account was created, it just has no session until the link is clicked. */
         if (needsConfirmation) {
           authMode = 'login';
           viewAuth();
@@ -637,14 +532,10 @@ function viewAuth() {
   });
 }
 
-/* ---------- views: forgotten password, and setting a new one ---------- */
+//---------- password reset ----------
 
-/* What the last reset request was sent to, so the screen can name it instead of asking again. Kept
- * out of the URL: it is one screen's memory, not a route. */
 let forgotSentTo = '';
 
-/* Asks for the email. Whatever happens, the screen reports the same thing, because Supabase answers
- * the same way for an address that has no account here - and the app should not undo that. */
 function viewForgot() {
   setTitle('Reset your password');
   const sent = forgotSentTo;
@@ -686,9 +577,6 @@ function viewForgot() {
   });
 }
 
-/* The screen a reset link lands on. It needs the session the link carried, so a stale or already-used
- * link is a real possibility rather than an edge case, and says so instead of showing a form that
- * could not save. */
 function viewReset() {
   setTitle('Set a new password');
   const me = store.currentUser();
@@ -715,8 +603,6 @@ function viewReset() {
   $('#reset-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const data = new FormData(e.target);
-    /* Checked here rather than in the store: what went wrong is a typo in one of two boxes, which is
-     * a thing to say on the screen, not an error from the database. */
     if (data.get('password') !== data.get('confirm')) {
       toast('The two passwords are not the same.', true);
       return;
@@ -735,39 +621,39 @@ function viewReset() {
   });
 }
 
-/* ---------- view: home (current goals) ---------- */
+//---------- home ----------
 
-/* The add panel is the same for every collection of your own: Current goals opens it, and so does each
- * collection, and it adds the same three sources to whichever one it was opened from. It opens as an
- * overlay (`goalPanel` says which collection, or null while closed). */
-let goalPanel = null;           // { target, where } while the overlay is open, else null
-let goalSource = 'move';        // which of the three sources the rail is showing
+let goalPanel = null;
+let goalSource = 'move';
 let goaldictionaryQuery = '';
 
-/* The three sources, named in a rail beside the panel. Nothing is hidden behind a click, and the panel
- * is only as tall as the source being used. `move` first because it needs nothing typed. */
+/* Two ways to pick, and one way to write a move down that is not in the app yet: the + on the My
+ * Moves side of the panel, which opens the move form with this list already ticked. That is
+ * deliberately not the old in-panel New Move form - the form is a page, and it is where entries,
+ * exits and photos live - so the + goes there rather than growing a second, smaller one here. */
 const GOAL_SOURCES = [
-  { value: 'move', label: 'One of my moves' },
-  { value: 'dictionary', label: 'A trick from the dictionary' },
-  { value: 'new', label: 'A move that is not in the dictionary' },
+  { value: 'move', label: 'My Moves' },
+  { value: 'dictionary', label: 'Dictionary' },
 ];
 
-/* What the panel needs, loaded only while it is open: the moves not yet in the collection it adds to,
- * every dictionary entry, and which of those the dancer already logs as one of their moves. */
 async function loadAddPanel(moves, target) {
   return {
-    spare: moves.filter((m) => !m.categoryIds.includes(target.id)),
+    moves,
     entries: await store.listEntries(),
     linked: new Map(moves.filter((m) => m.dictEntryId).map((m) => [m.dictEntryId, m])),
   };
 }
 
-/* The panel's markup. `target` is the collection a move lands in. */
-function addPanelHtml(target, spare) {
+function addPanelHtml(target, moves) {
   const verb = target.isDefault ? 'Add to goals' : 'Add to collection';
-  /* Each source is built from the same data, and the rail redraws the page rather than swapping one
-   * panel in place, so the sources cannot drift out of step with the list above them. A source that
-   * cannot help says so in its own panel rather than being taken off the rail. */
+  /* My Moves shows every move, not only the ones that could still be added. A list that hides what is
+   * already in the collection answers "can I add this?" by omission, so a dancer hunting for a move
+   * they are sure they logged finds nothing and assumes it is gone. Shown and disabled instead: the
+   * row says where it already is, which is the answer to the question they actually had. */
+  /* The empty case is the one that needs this most: the panel that says "you have not logged a move
+   * yet" now offers the thing that fixes it, instead of sending you to another tab to find the +. */
+  const newMove = html`<a class="btn" href="#/move/new?cat=${target.id}">+ New move</a>`;
+
   const sourcePanel = () => {
     if (goalSource === 'dictionary') {
       return html`<section class="goal-source-block">
@@ -776,30 +662,35 @@ function addPanelHtml(target, spare) {
         <div class="stack" id="goal-dictionary-list"></div>
       </section>`;
     }
-    if (goalSource === 'new') {
+    if (!moves.length) {
       return html`<section class="goal-source-block">
-        <p class="muted">A move of your own that the dictionary does not know about yet. Adding it
-          here logs it as one of your moves and puts it in this list.</p>
-        <div class="actions">
-          <button type="button" class="btn primary" id="goal-new-move">Fill in a new move</button>
-        </div>
+        ${newMove}
+        <p class="muted">You have not logged a move yet. The + above writes one down and puts it here.
+          Entries, exits and photos come after, on its own page.</p>
       </section>`;
     }
     return html`<section class="goal-source-block">
-      ${spare.length ? html`
-        <form class="inline-form" id="add-goal">
-          <select name="move" aria-label="Pick one of your moves">
-            ${spare.map((m) => html`<option value="${m.id}">${m.name}</option>`)}
-          </select>
-          <button class="btn primary" type="submit">${verb}</button>
-        </form>` : html`
-        <p class="muted">Nothing to pick from: every move you have logged is already here.</p>`}
+      ${newMove}
+      <div class="stack" id="goal-move-list">
+        ${moves.map((m) => {
+          const already = m.categoryIds.includes(target.id);
+          /* Each row is left as markup, not turned into a string: stringified here it would be escaped
+           * by the outer template and every dancer would see the HTML of a card instead of the card. */
+          return html`<div class="card${already ? ' disabled' : ''}">${trickPreview({
+            href: `#/move/${m.id}`,
+            name: m.name,
+            difficulty: m.difficulty,
+            actions: already
+              ? html`<button type="button" class="btn small" disabled>Already in</button>`
+              : html`<button type="button" class="btn small primary" data-goal-move="${m.id}">${verb}</button>`,
+          })}</div>`;
+        })}
+      </div>
     </section>`;
   };
 
   return html`
     <div class="goal-add" id="goal-add">
-      <!-- The way out is a cross in the corner of the box. -->
       <button type="button" class="panel-x" id="goal-add-x"
         aria-label="Close the add-a-goal panel" title="Close">${crossIcon}</button>
       <div class="goal-add-grid">
@@ -813,8 +704,6 @@ function addPanelHtml(target, spare) {
     </div>`;
 }
 
-/* The overlay the panel lives in. It sits on the body, outside the page, so redrawing the page behind it
- * does not close it. Closing it - the cross, Escape, or a finished move - refreshes the page behind. */
 function goalDialog() {
   let dialog = $('#goal-dialog');
   if (!dialog) {
@@ -826,28 +715,29 @@ function goalDialog() {
       goalPanel = null;
       route({ keepScroll: true });
     });
+    /* Every row in the panel links to the move or the trick it names, so tapping one navigates. The
+     * sheet has to go with it: left open, it sits over the page it sent you to. Adding a goal does not
+     * move the hash, so this cannot close the panel on the thing the panel is for. */
+    addEventListener('hashchange', () => { if (dialog.open) dialog.close(); });
   }
   return dialog;
 }
 
-/* Draws the panel from fresh data into the overlay. */
 async function drawGoalPanel() {
   if (!goalPanel) return;
   const { target, where } = goalPanel;
   const moves = await store.listMoves(store.currentUser().id);
   const data = await loadAddPanel(moves, target);
   const title = target.isDefault ? 'Add to current goals' : 'Add to collection';
-  goalDialog().innerHTML = String(html`<h2 id="goal-dialog-title">${title}</h2>${addPanelHtml(target, data.spare)}`);
+  goalDialog().innerHTML = String(html`<h2 id="goal-dialog-title">${title}</h2>${addPanelHtml(target, data.moves)}`);
   wireAddPanel(target, where, data);
 }
 
-/* After a change the overlay redraws its own list and the page behind it refreshes. */
 async function afterGoalChange() {
   await drawGoalPanel();
   await route({ keepScroll: true });
 }
 
-/* Opens the overlay for one collection. */
 async function openGoalPanel(target, where) {
   goalPanel = { target, where };
   const dialog = goalDialog();
@@ -855,12 +745,14 @@ async function openGoalPanel(target, where) {
   if (!dialog.open) dialog.showModal();
 }
 
-/* Wires the panel once it is on the page. `where` names the collection in the toasts. */
-function wireAddPanel(target, where, { spare, entries, linked }) {
+function wireAddPanel(target, where, { entries, linked }) {
   const addWord = target.isDefault ? 'Add as goal' : 'Add to collection';
 
-  /* Adding a trick puts a move you already had into the collection, or logs the trick as a new move
-   * named after it, already linked to the dictionary entry. */
+  /* The cross in the panel's corner. Closing the panel is closing the dialog it lives in - the same
+   * thing Escape and a tap outside already do - so it is wired to the same call. It was drawn but
+   * never listened to: the one control in the app that did nothing at all. */
+  $('#goal-add-x')?.addEventListener('click', () => goalDialog().close());
+
   const addFromDictionary = (entryId) => attempt(async () => {
     const entry = entries.find((e) => e.id === entryId);
     if (!entry) return;
@@ -875,11 +767,9 @@ function wireAddPanel(target, where, { spare, entries, linked }) {
     await afterGoalChange();
   });
 
-  /* Drawn on its own so typing in the search box does not redraw the page and lose the focus. */
   const drawdictionary = () => {
     const list = $('#goal-dictionary-list');
     if (!list) return;
-    /* Searched the same way the dictionary's own box searches it, nicknames included. */
     const rows = entries.filter((e) => entryMatch(e, goaldictionaryQuery).matches);
     list.innerHTML = rows.length ? rows.map((e) => {
       const mine = linked.get(e.id);
@@ -897,19 +787,11 @@ function wireAddPanel(target, where, { spare, entries, linked }) {
     $$('[data-goal-entry]').forEach((btn) => btn.addEventListener('click', () => addFromDictionary(btn.dataset.goalEntry)));
   };
 
-  $('#goal-new-move')?.addEventListener('click', () => attempt(async () => {
-    goalDialog().close();
-    await openMoveDialog(target);
-  }));
-  $('#add-goal')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    attempt(async () => {
-      await store.addToCategory(new FormData(e.target).get('move'), target.id);
-      toast(`Added to ${where}.`);
-      await afterGoalChange();
-    });
-  });
-  /* One way out, and it is the cross. */    $('#goal-add-x')?.addEventListener('click', () => goalDialog().close());
+  $$('[data-goal-move]').forEach((btn) => btn.addEventListener('click', () => attempt(async () => {
+    await store.addToCategory(btn.dataset.goalMove, target.id);
+    toast(`Added to ${where}.`);
+    await afterGoalChange();
+  })));
   $$('[data-goal-source]').forEach((btn) => btn.addEventListener('click', () => {
     if (goalSource === btn.dataset.goalSource) return;
     goalSource = btn.dataset.goalSource;
@@ -922,23 +804,153 @@ function wireAddPanel(target, where, { spare, entries, linked }) {
   drawdictionary();
 }
 
-/* The landing screen: the moves this dancer is working on. `Current goals` is a real collection,
- * so it also shows up on the Collections screen and on their public profile. */
+/* The order a dancer dragged their goals into. `order` is a Map of collection id -> place, so a list
+ * nobody has rearranged - or a project where goal-order.sql has not been run, where every place is
+ * missing - keeps the order it arrived in, which is newest edit first. Array#sort is stable and every
+ * comparison here is equal in that case, so nothing moves. */
+const orderInGoals = (moves, categoryId) => [...moves].sort((a, b) =>
+  (a.order?.get(categoryId) ?? Number.MAX_SAFE_INTEGER) - (b.order?.get(categoryId) ?? Number.MAX_SAFE_INTEGER));
+
+/* Dragging a goal card into a new place.
+ *
+ * By a grip rather than by the card: a card holds a link, a status dropdown and a Remove button, and on
+ * a phone a press-and-drag on any of those is a scroll, a tap or a text selection. The grip is the one
+ * part of the card that only ever means "move me", so touch-action: none is safe there and nowhere
+ * else on it.
+ *
+ * The card follows the finger with a transform, which does not reflow the list under it, and the card
+ * whose place it would take shows a pink edge instead. The order is written once, on release - a
+ * request per pixel dragged would be a request per pixel dragged. */
+let goalDrag = null;
+
+const goalCards = () => (goalDrag ? [...goalDrag.list.querySelectorAll('[data-goal-card]')] : []);
+
+function settleGoalDrag() {
+  for (const card of goalCards()) {
+    card.classList.remove('reordering', 'drop-before');
+    card.style.transform = '';
+  }
+  goalDrag = null;
+}
+
+function endGoalDrag(save) {
+  if (!goalDrag) return;
+  const { list, goals, card, slot, moved } = goalDrag;
+  if (!moved) {
+    goalDrag = null;                       // a press on the grip that never became a drag
+    return;
+  }
+  settleGoalDrag();
+  if (!save) return;                       // the drag was cancelled: the list keeps its order
+  const ids = [...list.querySelectorAll('[data-goal-card]')]
+    .map((c) => c.dataset.goalCard).filter((id) => id !== card.dataset.goalCard);
+  ids.splice(Math.min(slot, ids.length), 0, card.dataset.goalCard);
+  saveGoalOrder(goals.id, ids, '');
+}
+
+/* Writes an order and redraws from it either way. The redraw is what makes a failed save honest: the
+ * card has already been dropped where the finger left it, so the list has to be shown the order the
+ * database actually holds rather than the one it was asked to hold. */
+async function saveGoalOrder(categoryId, ids, message) {
+  await attempt(async () => {
+    try {
+      await store.setCategoryOrder(categoryId, ids);
+    } finally {
+      await route({ keepScroll: true });
+    }
+    if (message) toast(message);
+  });
+}
+
+function wireGoalReorder(list, goals) {
+  if (!list) return;
+  const SLOP = 5;                          // px of travel before a press counts as a drag
+
+  list.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const control = e.target.closest('button, select, option, a, input, textarea, label');
+    if (control && !control.closest('[data-grip]')) return;
+    const card = e.target.closest('[data-goal-card]');
+    if (!card) return;
+    e.preventDefault();
+    goalDrag = {
+      list, goals, card, pointerId: e.pointerId,
+      startY: e.clientY, moved: false, slot: goalCards().length - 1,
+    };
+    card.setPointerCapture(e.pointerId);
+  });
+
+  list.addEventListener('pointermove', (e) => {
+    if (!goalDrag) return;
+    const dy = e.clientY - goalDrag.startY;
+    if (!goalDrag.moved) {
+      if (Math.abs(dy) < SLOP) return;
+      goalDrag.moved = true;
+      goalDrag.card.classList.add('reordering');
+    }
+    goalDrag.card.style.transform = `translateY(${dy}px)`;
+    /* Which slot it would land in: the number of other cards whose middle the finger is below. The
+     * card being dragged is left out, so the slot is an index among the cards that stay put. */
+    const others = goalCards().filter((c) => c !== goalDrag.card);
+    const slot = others.findIndex((c) => {
+      const box = c.getBoundingClientRect();
+      return e.clientY < box.top + box.height / 2;
+    });
+    goalDrag.slot = slot < 0 ? others.length : slot;
+    others.forEach((c, i) => c.classList.toggle('drop-before', i === goalDrag.slot));
+  });
+
+  list.addEventListener('pointerup', () => endGoalDrag(true));
+  list.addEventListener('pointercancel', () => endGoalDrag(false));
+
+  /* The same move with a keyboard, because a drag is the one gesture a keyboard cannot make. Every
+   * grip is a button and a button that does nothing when it is pressed is a lie: the arrow keys move
+   * the card it belongs to, one place at a time, and the focus follows it so a second press continues
+   * from where the first one left off. */
+  list.addEventListener('keydown', (e) => {
+    const grip = e.target.closest('[data-grip]');
+    if (!grip) return;
+    const step = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
+    if (!step) return;
+    e.preventDefault();
+    const id = grip.dataset.grip;
+    const ids = [...list.querySelectorAll('[data-goal-card]')].map((c) => c.dataset.goalCard);
+    const from = ids.indexOf(id);
+    const to = from + step;
+    if (from < 0 || to < 0 || to >= ids.length) return;
+    ids.splice(to, 0, ...ids.splice(from, 1));
+    attempt(async () => {
+      try {
+        await store.setCategoryOrder(goals.id, ids);
+      } finally {
+        await route({ keepScroll: true });
+        /* The redraw replaces the list, so the old element is not where the new grip is: look it up
+         * in the document, or the focus would be dropped on the floor with the old markup. */
+        $(`[data-goal-card="${id}"] [data-grip]`)?.focus();
+      }
+    });
+  });
+}
+
+/* A pointer let go somewhere else still ends a drag - a browser can drop capture on a system gesture,
+ * and a card left floating would be worse than a reorder that did not happen. Installed once here,
+ * not once per visit to the home screen. */
+document.addEventListener('pointerup', (e) => {
+  if (goalDrag && e.pointerId === goalDrag.pointerId) endGoalDrag(true);
+}, true);
+
 async function viewHome() {
   setTitle('Home');
   const me = store.currentUser();
 
-  /* Created by supabase/current-goals.sql for every profile; this also makes one for accounts that
-   * existed before that file was run, so the screen works either way. */
   let goals = null;
   let goalsNote = '';
   try { goals = await store.ensureGoalsCategory(); }
   catch (err) { goalsNote = err.message; }
 
   const [cats, moves] = await Promise.all([store.listCategories(me.id), store.listMoves(me.id)]);
-  const inGoals = goals ? moves.filter((m) => m.categoryIds.includes(goals.id)) : [];
+  const inGoals = goals ? orderInGoals(moves.filter((m) => m.categoryIds.includes(goals.id)), goals.id) : [];
 
-  /* One add control, wherever this dancer is. It opens the panel as an overlay. */
   const addButton = html`
     <button type="button" class="btn primary" id="add-goal-toggle" aria-haspopup="dialog">+ Add new goal</button>`;
 
@@ -961,12 +973,16 @@ async function viewHome() {
     ${!goals ? '' : inGoals.length ? html`
       <div class="stack" id="goal-list">
         ${inGoals.map((m) => html`
-          <div class="card">
+          <div class="card goal-card" data-goal-card="${m.id}">
             ${trickPreview({
               href: `#/move/${m.id}`,
               name: m.name,
               difficulty: m.difficulty,
-              actions: html`${statusSelect(m)}
+              /* The grip only appears when there is something to put the card beside. */
+              actions: html`${inGoals.length > 1 ? html`<button type="button"
+                  class="icon-btn plain goal-grip" data-grip="${m.id}"
+                  title="Drag to reorder"
+                  aria-label="Reorder ${m.name}, drag or use the arrow keys">${gripIcon}</button>` : ''}${statusSelect(m)}
                 <button type="button" class="btn small remove-dash" data-drop="${m.id}"
                   title="Remove from current goals"
                   aria-label="Remove ${m.name} from current goals">—</button>`,
@@ -983,15 +999,24 @@ async function viewHome() {
 
   if (!goals) return;
   wireStatusSelects(inGoals);
-  $$('[data-drop]').forEach((btn) => btn.addEventListener('click', () => attempt(async () => {
-    await store.removeFromCategory(btn.dataset.drop, goals.id);
-    toast('Taken off your current goals.');
-    await route({ keepScroll: true });
-  })));
+  wireGoalReorder($('#goal-list'), goals);
+  /* Taking a goal off the list is one tap away from the status dropdown and two from the grip, so it
+   * asks first - the same way deleting a move or a collection does. The question says what happens to
+   * the move as well, because "remove" on its own reads like it might delete it: it leaves your goals
+   * and goes back to My Moves, which is where a goal you are not chasing right now belongs. */
+  $$('[data-drop]').forEach((btn) => btn.addEventListener('click', () => {
+    const name = inGoals.find((m) => m.id === btn.dataset.drop)?.name ?? 'this move';
+    if (!confirm(`Take “${name}” off your current goals? The move stays in My Moves.`)) return;
+    attempt(async () => {
+      await store.removeFromCategory(btn.dataset.drop, goals.id);
+      toast('Taken off your current goals.');
+      await route({ keepScroll: true });
+    });
+  }));
   $('#add-goal-toggle')?.addEventListener('click', () => attempt(() => openGoalPanel(goals, 'your current goals')));
 }
 
-/* ---------- view: my moves ---------- */
+//---------- my moves ----------
 
 const filters = { q: '', sort: 'recent' };
 
@@ -999,8 +1024,6 @@ async function viewMoves() {
   setTitle('Skill Roster');
   const me = store.currentUser();
   const [cats, moves] = await Promise.all([store.listCategories(me.id), store.listMoves(me.id)]);
-  /* Every collection is a label on the card, Current goals included, so a dancer can see which moves
-   * are their current goals next to the others. */
   const names = new Map(cats.map((c) => [c.id, c.name]));
 
   const head = html`
@@ -1011,7 +1034,6 @@ async function viewMoves() {
       <a class="btn primary" href="#/move/new">+ Add move</a>
     </div>`;
 
-  /* Collections sit above the moves: the square tiles, then a tile that opens the new-collection form. */
   const collections = html`
     <section class="coll-section" aria-labelledby="coll-title">
       <h2 class="subhead" id="coll-title">Collections</h2>
@@ -1032,7 +1054,6 @@ async function viewMoves() {
       </form>
     </section>`;
 
-  /* Wired after every draw of this page, empty or not, so the tile always works. */
   const wireCollections = () => {
     $('#new-cat-open').addEventListener('click', (e) => {
       const form = $('#new-cat');
@@ -1054,7 +1075,6 @@ async function viewMoves() {
     show(html`${head}${collections}
       <div class="empty">
         <h3>No moves yet</h3>
-        <p>Log the first one: what you can do today, or what you are working toward.</p>
         <a class="btn primary" href="#/move/new">Add your first move</a>
       </div>`);
     wireCollections();
@@ -1089,17 +1109,14 @@ async function viewMoves() {
   $('#sort').addEventListener('change', (e) => { filters.sort = e.target.value; draw(); });
 }
 
-/* ---------- photos & videos (shared by the move and dictionary screens) ---------- */
+//---------- photos & videos ----------
 
 const megabytes = (bytes) => Math.round(bytes / 1048576);
 
-/* A size in the unit that reads best: rounding a 400 KB photo to "0 MB" is not a size, and the
- * chips in the upload list are the one place a dancer reads the number of a single file. */
 const fileSize = (bytes) => (bytes >= 1048576
   ? `${(bytes / 1048576).toFixed(bytes >= 10485760 ? 0 : 1)} MB`
   : `${Math.max(1, Math.round(bytes / 1024))} KB`);
 
-/* A raw Supabase error is rarely the sentence a dancer needs, so translate the usual ones. */
 function mediaSetupNote(err) {
   return /does not exist|schema cache|permission denied|bucket/i.test(err.message)
     ? html`Photo and video uploads are not switched on for this project yet: run
@@ -1119,9 +1136,6 @@ const mediaGrid = (rows, me) => rows.length ? html`
       </figure>`)}
   </div>` : html`<p class="muted"></p>`;
 
-/* The hint reads as the section's own description - under the heading, where it explains what the
-   section holds, rather than after the upload button where it read as a footnote to it. `panel`
-   draws it as the same box as the section above it, for the screens that use panels. */
 function mediaSection({ title, hint, rows, note, canUpload, me, panel = false }) {
   return html`
     <div class="section${panel ? ' panel' : ''}">
@@ -1139,7 +1153,6 @@ function mediaSection({ title, hint, rows, note, canUpload, me, panel = false })
     </div>`;
 }
 
-/* Wires the upload control and the remove buttons on the grid that was just rendered. */
 function wireMedia({ parent, rows, refresh }) {
   const input = $('#media-file');
   $('#media-add')?.addEventListener('click', () => input.click());
@@ -1169,15 +1182,13 @@ function wireMedia({ parent, rows, refresh }) {
   }));
 }
 
-/* ---------- view: one move ---------- */
+//---------- move ----------
 
 async function viewMove(id) {
   const move = await store.getMove(id);
   if (!move) return notFound('That move does not exist, or it belongs to a private account.');
   setTitle(move.name);
 
-  /* Your own move is edited on its own page, so there is one screen for it: the editor. Other
-   * members' moves keep the read-only view below. */
   const me = store.currentUser();
   if (move.userId === me.id) return viewMoveForm(id, new URLSearchParams());
   const [owner, names, entry] = await Promise.all([
@@ -1187,15 +1198,11 @@ async function viewMove(id) {
   ]);
   const ownerName = owner?.username ?? 'this dancer';
 
-  /* RLS decides what comes back, so this is safe to ask for on anyone's move. */
   let media = [];
   let mediaNote = '';
   try { media = await store.listMedia({ moveId: move.id }); }
   catch (err) { mediaNote = mediaSetupNote(err); }
 
-  /* Entries and exits are words this dancer typed, but a word that names a dictionary trick is a link:
-   * "Wrist grip" walks into its own page instead of sitting there as text. The index is the dictionary's
-   * own list, so a chip links exactly where the add-a-move form would link the same name. */
   await store.loadEntryIndex();
   const chipSection = (title, items) => items.length
     ? html`<div class="section"><h2>${title}</h2><div class="chips">${
@@ -1252,7 +1259,7 @@ async function viewMove(id) {
   wireMedia({ parent: { moveId: move.id }, rows: media, refresh: () => route({ keepScroll: true }) });
 }
 
-/* ---------- chip input (entries / exits / combos) ---------- */
+//---------- chip input ----------
 
 function chipField(el, initial, label) {
   let items = [...initial];
@@ -1260,8 +1267,11 @@ function chipField(el, initial, label) {
   input.type = 'text';
   input.className = 'chip-text';
   input.maxLength = 80;
-  input.placeholder = 'Type and press Enter';
   input.setAttribute('aria-label', `Add to ${label}`);
+
+  const syncPlaceholder = () => {
+    input.placeholder = items.length ? '' : 'Enter to add';
+  };
 
   const commit = () => {
     const value = input.value.trim().replace(/,+$/, '').trim();
@@ -1284,6 +1294,7 @@ function chipField(el, initial, label) {
       chip.append(x);
       el.append(chip);
     });
+    syncPlaceholder();
     el.append(input);
   };
 
@@ -1301,16 +1312,30 @@ function chipField(el, initial, label) {
   return () => { commit(); return items; };
 }
 
-/* ---------- view: add / edit move ---------- */
+//---------- add / edit move ----------
 
-async function viewMoveForm(id, query, inDialog = null) {
+/* Entries, exits, combos and notes are shown before they are offered: each reads as what it holds
+ * until the pencil beside its label is tapped. Nothing is thrown away in between - the control inside
+ * is drawn once and the pencil only hides its buttons and its box to type in - so a half-typed entry
+ * survives the pencil being closed again. */
+const lockedField = (label, control, id) => html`
+  <div class="field" id="field-${id}" data-editing="off">
+    <div class="field-head">
+      <span class="label">${label}</span>
+      <button type="button" class="icon-btn plain" data-edit="${id}" aria-expanded="false"
+        aria-controls="f-${id}" aria-label="Edit ${label}" title="Edit ${label}">${pencilIcon}</button>
+    </div>
+    ${control}
+  </div>`;
+
+async function viewMoveForm(id, query) {
   const me = store.currentUser();
   let move = null;
   if (id) {
     move = await store.getMove(id);
     if (!move || move.userId !== me.id) return notFound('You can only edit your own moves.');
   }
-  if (!inDialog) setTitle(move ? `Edit ${move.name}` : 'Add move');
+  setTitle(move ? `Edit ${move.name}` : 'Add move');
 
   const [entries, prefillEntry, cats] = await Promise.all([
     store.listEntries(),
@@ -1324,15 +1349,33 @@ async function viewMoveForm(id, query, inDialog = null) {
     dictEntryId: prefillEntry?.id ?? null,
   };
   const backHref = '#/moves';
-  /* The level the dashes start on. A move with no level, or a new one, starts at the middle. */
   const level = Math.min(5, Math.max(1, Number(m.difficulty) || 3));
 
   const view = html`
-    ${inDialog ? html`<h2 id="move-dialog-title">Add a move</h2>` : html`${backLink(backHref, move ? 'My moves' : 'Cancel')}
-    <div class="page-head"><div><p class="eyebrow">${move ? 'Move' : 'New move'}</p><h1>${move ? m.name : 'Add a move'}</h1></div></div>
-    ${move ? html`<div class="meta-row">${statusSelect(move)}</div>` : ''}`}
+    ${backLink(backHref, move ? 'My moves' : 'Cancel')}
+    <div class="page-head move-head">
+      <div><p class="eyebrow">${move ? 'Move' : 'New move'}</p><h1>${move ? m.name : 'Add a move'}</h1></div>
+      <div class="head-fields">
+        ${move ? html`<div class="head-field">
+          <span class="label" id="status-head">Current goal</span>
+          ${statusSelect(move, 'status-head')}
+        </div>` : ''}
+        <div class="head-field">
+          <span class="label" id="diff-head">Difficulty</span>
+          <div class="diff-edit">
+            <div class="diff-steps" role="radiogroup" aria-labelledby="diff-head">
+              ${[1, 2, 3, 4, 5].map((i) => html`<button type="button" class="diff-step ${i <= level ? 'on' : ''}"
+                role="radio" data-level="${i}" aria-checked="${i === level ? 'true' : 'false'}"
+                aria-label="${i} of 5"></button>`)}
+            </div>
+            <p class="diff-label" id="diff-label" aria-live="polite">${store.difficultyLabel(level)}</p>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <form class="form" id="move-form">
+      <input type="hidden" name="difficulty" value="${level}">
       <label class="field"><span>Nickname</span>
         <input type="text" name="name" required maxlength="80" autocomplete="off" list="dict-names"
           value="${m.name}" placeholder="trick name">
@@ -1353,30 +1396,13 @@ async function viewMoveForm(id, query, inDialog = null) {
           <small>An admin reviews it before it appears for everyone.</small></span>
       </label>
 
-      <fieldset class="field"><legend>Difficulty</legend>
-        <div class="diff-edit">
-          <input type="hidden" name="difficulty" value="${level}">
-          <div class="diff-steps" role="radiogroup" aria-label="Difficulty">
-            ${[1, 2, 3, 4, 5].map((i) => html`<button type="button" class="diff-step ${i <= level ? 'on' : ''}"
-              role="radio" data-level="${i}" aria-checked="${i === level ? 'true' : 'false'}"
-              aria-label="${i} of 5"></button>`)}
-          </div>
-          <p class="diff-label" id="diff-label" aria-live="polite">${store.difficultyLabel(level)}</p>
-        </div>
-      </fieldset>
-
-      <div class="field"><span class="label">Entries</span><div class="chip-field" id="f-entries"></div>
-        </div>
-      <div class="field"><span class="label">Exits</span><div class="chip-field" id="f-exits"></div>
-        </div>
-      <div class="field"><span class="label">Combines well with...</span><div class="chip-field" id="f-combos"></div>
-        </div>
+      ${lockedField('Entries', html`<div class="chip-field" id="f-entries"></div>`, 'entries')}
+      ${lockedField('Exits', html`<div class="chip-field" id="f-exits"></div>`, 'exits')}
+      ${lockedField('Combines well with...', html`<div class="chip-field" id="f-combos"></div>`, 'combos')}
 
       <fieldset class="field"><legend>Collections</legend>
-        ${cats.length ? html`<div class="checks">
+        <div class="checks">
           ${cats.map((c) => html`<label class="check"><input type="checkbox" name="cat" value="${c.id}" ${m.categoryIds.includes(c.id) ? raw('checked') : ''}> ${c.name}</label>`)}
-        </div>` : ''}
-        <div class="cat-add">
           <button type="button" class="icon-btn" id="cat-add" aria-expanded="false" aria-controls="newcat"
             aria-label="Add to a new collection" title="Add to a new collection">${plusIcon}</button>
           <input type="text" id="newcat" name="newcat" maxlength="40" placeholder="New collection name"
@@ -1396,20 +1422,24 @@ async function viewMoveForm(id, query, inDialog = null) {
         <p class="field-help" id="move-media-note" hidden></p>
       </fieldset>
 
-      <label class="field"><span>Notes</span>
-        <textarea name="notes" maxlength="2000" placeholder="">${m.notes}</textarea></label>
+      <div class="field" id="field-notes" data-editing="off">
+        <div class="field-head">
+          <label class="label" for="notes-text">Notes</label>
+          <button type="button" class="icon-btn plain" data-edit="notes" aria-expanded="false"
+            aria-controls="notes-text" aria-label="Edit notes" title="Edit notes">${pencilIcon}</button>
+        </div>
+        <p class="notes-read" id="notes-read"></p>
+        <textarea class="notes-input" id="notes-text" name="notes" maxlength="2000" placeholder="">${m.notes}</textarea>
+      </div>
 
       <div class="actions">
         <button class="btn primary" type="submit">Save move</button>
-        ${inDialog ? html`<button type="button" class="btn" id="move-cancel">Cancel</button>`
-          : move ? html`<button type="button" class="btn danger" id="delete">Delete from My Moves</button>`
+        ${move ? html`<button type="button" class="btn danger" id="delete">Delete from My Moves</button>`
           : html`<a class="btn" href="${backHref}">Cancel</a>`}
       </div>
     </form>`;
-  if (inDialog) inDialog.innerHTML = String(view);
-  else show(view);
-  if (inDialog) $('#move-cancel').addEventListener('click', () => inDialog.close());
-  if (move && !inDialog) {
+  show(view);
+  if (move) {
     wireStatusSelects([move]);
     $('#delete').addEventListener('click', () => {
       if (!confirm(`Delete "${move.name}"?`)) return;
@@ -1417,14 +1447,16 @@ async function viewMoveForm(id, query, inDialog = null) {
     });
   }
 
-  /* The dashes are the level: a click on one sets it, lights the dashes up to it and names it below. */
   const formEl = $('#move-form');
   const diffInput = formEl.elements.difficulty;
   const diffLabel = $('#diff-label');
-  $$('.diff-step', formEl).forEach((step) => step.addEventListener('click', () => {
+  /* The dashes live in the page head now, beside the name, so they are found on the page rather than
+   * inside the form - the hidden input carrying the answer is still in the form, which is what the
+   * save reads. */
+  $$('.diff-step').forEach((step) => step.addEventListener('click', () => {
     const n = Number(step.dataset.level);
     diffInput.value = String(n);
-    $$('.diff-step', formEl).forEach((s) => {
+    $$('.diff-step').forEach((s) => {
       const sn = Number(s.dataset.level);
       s.classList.toggle('on', sn <= n);
       s.setAttribute('aria-checked', String(sn === n));
@@ -1432,7 +1464,6 @@ async function viewMoveForm(id, query, inDialog = null) {
     diffLabel.textContent = store.difficultyLabel(n);
   }));
 
-  /* The + reveals the box for a brand-new collection; that one is made and this move is put in it. */
   const catAdd = $('#cat-add');
   const newCat = $('#newcat');
   catAdd.addEventListener('click', () => {
@@ -1446,7 +1477,29 @@ async function viewMoveForm(id, query, inDialog = null) {
   const getExits = chipField($('#f-exits'), m.exits, 'exits');
   const getCombos = chipField($('#f-combos'), m.combos, 'combos');
 
-  /* Typing a name that matches a dictionary entry links it automatically. */
+  /* The pencil beside a label opens that one field. `data-editing` carries the state, which is all the
+   * stylesheet needs to swap a chip that can be deleted for plain pills and text (see .field[data-
+   * editing] in style.css). Closing it again leaves the value alone: the input is hidden, not cleared. */
+  $$('[data-edit]').forEach((btn) => btn.addEventListener('click', () => {
+    const field = btn.closest('.field');
+    const on = field.dataset.editing !== 'on';
+    field.dataset.editing = on ? 'on' : 'off';
+    btn.setAttribute('aria-expanded', String(on));
+    if (on) field.querySelector('.chip-text, .notes-input')?.focus();
+  }));
+
+  /* What the notes say, before and while they are edited: the paragraph is the one the move's own page
+   * draws, and an empty note is a line of muted text rather than an empty box. */
+  const notesInput = $('#notes-text');
+  const notesRead = $('#notes-read');
+  const syncNotes = () => {
+    const text = notesInput.value.trim();
+    notesRead.textContent = text || 'None yet';
+    notesRead.classList.toggle('is-empty', !text);
+  };
+  notesInput.addEventListener('input', syncNotes);
+  syncNotes();
+
   const nameInput = form.elements.name;
   const dictSelect = form.elements.dict;
   const suggestRow = $('#suggest-row');
@@ -1471,13 +1524,11 @@ async function viewMoveForm(id, query, inDialog = null) {
   dictSelect.addEventListener('change', () => { autoLinked = false; sync(); });
   sync();
 
-  /* ---------- photos & videos, chosen here and sent with the move ---------- */
+//---------- move photos & videos ----------
 
-  let picked = [];          // files chosen in this form, uploaded once the move has an id
-  let mediaEnabled = true;  // false once the media tables turn out to be missing
+  let picked = [];
+  let mediaEnabled = true;  // false if media tables are unavailable
 
-  /* The chosen-but-not-yet-uploaded list. Rebuilt from the array on every change, so a file taken
-   * back off cannot leave a stale button behind. */
   const drawPicked = () => {
     const list = $('#move-file-list');
     list.innerHTML = picked.length ? picked.map((f, i) => String(html`
@@ -1497,9 +1548,7 @@ async function viewMoveForm(id, query, inDialog = null) {
   $('#move-files-add').addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', () => {
     const files = [...fileInput.files];
-    fileInput.value = '';   // so choosing the same file twice in a row still fires
-    /* A file over the limit is refused here rather than after a long upload: the message is the
-     * same one the store would give, it just arrives before the wait. */
+    fileInput.value = '';   // allow reselecting the same file
     const tooBig = files.filter((f) => f.size > store.MAX_UPLOAD_BYTES);
     picked = picked.concat(files.filter((f) => f.size <= store.MAX_UPLOAD_BYTES));
     if (tooBig.length) {
@@ -1508,9 +1557,6 @@ async function viewMoveForm(id, query, inDialog = null) {
     drawPicked();
   });
 
-  /* On an edit, the clips already on the move are listed here too, with their remove buttons, so one
-   * screen covers the move and everything attached to it. Only the grid is redrawn after a removal:
-   * re-rendering the page would throw away whatever is half-typed in the form above. */
   const drawFormMedia = async (moveId) => {
     const grid = $('#move-media');
     const note = $('#move-media-note');
@@ -1556,9 +1602,6 @@ async function viewMoveForm(id, query, inDialog = null) {
       });
       if (!data.get('suggest') && !picked.length) toast('Move saved.');
 
-      /* Uploads come after the move exists, because a file has to belong to something. A failed
-       * upload does not undo the move: it is saved either way, and the file can be added again from
-       * the move's own page - so the failure is reported and the dancer still lands on their move. */
       if (picked.length && !mediaEnabled) {
         toast('Move saved. Uploads are not switched on for this project yet: run supabase/media.sql, '
           + 'then add the files from the move page.', true);
@@ -1574,40 +1617,18 @@ async function viewMoveForm(id, query, inDialog = null) {
           toast(`Move saved, but the upload failed: ${err.message}`, true);
         }
       }
-      if (inDialog) {
-        inDialog.close();
-        await route({ keepScroll: true });
-      } else if (move) {
-        /* Saved on the page it was edited on: redraw it so the photos and the status line are current. */
-        await route({ keepScroll: true });
-      } else {
-        go(`#/move/${saved.id}`);
-      }
+      /* One place to land afterwards: back to the list for an edit, into the move for an addition. */
+      if (move) await route({ keepScroll: true });
+      else go(`#/move/${saved.id}`);
     });
   });
 
   if (move) await drawFormMedia(move.id);
 }
 
-/* The full move editor, opened in a dialogue from the add-a-goal panel so the dancer stays on the
- * collection they are adding to. It is the same form as the move page, aimed at this collection. The
- * dialogue is made on first use and emptied when it closes, so nothing is left behind on the page. */
-async function openMoveDialog(target) {
-  let dialog = $('#move-dialog');
-  if (!dialog) {
-    document.body.insertAdjacentHTML('beforeend',
-      '<dialog class="sheet" id="move-dialog" aria-labelledby="move-dialog-title"></dialog>');
-    dialog = $('#move-dialog');
-    dialog.addEventListener('close', () => { dialog.innerHTML = ''; });
-  }
-  await viewMoveForm(null, new URLSearchParams({ cat: target.id }), dialog);
-  dialog.showModal();
-  dialog.querySelector('input[name=name]')?.focus();
-}
 
-/* ---------- view: my collections ---------- */
+//---------- collections ----------
 
-/* The collection whose pencil is open. Kept per collection, so opening another one starts closed. */
 let editingCollection = null;
 
 async function viewCollection(id) {
@@ -1619,10 +1640,8 @@ async function viewCollection(id) {
   const [owner, cats, allMoves] = await Promise.all([
     store.userById(cat.userId), store.listCategories(cat.userId), store.listMoves(cat.userId),
   ]);
-  /* No collection tags here: the page already says which collection this is. */
   const ownerName = owner?.username ?? 'this dancer';
   const moves = allMoves.filter((m) => m.categoryIds.includes(cat.id));
-  /* Nothing to manage on someone else's collection, and the home screen's collection is fixed. */
   const canManage = mine && !cat.isDefault;
   const editing = editingCollection === cat.id;
 
@@ -1657,8 +1676,6 @@ async function viewCollection(id) {
 
   $('#add-to-collection-toggle')?.addEventListener('click', () => attempt(() => openGoalPanel(cat, `“${cat.name}”`)));
 
-  /* The pencil opens and closes the panel; nothing that changes the collection is on screen until
-   * it is clicked. */
   $('#edit-collection')?.addEventListener('click', () => {
     editingCollection = editing ? null : cat.id;
     route({ keepScroll: true });
@@ -1677,10 +1694,6 @@ async function viewCollection(id) {
   });
 }
 
-/* Does a trick answer to this search? Its own name first, then every nickname members have filed for
- * it - which is the whole point of the aliases: a dancer types the name their studio uses and the
- * dictionary answers with the trick. Returns the nickname that matched, so a row can say why it is in the
- * results rather than appearing out of nowhere under a search for a word that is not in its name. */
 function entryMatch(entry, query) {
   const q = String(query ?? '').trim().toLowerCase();
   if (!q) return { matches: true, alias: '' };
@@ -1689,11 +1702,11 @@ function entryMatch(entry, query) {
   return hit ? { matches: true, alias: hit.alias } : { matches: false, alias: '' };
 }
 
-/* ---------- view: pole dictionary ---------- */
+//---------- dictionary ----------
 
 let dictQuery = '';
-let dictLevel = 'any';   // 'any', or one of store.LEVELS values: the level most members chose
-let dictSort = 'name';   // 'name' | 'easiest' | 'hardest' | 'answered'
+let dictLevel = 'any';
+let dictSort = 'name';
 
 async function viewdictionary() {
   setTitle('Pole dictionary');
@@ -1778,8 +1791,6 @@ async function viewdictionary() {
       ? 'No matches. Suggest it below.'
       : `No trick is mostly ${store.levelLabel(dictLevel).toLowerCase()} yet.`}</p></div>`);
 
-    /* One line saying what the two controls did, so it is never ambiguous whether a level filter is
-     * on. Hidden when it would only be reporting the obvious. */
     const note = $('#dict-note');
     const filtered = dictLevel !== 'any' || q;
     note.hidden = !filtered;
@@ -1799,19 +1810,8 @@ async function viewdictionary() {
   wireSuggestDialog();
 }
 
-/* Files chosen in the add-a-trick dialogue but not yet uploaded: they are sent once the trick exists
- * and has an id to hang them on, which is the same order the add-a-move form uses. Module state
- * rather than per-render, because the dialogue survives the redraws that picking an avatar or a
- * studio causes elsewhere. */
 let suggestPicked = [];
 
-/* Adding a trick, in a dialogue: three questions that belong together and none of them worth a
- * screen of their own. Native <dialog>, so the backdrop, Escape and the focus trap are the browser's
- * job rather than something hand-rolled here.
- *
- * Only the name is required. The level defaults to Unrated because most tricks start with nobody
- * having an opinion, and a level picked here is only the first vote - it is not what makes the trick
- * hard or easy. Photographs are attached to the trick itself, so anyone opening it later sees them. */
 function suggestDialog(me) {
   const choices = [{ value: '', label: 'Unrated' }, ...store.LEVELS.map((l) => ({ value: l.value, label: l.label }))];
   return html`
@@ -1905,9 +1905,6 @@ function wireSuggestDialog() {
         await route({ keepScroll: true });
         return;
       }
-      /* The level and the photographs are attached after the trick exists, and neither is worth
-       * failing the whole thing over: the trick is the part that had to be filed, and the page it
-       * lands on has both of these controls on it anyway. */
       if (level && store.levelsEnabled()) {
         try { await store.setEntryLevel(entry.id, level); } catch (err) { toast(err.message, true); }
       }
@@ -1923,12 +1920,8 @@ function wireSuggestDialog() {
   });
 }
 
-/* ---------- community difficulty: the pills and the bars ---------- */
+//---------- community difficulty ----------
 
-/* The voting section on a trick's own page: three pills to answer with, and - once anybody has
- * answered - the community's answer so far as three bars. A pending suggestion cannot be marked -
- * nobody else can see it yet - so it says that instead of collecting answers that would not mean
- * anything. */
 function levelSection(entry) {
   if (!store.levelsEnabled()) return '';
 
@@ -1942,12 +1935,6 @@ function levelSection(entry) {
 
   const { counts, percents, total, mine } = store.entryLevel(entry.id);
 
-  /* The bars are only drawn once somebody has answered. Three empty tracks are the loudest thing on
-   * the page and they say nothing, so with no answers the card says it in words instead - including
-   * the word the badges use (Unrated), so the trick's headline and this panel cannot drift apart. */
-  /* One row per level, and no mark on whichever is ahead: the tick that used to sit after the leading
-   * level was read as a tick against the reader's own answer, because the two are usually the same
-   * level. The percentage and the count on each row already say who is ahead. */
   const bars = total ? html`<div class="level-bars">
     ${store.LEVELS.map((l) => html`
       <div class="level-row">
@@ -1978,8 +1965,6 @@ function levelSection(entry) {
   </section>`;
 }
 
-/* Answering saves straight away: there is no Save button to forget, and one vote per dancer means a
- * second answer edits the first rather than adding to it. */
 function wireLevelVote(entry) {
   $$('.level-pick input').forEach((input) => input.addEventListener('change', () => attempt(async () => {
     const level = input.dataset.level;
@@ -1989,15 +1974,6 @@ function wireLevelVote(entry) {
   })));
 }
 
-/* The other names a trick goes by, as a list any signed-in dancer may add to - which is what replaced
- * the name-change suggestions. A nickname is not a decision anybody has to make: the trick keeps the
- * one canonical name that every move links to and every screen shows, and what dancers actually call
- * it is written underneath where the search can find it. So there is no queue, no argument, and
- * nothing to approve; the two people who call it different things are both right.
- *
- * Whoever added a name - or an admin - can take it off, the same rule supabase/aliases.sql writes.
- * There is no edit: correcting a nickname means removing it and adding the right one, which keeps the
- * name of whoever typed it honest. */
 function aliasSection(entry, me) {
   if (!store.aliasesEnabled()) {
     return html`<section class="section alias-card">
@@ -2026,10 +2002,6 @@ function aliasSection(entry, me) {
   </section>`;
 }
 
-/* One entry or exit of a move, as a chip. When the dictionary has a trick by that name the chip links to
- * it - "Wrist grip" walks into its own page rather than sitting there as text - and when it does not,
- * it is what it always was: a word this dancer wrote. `count` only appears on a trick page, where the
- * number is the number of members who said it. */
 const partChip = (item) => {
   const entry = store.entryNamed(item.text);
   const label = html`${item.text}${item.count > 1
@@ -2039,9 +2011,6 @@ const partChip = (item) => {
     : html`<span class="chip">${label}</span>`;
 };
 
-/* What the members do on this trick, gathered from every move of it they have logged. A shared trick
- * is one thing described forty ways, and the descriptions that come up over and over are the ones
- * worth knowing - which is the one question a single move's own list can never answer. */
 function partsSection(parts, note) {
   if (note) return html`<section class="section parts-card"><h2>Entries &amp; exits</h2>
     <p class="muted">${note}</p></section>`;
@@ -2058,7 +2027,7 @@ function partsSection(parts, note) {
   </section>`;
 }
 
-/* ---------- view: one dictionary entry ---------- */
+//---------- dictionary entry ----------
 
 async function viewEntry(id) {
   const entry = await store.getEntry(id);
@@ -2066,8 +2035,6 @@ async function viewEntry(id) {
   setTitle(entry.name);
 
   const me = store.currentUser();
-  /* listEntries also fills the cache entryUsers() and entryUsage() read; listMoves tells us whether
-   * I already have this trick logged as one of my own. */
   const [entries, moves] = await Promise.all([store.listEntries(), store.listMoves(me.id)]);
   const loggers = entries.some((e) => e.id === entry.id) ? store.entryUsers(entry.id) : [];
   const used = loggers.length;
@@ -2078,18 +2045,11 @@ async function viewEntry(id) {
   try { media = await store.listMedia({ entryId: entry.id }); }
   catch (err) { mediaNote = mediaSetupNote(err); }
 
-  /* What the members do on this trick, gathered from their own moves of it. Failure is the ordinary
-   * way to find out the moves table is not what this app expects, so the page carries on and the
-   * section says why rather than disappearing. */
   let parts = { entries: [], exits: [] };
   let partsNote = '';
   try { parts = await store.entryParts(entry.id); }
   catch (err) { partsNote = err.message; }
 
-  /* Read as a short article rather than as a pile of cards: what this trick is and who logs it, then
-   * the facts worth having before you read anything else, then what the community makes of it, the
-   * names it goes by, and how members get into it. A stat strip rather than a set of panels is what
-   * keeps the facts quiet and the trick loud. */
   const level = store.entryLevel(entry.id);
   show(html`
     ${backLink('#/dictionary', 'Pole dictionary')}
@@ -2101,8 +2061,6 @@ async function viewEntry(id) {
             <h1>${entry.name}</h1>
             ${entry.status === 'pending' ? html`<span class="tag">Pending review</span>` : ''}
           </div>
-          <!-- Who logs it, and no number: the fact strip below already counts them, and saying it
-               twice made the page read as though it were two different facts. -->
           <p class="lede loggers-line">
             ${used ? loggerRow(loggers) : ''}
             <span>${used ? '' : 'Nobody has logged this trick yet.'}${
@@ -2163,22 +2121,15 @@ async function viewEntry(id) {
   })));
 }
 
-/* ---------- view: community (the feed, and the members list) ---------- */
+//---------- community ----------
 
-let feedFilter = 'all';        // 'all', or only the members I follow
-let memberQuery = '';          // what the members search box holds, kept across redraws
+let feedFilter = 'all';
+let memberQuery = '';          // kept across redraws
 
-/* Which tab is open comes from the URL rather than from a variable, so the back button works and a
- * plain #/community link lands somewhere predictable. */
 async function viewCommunity(query) {
   const tab = query.get('tab') === 'members' ? 'members' : 'feed';
   setTitle('Community');
 
-  /* One choice, once. The two views used to be two loose buttons in a row that looked exactly like
-   * the audience filter underneath them, which is what made the screen read as four options in a
-   * heap. They are one segmented control the width of the page now, and the heading says which half
-   * is open, so the question "what am I looking at" is answered before the list starts. The label is
-   * short and the panel below names the contents in full. */
   show(html`
     <div class="page-head">
     </div>
@@ -2265,10 +2216,8 @@ async function drawFeed() {
   });
 }
 
-/* Where an upload lives: on the move it belongs to, or on the trick in the dictionary. */
 const feedParentHref = (m) => (m.parent.kind === 'move' ? `#/move/${m.parent.id}` : `#/dictionary/${m.parent.id}`);
 
-/* The members list: the old Directory, now a tab, with avatars and a follow button each. */
 async function drawmembers() {
   const body = $('#community-body');
   const all = (await store.listOtherUsers())
@@ -2288,7 +2237,6 @@ async function drawmembers() {
   const list = $('#member-list');
   const draw = () => {
     const q = memberQuery.trim().toLowerCase();
-    /* A search matches the dancer's name or any studio they list. */
     const users = q
       ? all.filter((u) => u.username.toLowerCase().includes(q)
         || store.studiosOf(u).some((s) => store.studioLabel(s).toLowerCase().includes(q)))
@@ -2305,13 +2253,13 @@ async function drawmembers() {
         const sum = sums.get(u.id);
         const following = store.isFollowing(u.id);
         const studio = store.studioOf(u);
-        const place = studio ? store.studioLabel(studio) : (u.city ?? '');
+        const place = studio ? studio.name : (u.city ?? '');
         return html`<li class="row">
           <a class="member-card-link" href="#/user/${u.id}">
             <span class="feed-who">${avatarOf(u, 'avatar-sm')}</span>
             <div class="row-main">
               <strong><span class="entry-link">${u.username}</span></strong>
-              <span class="muted">${plural(sum.total, 'move')} logged${place ? ` · ${place}` : ''}${u.polingSince ? ` · Poler since ${u.polingSince}` : ''}</span>
+              <span class="muted">${plural(sum.total, 'move')} logged${place ? ` · ${place}` : ''}${u.polingSince ? ` · Poler since ${u.polingSince}` : ''}${u.isAdmin ? ' · Admin' : ''}</span>
             </div>
           </a>
           ${store.socialEnabled() ? html`<div class="actions">
@@ -2334,7 +2282,7 @@ async function drawmembers() {
   draw();
 }
 
-/* ---------- view: one dancer's profile ---------- */
+//---------- profile ----------
 
 async function viewUser(id) {
   const user = await store.userById(id);
@@ -2347,8 +2295,6 @@ async function viewUser(id) {
     ? await Promise.all([catMap(user.id), store.listCategories(user.id), store.listMoves(user.id)])
     : [new Map(), [], []];
 
-  /* Following needs supabase/social.sql. Without it the profile still reads; the count, the button
-   * and the two lists are left out and the reason is said on the page. */
   let social = null;
   let socialNote = '';
   if (!store.socialEnabled()) {
@@ -2357,15 +2303,10 @@ async function viewUser(id) {
     try { social = await store.followLists(user.id); }
     catch (err) { socialNote = err.message; }
   }
-  /* Their whole following count is the two lists added together: friends are the ones who follow
-   * back, and the rest are under Following. */
   const counts = social
     ? { followers: social.followers.length, following: social.friends.length + social.following.length }
     : null;
   const following = store.isFollowing(user.id);
-  /* Where they train and where they are, either of which may be missing - both are optional. The
-   * studio links to its own page, which is where "who else goes here" is answered, and a dancer who
-   * trains at more than one place shows the first with the rest behind a "+N". */
   const studios = store.studiosOf(user);
   const place = joinText([
     studios.length ? html`Trains at ${studioLink(studios[0])}${studios.length > 1 ? studioMore(studios.slice(1)) : ''}` : '',
@@ -2411,41 +2352,23 @@ async function viewUser(id) {
   wireFollowActions(() => route({ keepScroll: true }));
 }
 
-/* Who contributed an Instagram account to a studio. `added_by` is set to null when that dancer
- * closes their account (see instagram.sql), and "Added by unknown" would be a worse answer than
- * saying what actually happened. */
 const addedByLine = (link, me) => (link.addedBy === me.id
   ? 'Added by you'
   : link.addedBy
     ? `Added by ${store.usernameOf(link.addedBy)}`
     : 'Added by a member who has since closed their account');
 
-/* ---------- view: one studio ---------- */
+//---------- studio ----------
 
-/* A studio's own page: who trains there, and the Instagram accounts its members have contributed.
- * The directory can only answer "which studios are there", and the question a dancer actually has
- * about one is who else goes - and the question a studio has about itself is which account to
- * follow. So a studio row gets a page rather than a line in a dropdown.
- *
- * Nothing here is editable but the handles. A studio's name and city belong to whoever added it (see
- * store.addStudio), while the account list is meant to be filled in from below: the members who
- * train somewhere are the people who know its handle, so any signed-in dancer may add one, and the
- * row remembers who did.
- */
 async function viewStudio(id) {
   const studio = store.studioById(id);
   if (!studio) return notFound('That studio is not in the list.');
   setTitle(studio.name);
   const me = store.currentUser();
 
-  /* A failure here is the ordinary way to find out the studios file has not been run, so the page
-   * carries on and simply has nobody to list. */
   const members = await store.membersAtStudio(studio.id).catch(() => []);
   const links = store.instagramEnabled() ? store.listStudioInstagrams(studio.id) : [];
 
-  /* Whoever contributed a handle may be nobody on this page - anyone signed in can add one - so their
-   * names are looked up before it is drawn, rather than read out of the cache that the members above
-   * filled. A lookup that fails costs a name, not the page. */
   await Promise.all([...new Set(links.map((l) => l.addedBy).filter(Boolean))]
     .map((id) => store.userById(id).catch(() => null)));
 
@@ -2486,7 +2409,6 @@ async function viewStudio(id) {
         <button class="btn primary" type="submit">Add account</button>
       </form>`}
 
-    <!-- The heading is the count; linked avatars show who has listed this studio. -->
     <h2 class="subhead">${plural(members.length, 'member')}</h2>
     ${members.length ? html`<div class="studio-members" role="group" aria-label="Studio members">
       ${members.map((u) => html`<a href="#/user/${u.id}" title="${u.username}"
@@ -2513,21 +2435,8 @@ async function viewStudio(id) {
   wireFollowActions(() => route({ keepScroll: true }));
 }
 
-/* ---------- view: admin review queue ---------- */
+//---------- review queue ----------
 
-/* Two things are waiting for a decision, and they are different questions: a trick somebody wants to
- * add, and a name somebody wants changed. So they are two headed lists rather than one list of
- * everything, and the head counts them together because the admin's actual question is "how much is
- * waiting for me". The count in the navigation is the same number.
- *
- * A project that has not run supabase/entry-edits.sql still gets a working queue: the second list is
- * empty and says so, rather than failing the screen. */
-/* One queue, not two. The second list - suggested name changes - was taken off this screen when
- * nicknames on a trick (supabase/aliases.sql) replaced the whole idea of arguing a trick into a
- * different name: a member who calls it something else now writes that down where a search finds it,
- * and nothing needs deciding. Nobody can file a proposal any more, so a list that could only ever
- * empty itself was a screen pretending to be useful. supabase/entry-edits.sql and the store calls it
- * belongs to are still on disk, unused, for anyone who wants the flow back. */
 async function viewReview() {
   if (!store.currentUser()?.isAdmin) return notFound('Admins only.');
   setTitle('Review');
@@ -2564,43 +2473,25 @@ async function viewReview() {
   $$('[data-reject-entry]').forEach((b) => b.addEventListener('click', () => decide(b.dataset.rejectEntry, false)));
 }
 
-/* ---------- view: account ---------- */
+//---------- account ----------
 
-/* Whether the username box is open, and whether the profile card is open for editing. Kept out of
- * the URL: both are short-lived forms, not screens. */
-/* Which sheet of the profile editor is open: 'profile' for the details, 'avatar' for the picture, null
- * for neither. Kept here so that a redraw while a sheet is open (a studio added from inside it, say) puts
- * the same sheet back on screen. */
 let openEditor = null;
 
-/* Where a dancer trains, in the order the editor is showing them, while the editor is open. Module
- * state for the same reason the avatar picker reads its choice off the DOM: moving a studio up must
- * redraw the list without losing what has been typed in the boxes beside it. null means the editor
- * is closed. */
 let studioDraft = null;
 
 async function viewAccount() {
   setTitle('Account');
   const me = store.currentUser();
   const thisYear = new Date().getFullYear();
+  const pending = me.isAdmin ? store.pendingCount() : 0;
 
-  /* The screen is a summary with one pencil beside the name, and the pencil is the only way in: it
-   * opens every part of the profile at once. The avatar picker used to live in a card of its own with
-   * the year and the studio under it, which is how the username ended up with an editor of its own
-   * while the rest had a row of Save buttons. */
   const where = placeLine(me);
 
-  /* My own profile has no page of its own - this screen is it - so my friends and the members I
-   * follow are listed here, the same two lists other members see on my profile. */
   let social = null;
   if (store.socialEnabled()) {
     try { social = await store.followLists(me.id); } catch { social = null; }
   }
 
-  /* Support sits on the profile rather than in Settings: it is a thing a dancer reaches for while
-   * looking at their own screen, not while changing how the app behaves. Settings is a link row
-   * with the other housekeeping, and logging out is neither - it stands on its own past a rule at
-   * the bottom, where it cannot be hit on the way past. */
   show(html`
     <div class="page-head profile-head">
       <div class="who">
@@ -2654,6 +2545,21 @@ async function viewAccount() {
       </li>`}
     </ul>
 
+    ${!me.isAdmin ? '' : html`
+    <h2 class="subhead">Moderation</h2>
+    <ul class="list">
+      <li>
+        <a class="link-row" href="#/review">
+          ${checkIcon}
+          <span><strong>Review</strong>
+            <small class="muted">${pending
+              ? `${plural(pending, 'new trick')} waiting to be published.`
+              : 'New tricks waiting to be published, and the dictionary you moderate.'}</small></span>
+          ${chevronIcon}
+        </a>
+      </li>
+    </ul>`}
+
     <h2 class="subhead">Settings</h2>
     <ul class="list">
       <li>
@@ -2680,9 +2586,6 @@ async function viewAccount() {
     attempt(async () => { await store.logout(); go('#/auth'); });
   });
 
-  /* Two sheets: the details, and the picture. Each has its own Save. Whichever is open is put back on
-   * screen after a redraw, and closing either one - Cancel, Save or Escape - drops the unsaved studio
-   * list, so the next open starts from what is saved. */
   $$('#profile-dialog, #avatar-dialog').forEach((d) => d.addEventListener('close', () => {
     openEditor = null;
     studioDraft = null;
@@ -2701,21 +2604,16 @@ async function viewAccount() {
   $('#avatar-cancel').addEventListener('click', () => $('#avatar-dialog').close());
   if (openEditor) $(`#${openEditor}-dialog`)?.showModal();
 
-  /* Picking an avatar only marks it: the pressed state moves and nothing is written until its Save. */
   $$('[data-avatar]').forEach((btn) => btn.addEventListener('click', () => {
     $$('[data-avatar]').forEach((other) => other.setAttribute('aria-pressed', String(other === btn)));
   }));
 
-  /* ---------- the list of home studios ---------- */
+//---------- home studios ----------
 
-  /* Drawn on its own rather than with the rest of the form, so that moving one up or removing one
-   * does not redraw the page and lose what has been typed in the boxes beside it. */
   const drawStudios = () => {
     const list = $('#studio-draft');
     const pick = $('#studio-pick');
     if (!studioDraft || !list || !pick) return;
-    /* The directory, read here rather than passed in: store.listStudios() answers out of the cache
-     * the page has already filled, so this is a lookup and not a query. */
     const studios = store.studiosEnabled() ? store.listStudios() : [];
 
     list.innerHTML = studioDraft.length ? studioDraft.map((id, i) => {
@@ -2737,7 +2635,6 @@ async function viewAccount() {
       </li>`);
     }).join('') : String(html`<li class="studio-draft-row muted">None yet - add where you train below.</li>`);
 
-    /* Only the studios that are not already listed, so the chooser cannot offer a duplicate. */
     pick.innerHTML = String(html`
       <option value="" disabled selected>Add a studio…</option>
       ${studios.filter((s) => !studioDraft.includes(s.id))
@@ -2754,8 +2651,6 @@ async function viewAccount() {
     drawStudios();
   };
 
-  /* One listener on the list rather than three per row: the rows are replaced on every redraw, and a
-   * listener attached to a row goes with it. */
   $('#studio-draft')?.addEventListener('click', (e) => {
     const up = e.target.closest('[data-studio-up]');
     const down = e.target.closest('[data-studio-down]');
@@ -2768,8 +2663,6 @@ async function viewAccount() {
     }
   });
 
-  /* Picking a studio from the list adds it at once. A separate button opens the fields for adding one
-   * that is not in the directory. */
   $('#studio-pick')?.addEventListener('change', (e) => {
     const picked = e.target.value;
     if (picked && !studioDraft.includes(picked)) studioDraft = [...studioDraft, picked];
@@ -2780,17 +2673,12 @@ async function viewAccount() {
     $('#studio-name').focus();
   });
 
-  /* Adding a studio puts it in the shared directory and puts it in the list here; the form's own Save
-   * is what makes it *yours*. A dancer who adds one and then cancels has added a studio rather than
-   * claimed one, which is what the button says it does. */
   $('#studio-add')?.addEventListener('click', () => attempt(async () => {
     const studio = await store.addStudio({ name: $('#studio-name').value, city: $('#studio-city').value });
     if (!studioDraft.includes(studio.id)) studioDraft = [...studioDraft, studio.id];
     $('#studio-add-row').hidden = true;
     $('#studio-name').value = '';
     $('#studio-city').value = '';
-    /* Redrawn from the top so the new studio joins the directory the chooser offers - the draft is
-     * module state, so it survives the redraw with the order and the choices intact. */
     await route({ keepScroll: true });
     toast(`${store.studioLabel(studio)} is in the list now. Save to make it yours.`);
   }));
@@ -2801,19 +2689,11 @@ async function viewAccount() {
     e.preventDefault();
     const data = new FormData(e.target);
     attempt(async () => {
-      /* The handle first: if it is already taken, renameMe says so and nothing else should move. */
       const username = String(data.get('username') ?? '').trim();
       if (username !== store.currentUser().username) await store.renameMe(username);
 
-      /* Only the parts this project can actually store. A column that does not exist yet - poling_since
-       * comes from social.sql, home_studio_id from studios.sql - is not a reason for the year to fail
-       * along with it. The picture has its own sheet and its own Save. */
       const patch = { polingSince: String(data.get('polingSince') ?? '').trim() };
-      /* The whole list in its order, once: home-studios.sql decides what the top one means, and the
-       * old single-column write is gone with the dropdown that only had room for one. */
       if (store.homeStudiosEnabled()) patch.homeStudioIds = studioDraft ?? [];
-      /* Both come from supabase/instagram.sql - the column on a profile and the table behind a studio
-       * page - so one flag covers them. store.js still says which file to run if either is missing. */
       if (store.instagramEnabled()) patch.instagram = String(data.get('instagram') ?? '').trim();
       await store.saveProfile(patch);
 
@@ -2834,20 +2714,9 @@ async function viewAccount() {
     });
   });
 
-  /* Exporting your data and deleting your account moved to #/settings; this screen only links
-   * there, so there is nothing to wire up for them here. */
   wireFollowActions(() => route({ keepScroll: true }));
 }
 
-/* Everything about a profile, in two sheets. The details - the handle, the year a dancer started, the
- * Instagram account and where they train - sit behind the pencil with one Save at the bottom. The
- * picture has a sheet of its own behind "Change avatar", with its own Save, so a new picture never
- * waits on the details and the details never wait on a picture.
- *
- * Picking an avatar only marks it; Save is what writes.
- *
- * There is no city here on purpose. A studio already carries one, and a profile carrying a second
- * copy is a second thing that can be wrong - see studioLabel. */
 function profileEditor(me, thisYear) {
   const studios = store.studiosEnabled() ? store.listStudios() : null;
   return html`
@@ -2895,8 +2764,6 @@ function profileEditor(me, thisYear) {
             </div>
             <small class="muted field-help">${store.homeStudiosEnabled()
               ? html``
-              /* One studio is all the profile can hold until the file has been run, so a list here
-               * would be three places the app cannot keep. It still saves, and it saves the top. */
               : html`One studio can be saved for now; a whole list of them needs
                   <code>supabase/home-studios.sql</code> run once in the Supabase SQL editor. Today the
                   top one is the one saved.`}</small>`}
@@ -2927,19 +2794,12 @@ function profileEditor(me, thisYear) {
     </dialog>`;
 }
 
-/* ---------- views: settings and support ---------- */
+//---------- settings and support ----------
 
-/* The housekeeping that is not about a dancer's profile: how the app looks, getting their data out,
- * and closing the account. It used to sit under the profile card, where "Delete my account" was one
- * scroll below an avatar picker; a screen of its own puts a deliberate step between the two. */
 function viewSettings() {
   setTitle('Settings');
   const me = store.currentUser();
   const pref = themePref();
-  /* Three groups, one shape each: heading, one line of explanation, then the control. The delete
-   * group is not red and not boxed off on its own - it is the same size as the others and reads as
-   * one of them until you actually read it, which is what "equal groupings" buys. Support used to be
-   * a fourth group here and has moved to the profile, where a dancer actually looks for it. */
   show(html`
     ${backLink('#/account', 'Back')}
     <div class="page-head">
@@ -2976,8 +2836,6 @@ function viewSettings() {
       </section>
     </div>`);
 
-  /* Repainted in place rather than by redrawing the screen: the theme changes the moment you tap,
-   * and a redraw would be work for no visible difference. */
   $$('[data-theme-pick]').forEach((btn) => btn.addEventListener('click', () => {
     applyTheme(btn.dataset.themePick);
     $$('[data-theme-pick]').forEach((other) =>
@@ -2997,7 +2855,6 @@ function viewSettings() {
     });
   });
 
-  /* Typing the username is the confirmation: the button stays disabled until it matches. */
   const confirmName = $('#confirm-name');
   const deleteButton = $('#delete-account');
   confirmName.addEventListener('input', () => {
@@ -3012,9 +2869,6 @@ function viewSettings() {
   });
 }
 
-/* Reached from the profile now (it used to live in Settings), and reachable while signed out on
- * purpose - see OPEN_WHEN_SIGNED_OUT. The email box is filled in from the session when there is one,
- * so a logged-in dancer only has to say what went wrong. */
 function viewSupport() {
   setTitle('Support');
   const me = store.currentUser();
@@ -3051,7 +2905,6 @@ function viewSupport() {
     const data = new FormData(form);
     const button = form.querySelector('button[type="submit"]');
     attempt(async () => {
-      /* Disabled while in flight, so a slow send is not also sent twice. */
       button.disabled = true;
       try {
         const receipt = await store.sendSupportMessage({
@@ -3061,13 +2914,10 @@ function viewSupport() {
           message: data.get('message'),
           website: data.get('website'),
         });
-        /* The server stores the message before it tries to email it, so "received" is true even when
-         * the mail is switched off - and when it is, the dancer is told where the message actually
-         * went rather than being promised an email that is not coming. */
         toast(receipt?.emailed === false
           ? 'Thank you - your message is saved, and it is waiting in the support inbox.'
           : 'Thank you - your message has been received.');
-        await route({ keepScroll: true });   // a blank form, with the email box filled in again
+        await route({ keepScroll: true });
       } finally {
         button.disabled = false;
       }
@@ -3075,17 +2925,9 @@ function viewSupport() {
   });
 }
 
-/* ---------- view: the support inbox (admins) ---------- */
+//---------- support inbox ----------
 
-/* Every message the contact form has taken, newest first. The email is still what a reply goes to,
- * but this list is the copy of record: the Edge Function writes the row before it tries to send
- * (see supabase/support.sql), so a mail outage shows up here as a message marked "not emailed"
- * rather than as nothing at all. Read-only apart from the handled flag - deleting somebody's words
- * is not something this screen should make easy. */
 async function viewSupportInbox() {
-  /* `?.` rather than `.` because support is one of the routes a signed-out visitor may reach (see
-   * OPEN_WHEN_SIGNED_OUT), so this screen has to answer somebody with no session rather than throwing
-   * on the way in. */
   if (!store.currentUser()?.isAdmin) return notFound('Admins only.');
   setTitle('Support inbox');
   let messages = [];
@@ -3136,10 +2978,8 @@ async function viewSupportInbox() {
   })));
 }
 
-/* ---------- start ---------- */
+//---------- start ----------
 
-/* A confirmation link arrives as '#access_token=...' (or '?code=...'), with an
- * 'error_description' when it is stale. Neither is a route, so the router must not see it. */
 function emailLink() {
   const hash = new URLSearchParams(location.hash.replace(/^#/, ''));
   return {
@@ -3148,7 +2988,6 @@ function emailLink() {
   };
 }
 
-/* Turn the failures people actually hit into something they can act on. */
 function startupHint(message) {
   const denied = /permission denied for table "?(\w+)"?/i.exec(message);
   if (denied) {
@@ -3171,7 +3010,6 @@ function startupHint(message) {
     list.`;
 }
 
-/* Nothing should ever fail silently into an empty page. */
 function showFatal(err) {
   console.error(err);
   show(html`
@@ -3183,18 +3021,15 @@ function showFatal(err) {
     </div>`);
 }
 
-/* A reset link comes back as '?reset=1' (set by requestPasswordReset in store.js). Read at load,
- * because the Supabase client consumes its token from the same URL and tidies the query away. */
 const resetLink = new URLSearchParams(location.search).get('reset') === '1';
 
 async function start() {
   const link = emailLink();
 
-  /* Registered before init(), because the client can fire this while the page is still starting. */
   store.watchForPasswordRecovery(() => { location.hash = '#/reset'; });
 
   try {
-    const { error } = await store.completeEmailLink();   // exchanges a ?code= link if there is one
+    const { error } = await store.completeEmailLink();
     if (error && !link.error) link.error = error;
     await store.init();
   } catch (err) {
@@ -3203,17 +3038,14 @@ async function start() {
   }
 
   if (link.isLink) {
-    history.replaceState(null, '', location.pathname);   // drop the auth payload from the URL
+    history.replaceState(null, '', location.pathname);
     if (link.error) toast(`That email link did not work: ${link.error}`, true);
     else if (resetLink) toast('Choose a new password.');
     else if (store.currentUser()) toast('Email confirmed - you are logged in.');
   }
 
-  /* Set after the URL has been tidied, so replaceState above cannot strip it again. */
   if (resetLink || store.isRecoveryPending()) location.hash = '#/reset';
 
-  /* index.html already applied the saved theme before the first paint; this syncs the browser's own
-   * chrome, and re-applies on a device flip so "System" keeps up without a reload. */
   applyTheme(themePref());
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme(themePref()));
 
@@ -3224,18 +3056,181 @@ async function start() {
     navigator.serviceWorker.register('sw.js').catch((err) => console.warn('Service worker failed', err));
   }
 }
-/* ---------- journal: a dated log of the day's training, in a drawer opened from the nav ---------- */
+//---------- journal ----------
+
+/* The notepad floats over the content instead of living in the navigation bar, because the journal is
+ * not somewhere you go: it is a thought you catch mid-set, from whatever screen you are on. Drag it
+ * anywhere that is not in the way and it stays exactly there - a thumb is not always in the same
+ * place, and a button that insisted on an edge would be in the way on the screen where the edge is
+ * busy.
+ *
+ * Where it sits is a device preference, like the theme, not account data - it is about the hand
+ * holding the phone. A tap opens the journal and only a real drag moves it, decided by how far the
+ * pointer travelled, so repositioning it can never open it by accident. */
+const JOURNAL_FAB_KEY = 'mypolemagazine-journal-fab';
+const FAB_SIZE = 52;
+const FAB_MARGIN = 12;
+const FAB_SLOP = 6;      // px of travel before a press counts as a drag rather than a tap
+
+const notepadIcon = html`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M7 4h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/>
+  <path d="M9 2v4M15 2v4"/><path d="M8.5 11h7M8.5 15.5h4"/></svg>`;
+
+/* Where the button was left, as a fraction of the room it had in each direction rather than in pixels,
+ * so the same place survives a rotation or a taller phone. Anything unreadable means it has never been
+ * moved, which starts it bottom right - above the phone's bar, where a thumb already is.
+ *
+ * An older position stored as a side still reads: x becomes 0 or 1, which is exactly where that side
+ * put it. Without this the button would jump back to the corner once, for anyone who had moved it. */
+const clamp = (n) => Math.min(1, Math.max(0, n));
+
+function journalFabPos() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(JOURNAL_FAB_KEY) ?? '');
+    if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) {
+      return { x: clamp(saved.x), y: clamp(saved.y) };
+    }
+    if (saved && (saved.side === 'left' || saved.side === 'right') && Number.isFinite(saved.y)) {
+      return { x: saved.side === 'left' ? 0 : 1, y: clamp(saved.y) };
+    }
+  } catch { /* never moved, or storage is off in private mode */ }
+  return { x: 1, y: 1 };
+}
+
+function saveJournalFabPos(pos) {
+  try { localStorage.setItem(JOURNAL_FAB_KEY, JSON.stringify(pos)); } catch { /* private mode: it just will not stick */ }
+}
+
+/* The highest the button may sit: the bottom of the viewport, or the top of the phone's bar when the
+ * bar is fixed along the bottom - a floating button underneath the navigation is one nobody can
+ * press. The bar is only fixed on a phone; on a wide screen it lives in the header, so there the
+ * limit is the viewport itself. */
+function journalFabFloor() {
+  const nav = $('#nav');
+  const fixed = nav && !nav.hidden && getComputedStyle(nav).position === 'fixed';
+  return Math.round(fixed ? nav.getBoundingClientRect().top : window.innerHeight);
+}
+
+/* How far the button may travel on each axis: the viewport, less the button and its margin at both
+ * ends. Never negative, so a window narrower than the button puts it in the corner rather than off the
+ * edge. */
+const fabRoom = () => ({
+  x: Math.max(0, window.innerWidth - FAB_SIZE - 2 * FAB_MARGIN),
+  y: Math.max(0, journalFabFloor() - FAB_SIZE - 2 * FAB_MARGIN),
+});
+
+function placeJournalFab() {
+  const fab = $('#journal-fab');
+  if (!fab || fab.hidden) return;
+  const { x, y } = journalFabPos();
+  const room = fabRoom();
+  fab.style.left = `${Math.round(FAB_MARGIN + x * room.x)}px`;
+  fab.style.top = `${Math.round(FAB_MARGIN + y * room.y)}px`;
+  fab.style.right = '';
+}
+
+function journalButton() {
+  const existing = $('#journal-fab');
+  if (existing) return existing;
+  document.body.insertAdjacentHTML('beforeend', String(html`
+    <button type="button" class="journal-fab" id="journal-fab" hidden aria-haspopup="dialog"
+      aria-label="Journal" title="Journal">${notepadIcon}</button>`));
+  const fab = $('#journal-fab');
+  wireJournalFab(fab);
+  return fab;
+}
+
+function wireJournalFab(fab) {
+  let dragging = false;
+  let engaged = false;      // true once the press has travelled far enough to be a drag
+  let travelled = 0;
+  let startX = 0;
+  let startY = 0;
+  let startLeft = 0;
+  let startTop = 0;
+  let room = { x: 0, y: 0 };      // how far it may travel, measured when it is picked up
+
+  /* While it is held, both axes follow the finger, so it goes where the hand puts it rather than where
+   * the layout allows - which is the whole point of a free button. It stops at the edges and above the
+   * phone's bar, because a button under the navigation is one nobody can press. */
+  const hold = (value, span) => Math.round(Math.min(Math.max(value, FAB_MARGIN), FAB_MARGIN + span));
+
+  fab.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    dragging = true;
+    engaged = false;
+    travelled = 0;
+    startX = e.clientX;
+    startY = e.clientY;
+    const box = fab.getBoundingClientRect();
+    startLeft = box.left;
+    startTop = box.top;
+    room = fabRoom();
+    fab.setPointerCapture(e.pointerId);
+  });
+
+  fab.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    travelled = Math.max(travelled, Math.abs(dx), Math.abs(dy));
+    if (travelled <= FAB_SLOP) return;
+
+    if (!engaged) {
+      /* This is only now a drag, so only now does the button stop being anchored to a side. Anything
+       * earlier than this would let a plain tap move the button, which is not what a tap means. */
+      engaged = true;
+      fab.classList.add('dragging');
+      fab.style.right = '';
+    }
+    fab.style.left = `${hold(startLeft + dx, room.x)}px`;
+    fab.style.top = `${hold(startTop + dy, room.y)}px`;
+  });
+
+  const release = () => {
+    if (!dragging) return;
+    dragging = false;
+    fab.classList.remove('dragging');
+    if (!engaged) return;                       // a tap: nothing moved, so nothing to save
+
+    const box = fab.getBoundingClientRect();
+    saveJournalFabPos({
+      x: room.x ? clamp((box.left - FAB_MARGIN) / room.x) : 0,
+      y: room.y ? clamp((box.top - FAB_MARGIN) / room.y) : 0,
+    });
+    /* A drag ends with a click event on the same element. Remember that this was a drag so the click
+     * handler can swallow it: dropping the button must not also open the journal. */
+    fab.dataset.moved = '1';
+    placeJournalFab();
+  };
+  fab.addEventListener('pointerup', release);
+  fab.addEventListener('pointercancel', release);
+
+  fab.addEventListener('click', (e) => {
+    if (fab.dataset.moved) {
+      delete fab.dataset.moved;
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    openJournal();
+  });
+
+  /* The button is stored as a fraction of the room it had, so a different viewport has to become a
+   * new pixel position: a rotation, a resize, or a phone's browser bar sliding away all move the top
+   * of the bottom bar out from under it. */
+  addEventListener('resize', placeJournalFab);
+  addEventListener('orientationchange', placeJournalFab);
+}
 
 const pad2 = (n) => String(n).padStart(2, '0');
-/* The dancer's own calendar day rather than UTC, so an entry written late in the evening lands on
- * the day they are living in. */
 const localDay = (d = new Date()) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 const dayLabel = (iso) => {
   const [y, m, d] = iso.split('-').map(Number);
   return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 };
 
-/* Native <dialog>, like the add-a-trick sheet, so Escape and the focus trap come from the browser. */
 function journalDrawer() {
   return html`
     <dialog class="journal-drawer" id="journal-drawer" aria-labelledby="journal-title">
@@ -3255,7 +3250,6 @@ function journalDrawer() {
     </dialog>`;
 }
 
-/* The drawer is added once, outside #nav, because #nav is redrawn on every screen. */
 function mountJournal() {
   if ($('#journal-drawer')) return;
   document.body.insertAdjacentHTML('beforeend', String(journalDrawer()));
@@ -3308,7 +3302,5 @@ async function openJournal() {
   $('#journal-body').focus();
   await attempt(drawJournal);
 }
-
-document.addEventListener('click', (e) => { if (e.target.closest('#journal-open')) openJournal(); });
 
 start();

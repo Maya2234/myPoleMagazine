@@ -37,6 +37,14 @@ const byUsername = (a, b) => a.username.localeCompare(b.username, undefined, { s
 const sameText = (a, b) => String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
 const escapeLike = (s) => s.replace(/[\\%_]/g, '\\$&');   // so "_" and "%" in a name aren't wildcards
 
+/* A filename only has to be unique, not unguessable - the storage policies read ownership off the
+ * user-id folder - so this falls back on an insecure origin. crypto.randomUUID is defined only in a
+ * secure context, which means uploading over http://<lan-ip>:8000 - the phone test the README
+ * describes - would otherwise fail with "crypto.randomUUID is not a function". */
+const uuid = () => (typeof crypto.randomUUID === 'function'
+  ? crypto.randomUUID()
+  : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`);
+
 /* Supabase returns { data, error }. Throw the error, hand back the data. */
 function must({ data, error }) {
   if (error) throw new Error(error.message);
@@ -90,13 +98,27 @@ function remember(row) {
   return user;
 }
 
-const toMove = (r) => ({
-  id: r.id, userId: r.user_id, name: r.name, status: r.status, difficulty: r.difficulty,
-  entries: r.entries ?? [], exits: r.exits ?? [], combos: r.combos ?? [], notes: r.notes ?? '',
-  dictEntryId: r.dictionary_entry_id, achievedAt: r.achieved_at, updatedAt: r.updated_at,
-  categoryIds: (r.move_categories ?? []).map((c) => c.category_id),
-});
+/* `order` is where a move sits inside each collection it belongs to, keyed by collection id, and it
+ * is empty until supabase/goal-order.sql has been run. It is a Map rather than an object because the
+ * keys are uuids, which are fine as either - a Map just cannot be confused with a field on the move. */
+const toMove = (r) => {
+  const links = r.move_categories ?? [];
+  return {
+    id: r.id, userId: r.user_id, name: r.name, status: r.status, difficulty: r.difficulty,
+    entries: r.entries ?? [], exits: r.exits ?? [], combos: r.combos ?? [], notes: r.notes ?? '',
+    dictEntryId: r.dictionary_entry_id, achievedAt: r.achieved_at, updatedAt: r.updated_at,
+    categoryIds: links.map((c) => c.category_id),
+    order: new Map(links.filter((c) => Number.isFinite(c.position)).map((c) => [c.category_id, c.position])),
+  };
+};
 const MOVE_SELECT = '*, move_categories(category_id)';
+/* The same, plus the place each link has in its collection. Asked for only after that column is known
+ * to exist, because PostgREST fails the whole select over one unknown column - which would empty the
+ * Moves page rather than just losing an order nobody has set yet. */
+const MOVE_SELECT_ORDERED = '*, move_categories(category_id, position)';
+let goalOrderReady = true;     // false once move_categories.position turns out to be missing
+const isMissingPosition = (err) => /position/i.test(err?.message ?? '');
+const GOAL_ORDER_HINT = 'Saving a new order needs supabase/goal-order.sql run once in the Supabase SQL editor. The order you had is unchanged.';
 
 const toCategory = (r) => ({ id: r.id, userId: r.user_id, name: r.name, isDefault: r.is_default ?? false });
 const toEntry = (r) => ({
@@ -500,11 +522,11 @@ export async function deleteAccount() {
   await supabase.auth.signOut();
 }
 
-/* Everyone except me and admin accounts, for Browse. */
+/* Everyone except me, for Members. */
 export async function listOtherUsers() {
   requireUser();
   const rows = must(await supabase.from('profiles').select('*')
-    .neq('id', me.id).eq('is_admin', false).order('username'));
+    .neq('id', me.id).order('username'));
   return rows.map(remember);
 }
 
@@ -524,11 +546,24 @@ export function canView(ownerId) {
 
 /* ---------- moves ---------- */
 
+/* Newest edit first, and with the place each goal has in its collection when that is known. One retry
+ * without the order is what keeps the list readable before goal-order.sql has been run - and what
+ * stops every later call from asking for a column that is not there. */
+async function moveRows(userId) {
+  if (goalOrderReady) {
+    const { data, error } = await supabase.from('moves').select(MOVE_SELECT_ORDERED)
+      .eq('user_id', userId).order('updated_at', { ascending: false });
+    if (!error) return data;
+    if (!isMissingPosition(error)) throw new Error(error.message);
+    goalOrderReady = false;
+  }
+  return must(await supabase.from('moves').select(MOVE_SELECT)
+    .eq('user_id', userId).order('updated_at', { ascending: false }));
+}
+
 export async function listMoves(userId) {
   // RLS returns nothing for another dancer's private account, so no check is needed here.
-  const rows = must(await supabase.from('moves').select(MOVE_SELECT)
-    .eq('user_id', userId).order('updated_at', { ascending: false }));
-  return rows.map(toMove);
+  return (await moveRows(userId)).map(toMove);
 }
 
 export async function getMove(id) {
@@ -580,14 +615,27 @@ export async function saveMove(input) {
     : must(await supabase.from('moves').insert(row).select().single());
   if (!saved) throw new Error('You can only edit your own moves.');
 
-  // Replace this move's collection links. (Two steps, so not atomic. Fine for a prototype.)
-  must(await supabase.from('move_categories').delete().eq('move_id', saved.id));
+  /* Bring this move's collection links in line with the form: remove the collections it left, add the
+   * ones it joined, and leave the rest alone. Rebuilding them all would be one line shorter and would
+   * quietly undo the order a dancer dragged their goals into, because that order lives in these rows.
+   * (Two steps, so not atomic. Fine for a prototype.) */
   const categoryIds = [...new Set(input.categoryIds ?? [])];
-  if (categoryIds.length) {
-    must(await supabase.from('move_categories')
-      .insert(categoryIds.map((category_id) => ({ move_id: saved.id, category_id }))));
+  const existing = await linkRows(saved.id);
+  const had = new Set(existing.map((r) => r.category_id));
+  const gone = [...had].filter((id) => !categoryIds.includes(id));
+  if (gone.length) {
+    must(await supabase.from('move_categories').delete().eq('move_id', saved.id).in('category_id', gone));
   }
-  return toMove({ ...saved, move_categories: categoryIds.map((category_id) => ({ category_id })) });
+  const added = categoryIds.filter((id) => !had.has(id));
+  if (added.length) await linkCategories(saved.id, added);
+  const positions = new Map(existing.map((r) => [r.category_id, r.position]).filter(([, p]) => Number.isFinite(p)));
+  return toMove({
+    ...saved,
+    move_categories: categoryIds.map((category_id) => ({
+      category_id,
+      position: positions.get(category_id),
+    })),
+  });
 }
 
 export async function setStatus(id, status) {
@@ -689,6 +737,54 @@ export async function ensureGoalsCategory() {
   return existing ?? createCategory(GOALS_NAME);
 }
 
+/* This move's links, with their places when the column exists. The same one-column fallback as
+ * moveRows, for the same reason: an edit must not fail because an optional column is not there. */
+async function linkRows(moveId) {
+  if (goalOrderReady) {
+    const { data, error } = await supabase.from('move_categories')
+      .select('category_id, position').eq('move_id', moveId);
+    if (!error) return data;
+    if (!isMissingPosition(error)) throw new Error(error.message);
+    goalOrderReady = false;
+  }
+  return must(await supabase.from('move_categories').select('category_id').eq('move_id', moveId));
+}
+
+/* The place a new link takes: after everything already in the collection, so a goal added today lands
+ * at the bottom of a list rearranged by hand rather than above all of it. Null when the column is not
+ * there, which is what the caller needs to know to insert the link without one. */
+async function nextPosition(categoryId) {
+  if (!goalOrderReady) return null;
+  const { data, error } = await supabase.from('move_categories').select('position').eq('category_id', categoryId);
+  if (error) {
+    if (!isMissingPosition(error)) throw new Error(error.message);
+    goalOrderReady = false;
+    return null;
+  }
+  return (data ?? []).reduce((next, r) => Math.max(next, (r.position ?? 0) + 1), 0);
+}
+
+/* Links a move to collections, giving each link the next free place. Inserting the place is what fails
+ * when goal-order.sql has not been run, and the insert is retried without it - so a move still reaches
+ * the list, in the order the list falls back on, rather than not being added at all. */
+async function linkCategories(moveId, categoryIds) {
+  if (goalOrderReady) {
+    try {
+      const rows = [];
+      for (const categoryId of categoryIds) {
+        rows.push({ move_id: moveId, category_id: categoryId, position: await nextPosition(categoryId) });
+      }
+      must(await supabase.from('move_categories').insert(rows));
+      return;
+    } catch (err) {
+      if (!isMissingPosition(err)) throw err;
+      goalOrderReady = false;
+    }
+  }
+  must(await supabase.from('move_categories')
+    .insert(categoryIds.map((categoryId) => ({ move_id: moveId, category_id: categoryId }))));
+}
+
 /* Adds one of my moves to a collection and leaves its other links alone. */
 export async function addToCategory(moveId, categoryId) {
   requireUser();
@@ -696,8 +792,41 @@ export async function addToCategory(moveId, categoryId) {
   if (!move) throw new Error('That move is not available.');
   if (move.userId !== me.id) throw new Error('You can only add your own moves to a collection.');
   if (move.categoryIds.includes(categoryId)) return move;
-  must(await supabase.from('move_categories').insert({ move_id: moveId, category_id: categoryId }));
+  await linkCategories(moveId, [categoryId]);
   return getMove(moveId);
+}
+
+/* The order a dancer arranged by dragging the cards in Current goals: one row per move in that
+ * collection, renumbered from the top. The place belongs to the link rather than to the move, because
+ * the same move can sit in a different place in each collection - and in one place in none of them.
+ *
+ * Written row by row rather than as one upsert: an upsert has to name a conflict target, and this only
+ * needs the update policy, so it works whatever the table's key is called. */
+export async function setCategoryOrder(categoryId, moveIds) {
+  requireUser();
+  if (!categoryId) throw new Error('That collection is not available.');
+  const ids = [...new Set(moveIds.filter(Boolean))];
+  if (!ids.length) return;
+  const refused = new Error(GOAL_ORDER_HINT);
+  for (const [position, moveId] of ids.entries()) {
+    let rows;
+    try {
+      rows = must(await supabase.from('move_categories').update({ position })
+        .eq('move_id', moveId).eq('category_id', categoryId).select('move_id'));
+    } catch (err) {
+      if (!isMissingPosition(err) && !/row-level|permission|policy/i.test(err.message)) throw err;
+      goalOrderReady = false;
+      throw refused;
+    }
+    /* The rows that come back are the only evidence the place was written: a policy that refuses an
+     * update does not raise an error, it reports success and changes nothing. Asking for the row is
+     * what stops a refused save from looking like a saved one until the next page load. */
+    if (!rows.length) {
+      goalOrderReady = false;
+      throw refused;
+    }
+  }
+  goalOrderReady = true;
 }
 
 export async function removeFromCategory(moveId, categoryId) {
@@ -1120,7 +1249,7 @@ export async function uploadMedia(file, { moveId = null, entryId = null, caption
   /* One folder per dancer, so the storage policies can read ownership straight off the path. */
   const ext = (file.name.split('.').pop() ?? '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5)
     || (kind === 'photo' ? 'jpg' : 'mp4');
-  const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+  const path = `${user.id}/${uuid()}.${ext}`;
 
   const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: false });
   if (error) throw new Error(explainUpload(error.message));

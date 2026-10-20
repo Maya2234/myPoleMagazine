@@ -194,13 +194,33 @@ main:focus { outline: none; }
 #nav { display: flex; gap: 2px; }
 #nav a {
   position: relative; color: inherit; text-decoration: none;
-  padding: 8px 12px; border-radius: 999px;
+  /* The highlight is a rounded rectangle, not a capsule: on a phone each tab is a wide flex cell, and
+   * a stadium at 999px turned the active one into a long oval that read as a shape of its own rather
+   * than as the tab being lit. Sized like the app's other controls. */
+  padding: 8px 12px; border-radius: var(--radius-sm);
   font-size: .9rem; font-weight: 600;
+  /* The current tab changes colour, never geometry: same padding, same weight, same line box, so
+   * selecting one does not move the label or shift the tabs beside it. Two earlier rules gave the
+   * active tab a smaller padding of its own, which shrank it by two pixels on each side and made the
+   * whole bar twitch on every tap. The pill is painted on the box the tab already had. */
+  transition: background-color .15s ease, color .15s ease;
 }
+
+#nav .home-nav-icon svg {
+  width: 18px;
+  height: 18px;
+}
+/* The wrapper has to be a box, not a word in a line: as an inline span its line box was 22-23px tall
+ * around an 18px glyph, so centring the wrapper left the star itself about 2.5px above the middle of
+ * its tab - the one icon in the bar that was not where it looked like it should be. */
+#nav .home-nav-icon { display: inline-flex; }
 #nav a:hover { background: rgb(255 255 255 / .1); }
 /* Pink pill, charcoal label: the bar is dark in both themes, so this reads the same either way
    without needing a token of its own for text on the accent. */
-#nav a[aria-current="page"] { background: var(--accent); color: var(--bar); }
+#nav a[aria-current="page"] {
+  background: var(--accent);
+  color: var(--bar);
+}
 #nav a[aria-current="page"]:hover { background: var(--accent); }
 /* The account tab is drawn as an icon rather than a word, so the link centres it itself - a text
  * link gets that for free from its own line box. */
@@ -209,14 +229,23 @@ main:focus { outline: none; }
  * space between it and the glyph is the padding, so shrinking one without the other cannot make the
  * two collide. Sized so 22 + the link's 8px padding either side lands on the height the word tabs
  * already are, which keeps the whole bar on one line. */
-#nav a.icon-only svg {
+#nav a.icon-only > svg {
   width: 22px; height: 22px; padding: 2.5px;
   border: 1.5px solid currentColor; border-radius: 50%;
 }
+/* The direct-child rule matters: the Home star is an icon in the bar too, but it is nested inside
+ * .home-nav-icon for its own sizing, and a ring drawn around a star reads as an avatar nobody set. */
 #nav .pill {
   display: inline-block; min-width: 18px; margin-left: 4px; padding: 0 5px;
   border-radius: 999px; background: var(--accent); color: var(--bar);
   font-size: .72rem; font-weight: 700; text-align: center;
+}
+/* The count that used to sit on the Review tab rides on the profile instead, so a queue of
+ * suggestions is visible from every screen. Absolute, so a badge cannot widen the tab or nudge the
+ * icon the way a trailing inline pill would. */
+#nav a.icon-only .pill {
+  position: absolute; top: 0; right: 0; margin: 0;
+  min-width: 16px; padding: 0 4px; font-size: .62rem; line-height: 16px;
 }
 
 main { max-width: 760px; margin: 0 auto; padding: 22px 16px 56px; }
@@ -228,7 +257,22 @@ main { max-width: 760px; margin: 0 auto; padding: 22px 16px 56px; }
     background: var(--bar); border-top: 1px solid rgb(255 255 255 / .14);
     padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
   }
-  #nav a { flex: 1; text-align: center; font-size: .72rem; padding: 10px 2px; }
+  /* Every tab the same box, and each one centres what it holds. Text on its own sits a couple of
+   * pixels above the middle of a stretched cell, which is exactly the kind of "slightly off" that is
+   * easy to see and hard to name; as a flex item it lands on the middle like the icons do. */
+  #nav a {
+    flex: 1; display: inline-flex; align-items: center; justify-content: center;
+    text-align: center; font-size: .72rem; padding: 10px 2px;
+  }
+  /* Home moves to the middle of the bar on a phone. The two lists a dancer opens most often sit
+   * either side of it and the star is the way back to the top, one thumb-width from the centre of
+   * the screen. The markup keeps a single order and the two layouts differ only here, so they cannot
+   * drift apart. Desktop is unchanged, with Home leading. */
+  #nav a[data-nav="moves"] { order: 1; }
+  #nav a[data-nav="dictionary"] { order: 2; }
+  #nav a[data-nav="home"] { order: 3; }
+  #nav a[data-nav="community"] { order: 4; }
+  #nav a[data-nav="account"] { order: 5; }
   main { padding-bottom: 104px; }
 }
 
@@ -251,6 +295,24 @@ p { max-width: 68ch; }
   position: relative;   /* what a follow bar's dropped list lines up against, and how wide it is */
   display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
   padding-bottom: 14px; margin-bottom: 20px; border-bottom: 1px solid var(--line);
+}
+/* A move's own page: the name, where it is in your goals and how hard it is, read as one line. The
+   two fields keep their labels - without them the pink pill reads as a status of the page rather than
+   of this move, and five dashes read as decoration - and sit at the far end of the name's row. */
+.move-head { flex-wrap: wrap; row-gap: 12px; }
+.head-fields { display: grid; gap: 10px; }
+.head-field { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.head-field > .label { flex: none; font-size: .76rem; font-weight: 700; color: var(--muted); }
+/* Beside its label the written level sits on the same line as the dashes, not under them - and drops
+   to a line of its own when the row is too narrow to hold it, which is what a phone does. */
+.head-field .diff-edit { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 0; }
+.head-field .diff-label { margin: 0 0 0 8px; font-size: .8rem; }
+/* A phone cannot hold the label, the five dashes and the written level on one line. The level goes
+   under the dashes rather than the whole control dropping below its label, so *Difficulty* keeps the
+   thing it names beside it - the dashes - and the reading sits under them as it does in the form. */
+@media (max-width: 700px) {
+  .head-field .diff-edit { flex-direction: column; align-items: flex-start; gap: 0; }
+  .head-field .diff-label { margin-left: 6px; }
 }
 /* The Back button a screen shows when it is only ever reached from another one. Every screen uses the
    same one - a small button, the shape of every other button here - so going back is the same gesture
@@ -326,6 +388,7 @@ p { max-width: 68ch; }
 .coll-new .coll-plus { font-size: 2rem; line-height: 1; color: var(--accent); }
 .coll-section .inline-form[hidden] { display: none; }
 .card {
+  position: relative;            /* the container a preview's stretched link covers */
   display: block; padding: 16px 18px; border: 1px solid var(--line);
   border-radius: var(--radius); background: var(--surface);
   color: inherit; text-decoration: none;
@@ -337,6 +400,29 @@ a.card:hover { border-color: var(--accent); }
  * as :has(.trick-card) rather than on the container, because what makes a card a preview is the
  * preview inside it, and every one of these is built by trickPreview(). */
 .card:has(.trick-card):hover { border-color: var(--accent); }
+
+/* The whole card is the way into the move or the trick, not only the name inside it.
+ *
+ * The name stays the one real link and is stretched over the card by a pseudo-element - the same
+ * trick the Community list already uses on `.member-card-link`, for the same reason. That is
+ * deliberately not "wrap the card in an anchor": these cards hold a status dropdown, a Remove button
+ * and a drag grip, and an anchor may not contain controls - the browser would take the first click on
+ * any of them as a navigation. The link does the work, so it is still focusable, still carries the
+ * href a status bar shows, and still supports middle-click and Copy Link. The controls are lifted
+ * above the overlay, which is why they are the ones given a stacking order here and the card's own
+ * padding, name and detail line are not. */
+.card:has(.trick-name a) { cursor: pointer; }
+.card .trick-name a::after {
+  content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit;
+}
+.trick-actions > *,
+.trick-tail > a,
+.trick-tail > button { position: relative; z-index: 2; }
+/* A keyboard tab lands on the name, and the ring is drawn round the card it opens: the outline on the
+ * name alone would sit in the middle of a large clickable card and read as though only that part of it
+ * were the link. Limited to cards that are actually links, so a form that happens to use .card does
+ * not draw one around itself when a field is focused. */
+.card:has(.trick-name a):focus-within { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
 .card.disabled { opacity: .7; }
 .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .card-top h3 { min-width: 0; }   /* so a long name gives way before the level beside it does */
@@ -356,6 +442,12 @@ a.card:hover { border-color: var(--accent); }
 /* The name takes the free space, which is what keeps the dashes against the right edge of the card
    instead of trailing a short name. It gives way first when the line runs out of room. */
 .trick-name { flex: 1 1 auto; min-width: 0; }
+.trick-name a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 0;
+}
+.card:hover .trick-name a { color: var(--accent-strong); }
 /* `margin-left: auto` matters only when the line runs out and this wraps onto a line of its own - a
    long name beside an add button on a phone. The name takes the free space on a shared line, so
    nothing moves there; alone on its line, the tail is pushed to the right, which is where the dashes
@@ -369,11 +461,37 @@ a.card:hover { border-color: var(--accent); }
   margin: 0; color: var(--muted); font-size: .88rem;
 }
 .trick-card .trick-alias { font-style: italic; }
-.trick-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.trick-actions { display: flex; align-items: center; gap: 8px;}
 /* The add and in-your-moves marks on a dictionary row are a small mark beside the name, not a big button. */
 .trick-tail .icon-btn { width: 32px; height: 32px; }
 .trick-tail .icon-btn svg { width: 15px; height: 15px; }
 .trick-actions .btn { margin: 0; }
+.trick-actions .remove-dash { margin-left: auto; }
+
+/* Dragging a card in Current goals into a new place.
+ *
+ * The card itself is the drag surface except for its real controls, which still keep their own click
+ * and tap behaviour. The card being moved rises out of the list (a transform, so nothing reflows under
+ * it) and the card it would displace is marked with a pink edge rather than by moving it, because the
+ * list shifting under a finger is how a drag starts to feel like it is fighting back. */
+.goal-card { cursor: grab; }
+.goal-card:active, .card.reordering { cursor: grabbing; }
+.goal-grip { cursor: inherit; }
+.card.reordering {
+  position: relative; z-index: 3; transition: none;
+  border-color: var(--accent-strong);
+  box-shadow: 0 14px 30px rgb(0 0 0 / 18%);
+}
+.card.drop-before { box-shadow: inset 0 3px 0 var(--accent-strong); }
+
+/* "Already in" in the add-a-goal panel is an answer, not a button that happens to be switched off. A
+ * disabled control is drawn at 45% opacity so it reads as unavailable, which here is too faint to
+ * read at all: it keeps its shape and its border, and says what it has to say in a muted colour. */
+.goal-source-block .btn[disabled] {
+  opacity: 1; cursor: default;
+  border-color: var(--line); background: var(--surface-2); color: var(--muted);
+}
+.goal-source-block .btn[disabled]:hover { border-color: var(--line); }
 
 /* The status of a move: a dropdown that is also the place the status is read, painted in the colour of
    the answer it holds. The three pairs below are the goal / progress / achieved tokens the palette
@@ -427,41 +545,17 @@ a.card:hover { border-color: var(--accent); }
   color: var(--muted); font-size: .75rem; font-weight: 600;
 }
 
-/* ---------- one dancer's own 1-5 difficulty ----------
-   Five segments and no word beside them: the position in the scale is the whole reading, and the
-   written level is on the element as a tooltip and in its accessible name for anyone who asks. It
-   sits inline inside .meta rows and at the end of a preview's name line, so it must never wrap or
-   grow taller than the line it is on. */
-/* The level is five dashes with its title on hover. No outline and no pill around them: a dash row
- * on its own is the whole reading. Unrated tricks get the pill instead, so the empty state has a shape
- * rather than a gap. */
-.diff {
-  display: inline-flex; align-items: center; min-width: 0; white-space: nowrap;
-  /* A round hit area around the dashes, so hovering near them still shows the level. */
-  padding: 6px 8px; border-radius: 999px; cursor: default;
-}
-/* An instant tooltip, shown below the level: the native title attribute waits about a second before it
-   shows. The level is not a button, so it keeps the default cursor and no hover change. */
-.diff[data-tip], .diff-unrated[data-tip] { position: relative; }
-.diff[data-tip]::after, .diff-unrated[data-tip]::after {
-  content: attr(data-tip); position: absolute; top: calc(100% + 6px); left: 50%;
-  transform: translateX(-50%); padding: 4px 8px; border-radius: 6px; z-index: 10;
-  background: var(--surface); color: var(--ink); border: 1px solid var(--line);
-  font-size: .75rem; font-weight: 600; white-space: nowrap; pointer-events: none;
-  opacity: 0; visibility: hidden; transition: none;
-}
-.diff[data-tip]:hover::after, .diff-unrated[data-tip]:hover::after { opacity: 1; visibility: visible; }
-.diff-unrated {
+/* ---------- one dancer's own 1-5 difficulty ---------- */
+.diff-badge, .diff-unrated {
   display: inline-flex; align-items: center; white-space: nowrap;
-  padding: 1px 7px; border: 1px solid var(--line); border-radius: 999px; cursor: default;
+  padding: 1px 7px; border: 1px solid var(--line); border-radius: 999px;
   background: var(--surface-2); color: var(--muted); font-size: .62rem; font-weight: 600;
 }
-.diff-dots { display: inline-flex; gap: 2px; }
-.diff-dots i {
-  width: 13px; height: 5px; border-radius: 2px;
-  background: var(--surface-2); border: 1px solid var(--line);
+.diff-badge {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--line));
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-2));
+  color: var(--accent-strong);
 }
-.diff-dots i.on { background: var(--accent); border-color: var(--accent); }
 
 /* The five pills in the add-move form: tighter than the default radio pills so all five fit a
    phone, and allowed to wrap when they do not. */
@@ -482,9 +576,10 @@ a.card:hover { border-color: var(--accent); }
 .diff-step:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .diff-label { margin: 0 0 0 6px; color: var(--muted); font-size: .85rem; font-weight: 600; }
 
-/* The + beside the new-collection box: the box stays hidden until it is asked for. */
-.cat-add { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
-.cat-add input[type="text"] { flex: 1; min-width: 0; }
+/* The + that adds a collection, and the box that names it: both sit in the row of collections the
+ * move is already in, at the end of it, rather than on a line of their own below. */
+.checks > .icon-btn { flex: none; }
+.checks > input[type="text"] { flex: 1 1 160px; min-width: 0; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .section .chips { margin-top: 0; }
@@ -620,9 +715,33 @@ a.chip:hover { outline: 1px solid var(--accent); }
 
 .form { margin-top: 8px; }
 .field { display: grid; gap: 6px; margin: 0 0 20px; padding: 0; border: 0; min-width: 0; }
-.field > span, .field > legend, .field > .label { font-size: .9rem; font-weight: 700; padding: 0; }
+.field > span, .field > legend, .field > .label, .field-head > .label { font-size: .9rem; font-weight: 700; padding: 0; }
 .field small { color: var(--muted); }
 .field-help { margin: 0; font-size: .85rem; color: var(--muted); }
+
+/* A label and the pencil that opens its field for editing, on one line. */
+.field-head { display: flex; align-items: center; gap: 4px; }
+
+/* What a field reads as before its pencil is tapped: the chip field loses its box and its × buttons
+ * and shows plain pills, and an empty one says so rather than sitting there as a blank box. */
+.field[data-editing="off"] .chip-field { padding: 0; border: 0; background: none; cursor: default; }
+.field[data-editing="off"] .chip-x,
+.field[data-editing="off"] .chip-text { display: none; }
+.field[data-editing="off"] .chip-field:not(:has(.chip))::before {
+  content: "None yet"; color: var(--muted); font-size: .85rem;
+}
+
+/* Notes: the paragraph the move's own page draws, or the box to write in, never both. */
+.field[data-editing="off"] .notes-input { display: none; }
+.field[data-editing="on"] .notes-read { display: none; }
+.notes-read {
+  white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: 12px 16px;
+  border: 1px solid var(--line); border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0; background: var(--surface);
+  max-width: none;   /* the 68ch that prose paragraphs keep: this one stands in for a field, so it lines
+                        up with the box it replaces rather than reading short of it on a wide screen */
+}
+.notes-read.is-empty { color: var(--muted); border-left-style: dashed; }
 
 input[type="text"], input[type="search"], input[type="password"], input[type="email"], input[type="number"], select, textarea {
   width: 100%; min-height: 44px; padding: 10px 12px; border-radius: var(--radius-sm);
@@ -918,13 +1037,29 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
 .follow-panel > :first-child { margin-top: 0; }
 .follow-panel .subnote { margin: 0 0 10px; }
 
-/* ---------- journal drawer ----------
-   A native <dialog> docked to the right edge, so Escape and the focus trap come from the browser. */
-#nav .journal-open {
-  background: transparent; border: 0; color: inherit; cursor: pointer; font: inherit; box-shadow: none;
-  padding: 8px 12px; border-radius: 999px; font-size: .9rem; font-weight: 600;
+/* ---------- journal ----------
+ * A native <dialog> docked to the right edge, so Escape and the focus trap come from the browser, and
+ * a floating notepad button that opens it. Where the button sits in pixels is decided in js/app.js
+ * (which reads back where it was last dropped); how it looks is here.
+ *
+ * touch-action: none is what makes a drag the button's rather than the page's scroll. The price is
+ * that a swipe starting on the button scrolls nothing, which is why it is a 52px disc in a corner. */
+.journal-fab {
+  position: fixed; z-index: 12;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 52px; height: 52px; padding: 0;
+  border: 1px solid rgb(255 255 255 / .16); border-radius: 50%;
+  background: var(--bar); color: var(--bar-ink);
+  cursor: grab; touch-action: none;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 30%);
+  transition: transform .15s ease, box-shadow .15s ease;
 }
-#nav .journal-open:hover { background: rgb(255 255 255 / .1); }
+.journal-fab[hidden] { display: none; }
+.journal-fab:hover { transform: translateY(-1px); box-shadow: 0 10px 22px rgb(0 0 0 / 34%); }
+/* While it is being moved: no transition, so it tracks the finger instead of lagging behind it, and a
+ * cursor that says the drag is the point. */
+.journal-fab.dragging { cursor: grabbing; transform: scale(1.05); transition: none; }
+@media (prefers-reduced-motion: reduce) { .journal-fab { transition: none; } }
 .journal-drawer {
   position: fixed; top: 0; right: 0; bottom: 0; left: auto; margin: 0; height: 100dvh; max-height: 100dvh;
   width: min(420px, 100vw); max-width: 100vw;

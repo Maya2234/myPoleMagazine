@@ -1,6 +1,6 @@
 /* Service worker: caches the app shell so the app opens offline.
  * Bump CACHE whenever you change any file below, or users keep the old copy. */
-const CACHE = 'mypolemagazine-v50';
+const CACHE = 'mypolemagazine-v62';
 const CDN = 'https://esm.sh';   // the Supabase client is imported from here
 const SHELL = [
   './',

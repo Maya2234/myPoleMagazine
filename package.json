@@ -1,0 +1,16 @@
+{
+  "name": "mypolemagazine",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Log your pole moves, track your progress and help build a shared trick dictionary. There is no build step: the browser loads the files in this folder as they are, so the only thing here is how to check them.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "check": "node tools/check-palette.mjs && node --test",
+    "stamp": "node tools/stamp-shell.mjs",
+    "dev": "npx --yes serve -l 8000"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
