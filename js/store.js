@@ -120,7 +120,15 @@ let goalOrderReady = true;     // false once move_categories.position turns out 
 const isMissingPosition = (err) => /position/i.test(err?.message ?? '');
 const GOAL_ORDER_HINT = 'Saving a new order needs supabase/goal-order.sql run once in the Supabase SQL editor. The order you had is unchanged.';
 
-const toCategory = (r) => ({ id: r.id, userId: r.user_id, name: r.name, isDefault: r.is_default ?? false });
+/* `isShared` is the whole marker for a collection somebody else may be invited into: the owner
+ * opens it, names a dancer, and that dancer's answer writes the membership row (the function in
+ * supabase/shared-collections.sql, not the client). A project that has not run that file has no
+ * column, which reads as false - and one that still has the retired `share_code` column reads a
+ * collection with a code as shared, so a class joined the old way is not emptied by this change. */
+const toCategory = (r) => ({
+  id: r.id, userId: r.user_id, name: r.name, isDefault: r.is_default ?? false,
+  isShared: r.is_shared ?? (r.share_code != null),
+});
 const toEntry = (r) => ({
   id: r.id, name: r.name, status: r.status, submittedBy: r.submitted_by, createdAt: r.created_at,
 });
@@ -767,13 +775,22 @@ export async function getCategory(id) {
   return row ? toCategory(row) : null;
 }
 
-export async function createCategory(name) {
+/* A new collection, personal unless `shared` is asked for - and a shared one is a collection its
+ * owner can invite somebody to, from its first moment rather than after a switch is flipped
+ * (setCategorySharing opens an existing one the same way). `is_shared` is left off a personal
+ * collection entirely, so this still works on a project where supabase/shared-collections.sql has
+ * not been run. */
+export async function createCategory(name, { shared = false } = {}) {
   requireUser();
   const clean = String(name ?? '').trim().slice(0, 40);
   if (!clean) throw new Error('Give the collection a name.');
   const existing = (await listCategories(me.id)).find((c) => sameText(c.name, clean));
   if (existing) return existing;
-  return toCategory(must(await supabase.from('categories').insert({ name: clean }).select().single()));
+
+  const row = shared ? { name: clean, is_shared: true } : { name: clean };
+  const { data, error } = await supabase.from('categories').insert(row).select().single();
+  if (error) throw new Error(shared ? explainShared(error.message) : error.message);
+  return toCategory(data);
 }
 
 export async function renameCategory(id, name) {
@@ -792,6 +809,250 @@ export async function deleteCategory(id) {
   requireUser();
   if ((await getCategory(id))?.isDefault) throw new Error(`"${GOALS_NAME}" is the collection your home page uses, so it cannot be deleted.`);
   must(await supabase.from('categories').delete().eq('id', id));
+}
+
+/* ---------- shared collections (a collection a class can join) ---------- */
+
+/* Sharing is an invitation on a collection its owner has opened, and that is all it is: the owner
+ * names a dancer, that dancer answers, and the membership row is written by the answer. The rules
+ * live in supabase/shared-collections.sql. Until that file has been run there is no is_shared column
+ * and no membership table, and rather than breaking every screen that lists collections the app
+ * carries on with personal ones and says what to run where sharing is offered - the same way levels
+ * and the social layer degrade. */
+let sharedReady = true;
+const SHARED_HINT = 'Shared collections are not switched on for this project yet: re-run '
+  + 'supabase/shared-collections.sql in the Supabase SQL editor, then reload.';
+const explainShared = (message) =>
+  (/does not exist|schema cache|could not find|permission denied/i.test(message) ? SHARED_HINT : message);
+
+/* False once the table turns out to be missing, so a screen can explain instead of offering an
+ * invitation that could never be sent. */
+export const sharedEnabled = () => sharedReady;
+
+/* The collections this dancer has joined. listCategories() stays "the ones I own", because that is
+ * the question half the app is asking (a profile's tiles, the rename rules); this is the other
+ * half, and listMyCollections() puts the two back together. */
+export async function listSharedCategories() {
+  requireUser();
+  if (!sharedReady) return [];
+  try {
+    /* Asked from the membership side, because that is the row that says "I joined": the category it
+     * points at comes back embedded, and the policy on categories is what allows it to. */
+    const rows = must(await supabase.from('category_members')
+      .select('categories(*)')
+      .eq('user_id', me.id));
+    sharedReady = true;
+    return rows.map((r) => r.categories).filter(Boolean).map(toCategory).sort(byName);
+  } catch {
+    /* Personal collections keep working; the screens that offer sharing say what to run. */
+    sharedReady = false;
+    return [];
+  }
+}
+
+/* Everything one of my moves can be put in: mine first - Current goals at the very top - then the
+ * collections I have joined. A collection cannot be both, so no id appears twice. */
+export async function listMyCollections() {
+  const user = requireUser();
+  const [mine, joined] = await Promise.all([listCategories(user.id), listSharedCategories()]);
+  return [...mine, ...joined.filter((c) => c.userId !== user.id)];
+}
+
+/* Whether this dancer may put moves in a collection: they own it, or they joined it. */
+export async function categoryAccess(id) {
+  requireUser();
+  const cat = await getCategory(id);
+  if (!cat) return { category: null, mine: false, member: false };
+  if (cat.userId === me.id) return { category: cat, mine: true, member: true };
+  const joined = await listSharedCategories();
+  return { category: cat, mine: false, member: joined.some((c) => c.id === cat.id) };
+}
+
+/* Leaving is deleting my own membership row. The rows come back, because a delete that a policy
+ * quietly refused still answers success - an empty list is the only evidence it did not happen.
+ *
+ * My moves come out of the collection with me: a class should not go on showing work by somebody
+ * who has left. The moves themselves are untouched - they are only taken off that one list. */
+export async function leaveCategory(id) {
+  const user = requireUser();
+  let rows;
+  try {
+    rows = must(await supabase.from('category_members').delete()
+      .eq('category_id', id).eq('user_id', user.id).select());
+  } catch (err) {
+    throw new Error(explainShared(err.message));
+  }
+  if (!rows.length) throw new Error('You are not in that collection.');
+
+  const mine = (await listMoves(user.id)).filter((m) => m.categoryIds.includes(id));
+  for (const move of mine) await removeFromCategory(move.id, id);
+}
+
+/* The people in a shared collection, owner included, in the order they joined. */
+export async function listCategoryMembers(id) {
+  try {
+    const rows = must(await supabase.from('category_members')
+      .select('*, profiles(*)')
+      .eq('category_id', id).order('joined_at'));
+    return rows.map((r) => (r.profiles ? remember(r.profiles) : null)).filter(Boolean);
+  } catch (err) {
+    throw new Error(explainShared(err.message));
+  }
+}
+
+/* ---------- invitations (the owner names a dancer; that dancer answers) ---------- */
+
+/* Inviting is a separate switch from sharing, because it is a separate table and a project can have
+ * the code in place without it. When the table is missing the screens that offer invitations say
+ * which file to run, and everything already shared keeps working. */
+let invitesReady = true;
+const INVITES_HINT = 'Inviting dancers is not switched on for this project yet: re-run '
+  + 'supabase/shared-collections.sql in the Supabase SQL editor, then reload.';
+const missingInvites = (message) => /category_invites|does not exist|schema cache|could not find/i.test(message);
+const explainInvites = (message) => (missingInvites(message) ? INVITES_HINT : message);
+
+export const invitesEnabled = () => invitesReady;
+
+/* The profiles behind a set of ids, in one request rather than one per row. An invitation names
+ * another dancer, and a class collection can be waiting on several at once. */
+async function profilesByIds(ids) {
+  const unique = [...new Set(ids.filter(Boolean))];
+  if (!unique.length) return new Map();
+  const rows = must(await supabase.from('profiles').select('*').in('id', unique));
+  return new Map(rows.map((r) => [r.id, remember(r)]));
+}
+
+/* What is waiting for me, newest first, with the collection and the dancer who sent it - which is
+ * everything the screen needs to say who is asking and about what. An invitation to a collection
+ * that has stopped being shared since is left out: there is nothing left to accept, and the press
+ * would only come back with an error. */
+export async function listMyInvites() {
+  requireUser();
+  if (!sharedReady || !invitesReady) return [];
+  try {
+    const rows = must(await supabase.from('category_invites')
+      /* `is_shared` and not `*`: the select fails whole if the column is missing, which is the
+       * signal that this project has not re-run supabase/shared-collections.sql - and saying so is
+       * better than listing invitations into collections nothing thinks are shared. */
+      .select('*, categories(id, name, user_id, is_shared)')
+      .eq('invited_user_id', me.id)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false }));
+    const owners = await profilesByIds(rows.map((r) => r.invited_by));
+    invitesReady = true;
+    return rows
+      .filter((r) => r.categories && r.categories.is_shared)
+      .map((r) => ({
+        id: r.id,
+        categoryId: r.categories.id,
+        name: r.categories.name,
+        ownerId: r.invited_by,
+        ownerName: owners.get(r.invited_by)?.username ?? 'a dancer',
+        createdAt: r.created_at,
+      }));
+  } catch {
+    invitesReady = false;
+    return [];
+  }
+}
+
+/* Who an owner is waiting on for one collection. Declined and accepted invitations are left out: the
+ * panel is a question ("has anybody not answered?"), not a history of the collection. */
+export async function listCategoryInvites(id) {
+  requireUser();
+  if (!invitesReady) return [];
+  let rows;
+  try {
+    rows = must(await supabase.from('category_invites').select('*')
+      .eq('category_id', id).eq('status', 'pending').order('created_at'));
+  } catch (err) {
+    if (!missingInvites(err.message)) throw new Error(explainInvites(err.message));
+    invitesReady = false;
+    return [];
+  }
+  const people = await profilesByIds(rows.map((r) => r.invited_user_id));
+  return rows.map((r) => ({
+    id: r.id,
+    userId: r.invited_user_id,
+    username: people.get(r.invited_user_id)?.username ?? 'a dancer',
+    createdAt: r.created_at,
+  }));
+}
+
+/* Sends the invitation. The username is looked up and the rules are checked in the database, so the
+ * app cannot invite somebody into a collection it does not own, or into one that is not shared. */
+export async function inviteToCollection(id, username) {
+  requireUser();
+  const clean = String(username ?? '').trim().replace(/^@+/, '');
+  if (!clean) throw new Error('Type the username of the dancer you want to invite.');
+  let inviteId;
+  try {
+    inviteId = must(await supabase.rpc('invite_to_collection', { p_category: id, p_username: clean }));
+  } catch (err) {
+    throw new Error(explainInvites(err.message));
+  }
+  invitesReady = true;
+  return inviteId;
+}
+
+/* Accepting or declining. The id comes back either way, because it is the collection the invitation
+ * was about and the app goes there when it was accepted; the row's own answer is in the database. */
+export async function respondToInvite(inviteId, accept) {
+  requireUser();
+  try {
+    return must(await supabase.rpc('respond_to_collection_invite',
+      { p_invite: inviteId, p_accept: !!accept }));
+  } catch (err) {
+    throw new Error(explainInvites(err.message));
+  }
+}
+
+/* An owner taking back an invitation nobody has answered. The rows come back for the same reason a
+ * leave does: a delete no policy allows still reports success, and an empty list is the evidence. */
+export async function cancelInvite(inviteId) {
+  requireUser();
+  let rows;
+  try {
+    rows = must(await supabase.from('category_invites').delete().eq('id', inviteId).select());
+  } catch (err) {
+    throw new Error(explainInvites(err.message));
+  }
+  if (!rows.length) throw new Error('That invitation is not yours to cancel.');
+}
+
+/* Every member's moves in one collection. What comes back is whatever the policies on public.moves
+ * allow this dancer to see - a private account's move is filtered out of the answer rather than
+ * being shown to the whole class - plus the links this dancer is allowed to read. */
+export async function listCategoryMoves(id) {
+  const select = 'move_id, moves(id, user_id, name, status, difficulty, entries, exits, combos, notes,'
+    + ' dictionary_entry_id, achieved_at, updated_at, move_categories(category_id))';
+  try {
+    const rows = must(await supabase.from('move_categories').select(select).eq('category_id', id));
+    const byId = new Map();
+    for (const r of rows) if (r.moves) byId.set(r.moves.id, toMove(r.moves));
+    return [...byId.values()];
+  } catch (err) {
+    throw new Error(explainShared(err.message));
+  }
+}
+
+/* Open an existing collection to invitations, or close it again. Closing it takes everybody who
+ * accepted back out and clears the invitations nobody answered - the trigger in the database does
+ * that, so a class that is closed is closed. */
+export async function setCategorySharing(id, shared) {
+  requireUser();
+  const cat = await getCategory(id);
+  if (!cat) throw new Error('Collection not found.');
+  if (cat.isDefault) throw new Error(`"${GOALS_NAME}" is the collection your home page uses, so it stays yours alone.`);
+  const row = { is_shared: !!shared };
+  let saved;
+  try {
+    saved = must(await supabase.from('categories').update(row).eq('id', id).select().maybeSingle());
+  } catch (err) {
+    throw new Error(explainShared(err.message));
+  }
+  if (!saved) throw new Error('Only the dancer who made a collection can share it.');
+  return toCategory(saved);
 }
 
 /* ---------- current goals (the one collection every profile has) ---------- */

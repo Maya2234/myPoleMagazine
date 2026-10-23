@@ -130,8 +130,13 @@ each one on the phone.
 **Current goals**
 
 - [ ] **+ Add new goal → My Moves** lists every move you have logged. The ones already in goals are
-      dimmed with a disabled **Already in** button - a move you know you logged is never missing
-      from the list. **Dictionary** still lists everything, with the same mark on what is in.
+      dimmed with a disabled **In Current Goals** button (**Already in** in a collection) - a move you
+      know you logged is never missing from the list - and they sit at the bottom, under everything
+      that can still be added. The add button on the ones that are not is a **+**, the same mark the
+      tab beside it uses.
+- [ ] The **Dictionary** tab lists every trick too, and one already in the list is drawn the same way
+      as on **My Moves**: the card dimmed and the same disabled button, rather than a sentence under
+      the name. The **+** on a trick that is not in yet adds it.
 - [ ] **+ New move** at the top of **My Moves** opens the move form with the list you opened the panel
       from already ticked, and the panel is gone behind it. Saving puts the move in that list. With no
       moves logged at all it is still the first thing in the panel.
@@ -145,24 +150,82 @@ each one on the phone.
 - [ ] Tapping anywhere on a card - its padding, its detail line, the dashes - opens that move. The
       status dropdown, the **—** and the drag grip still do their own thing instead of navigating, and
       holding a card does not show iOS's "open in new tab" menu on top of the page.
-- [ ] The **—** on a card asks first: the dialog names the move and says it stays in My Moves. Cancel
-      keeps the goal, OK takes it off and the toast confirms it.
+- [ ] The **—** on a card asks first, in the app's own box in the middle of the page rather than the
+      browser's: it names the move and says it stays in My Moves. **Cancel** and Escape keep the goal,
+      **Take it off** takes it off and the toast confirms it - and opening the box never removes the
+      goal by itself.
 - [ ] On a profile, the studio reads as its name alone - no "— City" - and the studio's page still
       shows the town.
+
+**A trick in the dictionary**
+
+- [ ] The third fact on a trick's page, **Your moves**, is a button rather than a line of text: it says
+      *Logged* when the trick is one of your moves and *Not yet* when it is not.
+- [ ] Hovering it (or reaching it with the keyboard) turns *Your moves* into **Open in My Moves**, or
+      **+ Add to my moves**; the strip does not change height while the pointer is on it.
+- [ ] A tap does the same thing without waiting for a hover: *Logged* opens your move, *Not yet* opens
+      the move form with this trick already linked: the title is the trick's name and the details box
+      names it under **Dictionary entry**.
+- [ ] There is no second, larger button under the facts doing the same job.
 
 **A move you own**
 
 - [ ] The name, the **Current goal** dropdown and the **Difficulty** dashes are together at the top of
       the page, above the hairline; on a phone the pair sits under the name and the written level under
       the dashes, with no sideways scroll.
+- [ ] When the move is filed under a dictionary trick, the name in the title is a link to it, and
+      tapping it opens the trick. A move that is not linked has a plain title, not a link to nowhere.
+- [ ] The pencil beside the title opens **Name and dictionary entry**: the name box with the caret in
+      it, the linked trick as a link (or *Not linked*), and the dropdown of tricks is folded away -
+      **Change** opens it, and it is not shown until then. Escape closes the box and leaves the page.
+- [ ] A new move opens that box on arrival. Typing a name the dictionary knows links it and says so;
+      one it does not know leaves it on *Not linked* and offers the suggestion box on the form.
 
-- [ ] Entries, exits, combos and notes read as what they hold - plain pills, a paragraph - with a
-      pencil beside each label. Tapping a pencil opens that one field and no other; tapping it again
-      closes it and keeps what you typed, including a chip you had not pressed Enter on.
-- [ ] A field with nothing in it says *None yet*; opening it shows the box to type in instead.
-- [ ] The **+** to add a collection sits in the same row as the collections the move is already in,
-      not on its own line below them, and the box to name the new one opens in that row.
-- [ ] Saving with a pencil closed still saves what that field holds.
+- [ ] Entries, exits and combos are rows of pills, every pill keeping its **×**, with a **+** beside
+      the row's title and no pencil and no box drawn around them. Tapping a **+** opens a pill-shaped
+      box at the end of the row: Enter adds the chip and leaves the box open, tapping elsewhere adds
+      what was typed and closes it, and Escape closes it on nothing.
+- [ ] Every **+** on the page is beside the title of what it adds to - entries, exits, combos,
+      collections, media, notes - and none sits at the end of a row or on a line of its own.
+- [ ] A **×** on a pill takes that one off straight away, including while the box is open, and the
+      press lands rather than closing the box and doing nothing.
+- [ ] Notes is the only field with a pencil: it shows the paragraph, and the pencil opens the box to
+      write in without losing what was there.
+- [ ] Collections are a plain list of ticks and names: no bordered pill around each one, and no pink
+      fill on a ticked one. The **+** beside **Collections** opens **New collection**, and what you name
+      there is ticked on before the form is saved.
+- [ ] Saving keeps every chip and the notes, whichever field was last touched.
+
+**Your profile**
+
+- [ ] The pencil at the top right of **Account** has no white box behind it: it sits on the page's own
+      colour, in the quiet grey, and turns pink under the thumb. The **Request edit** pencils on a trick
+      and on a studio are drawn the same way.
+- [ ] **Edit profile** lists your studios one per row, each name on one line and shortened with **...**
+      when it is too long for the row - it neither wraps nor widens the sheet. The first row is marked
+      **On my profile** and carries no reorder arrows; the last row has no **down** arrow; a row in the
+      middle has both, and they swap it with the row beside it.
+- [ ] The **+** under that list opens a small panel with a search box and every studio. Ones you have
+      already listed are there too, dimmed and marked **Added**, and cannot be pressed. Typing filters
+      the list by name and town, and a search that matches nothing says so.
+- [ ] The panel opens upwards when it would otherwise run off the bottom of the phone, and opening it
+      never moves the list it belongs to. Escape closes the panel and leaves the editor open; a tap
+      anywhere else in the editor closes it too.
+- [ ] **Add a studio that is not listed** opens the name and town fields inside the panel, and adding
+      one puts it in your list straight away, ready to save.
+
+**Sharing a collection**
+
+- [ ] On a collection of your own, **Invite dancers** in the sharing panel opens it to invitations and
+      puts the cursor in the username box; there is no code to copy anywhere.
+- [ ] Inviting a dancer puts them under **Waiting to hear back** with a Cancel beside the name.
+- [ ] Signed in as the invited dancer, the invitation is a tile at the top of the **Collections** grid
+      on **Moves**, full width, dashed edge, marked **Invitation**, with **Accept** and **Decline** on
+      it. On a phone the two buttons stay on the row or drop together under the name, never clipped.
+- [ ] **Accept** opens the collection; back on **Moves**, the tile is now an ordinary collection marked
+      `shared`. **Decline** takes the tile away and says so.
+- [ ] **Stop sharing** on the collection's page asks first, then comes back with nobody in it and the
+      invitation gone from the other dancer's **Moves** page.
 
 **The floating notepad**
 
@@ -185,7 +248,7 @@ each one on the phone.
 
 **Media**
 
-- [ ] Log a move with **+ Add photo or video** → Photos → pick a photo. It uploads and displays
+- [ ] Log a move with the **+** beside **Media** → Photos → pick a photo. It uploads and displays
       right side up, not rotated or squashed.
 - [ ] Take a live photo or a HEIC and upload it: confirm it lands and renders (Safari normally
       transcodes to JPEG, but this is the one place a code path can surprise you).

@@ -54,6 +54,10 @@
   --bar-ink: #f7f6f8;
   --focus: #ff2d85;
   --danger: #c3284d;
+  --danger-ink: #fff4f8;     /* the label that sits ON a danger fill - the error toast, a danger
+                                button under the pointer. Like --accent-ink, it is a separate token
+                                because the fill has to be readable in one theme and its own label
+                                in the other. */
 
   /* Move states and community difficulty both read as one ramp of the palette - quiet grey, pink,
      deep plum - so "how far along" and "how hard" are told the same way, and the top of the ramp is
@@ -77,28 +81,36 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper: #141317;
-    --surface: #1c1b21;
-    --surface-2: #26252c;
-    --ink: #e8e6ec;
-    --muted: #a6a2b0;
-    --line: #322f3a;
+    /* The same palette read upside down, with three things chosen rather than inverted: a surface
+       LIFTS as it comes forward (the page is the deepest thing on the screen, cards and tracks sit
+       above it), the hairlines are brighter than the step between surfaces so a card still has an
+       edge on a dim screen, and the top of the ramp - achieved, advanced - is the pink FILL with
+       dark ink on it. That last one used to be a cream block, which was the light theme's deep plum
+       slab reversed: a big pale rectangle in the middle of a dark page, louder than anything it was
+       labelling. The pink costs nothing and matches the rest of the palette. */
+    --paper: #111014;          /* deeper than before, so the cards have somewhere to lift from */
+    --surface: #211f28;
+    --surface-2: #2e2b36;
+    --ink: #f2eef8;            /* ~14:1 on a card: crisp, without the glare of a pure white */
+    --muted: #bab5c4;          /* second-rank text, over 7:1 on every surface it is drawn on */
+    --line: #4c4757;           /* brighter than surface -> surface-2, so an edge still reads */
     --accent: #ff5b9d;
     --accent-ink: #17161a;
-    --accent-soft: #3a1628;
+    --accent-soft: #4b1c33;
     --accent-strong: #ffa8cb;
     --accent-hover: #ff7bb2;
-    --bar: #17161b;
-    --bar-ink: #eceaf0;
+    --bar: #24222b;            /* a shade above the page: the header is a raised band, not a hole */
+    --bar-ink: #efeef4;
     --focus: #ff5b9d;
     --danger: #ff8098;
-    --goal-bg: #26252c;     --goal-fg: #c8c5d0;
-    --progress-bg: #3a1628; --progress-fg: #ffa8cb;
-    --achieved-bg: #f0e3ea; --achieved-fg: #2a1018;
-    --lvl1-bg: #26252c;     --lvl1-fg: #c8c5d0;
-    --lvl2-bg: #3a1628;     --lvl2-fg: #ffa8cb;
-    --lvl3-bg: #f0e3ea;     --lvl3-fg: #2a1018;
-    --lvl1-fill: #5c5866;   --lvl2-fill: #ff5b9d;   --lvl3-fill: #f0e3ea;
+    --danger-ink: #1a1116;
+    --goal-bg: #2e2b36;     --goal-fg: #d3cfdb;
+    --progress-bg: #4b1c33; --progress-fg: #ffa8cb;
+    --achieved-bg: #ff5b9d; --achieved-fg: #17161a;
+    --lvl1-bg: #2e2b36;     --lvl1-fg: #d3cfdb;
+    --lvl2-bg: #4b1c33;     --lvl2-fg: #ffa8cb;
+    --lvl3-bg: #ff5b9d;     --lvl3-fg: #17161a;
+    --lvl1-fill: #6b6676;   --lvl2-fill: #ff5b9d;   --lvl3-fill: #ffa8cb;
   }
 }
 
@@ -120,6 +132,7 @@ html[data-theme="light"] {
   --bar-ink: #f7f6f8;
   --focus: #ff2d85;
   --danger: #c3284d;
+  --danger-ink: #fff4f8;
   --goal-bg: #f0eff3;     --goal-fg: #55515e;
   --progress-bg: #ffe6f0; --progress-fg: #a8004a;
   --achieved-bg: #33101f; --achieved-fg: #ffc9de;
@@ -131,28 +144,30 @@ html[data-theme="light"] {
 
 html[data-theme="dark"] {
   color-scheme: dark;
-  --paper: #141317;
-  --surface: #1c1b21;
-  --surface-2: #26252c;
-  --ink: #e8e6ec;
-  --muted: #a6a2b0;
-  --line: #322f3a;
+  /* Identical to the media block above - see the comment there for why these values are these. */
+  --paper: #111014;
+  --surface: #211f28;
+  --surface-2: #2e2b36;
+  --ink: #f2eef8;
+  --muted: #bab5c4;
+  --line: #4c4757;
   --accent: #ff5b9d;
   --accent-ink: #17161a;
-  --accent-soft: #3a1628;
+  --accent-soft: #4b1c33;
   --accent-strong: #ffa8cb;
   --accent-hover: #ff7bb2;
-  --bar: #17161b;
-  --bar-ink: #eceaf0;
+  --bar: #24222b;
+  --bar-ink: #efeef4;
   --focus: #ff5b9d;
   --danger: #ff8098;
-  --goal-bg: #26252c;     --goal-fg: #c8c5d0;
-  --progress-bg: #3a1628; --progress-fg: #ffa8cb;
-  --achieved-bg: #f0e3ea; --achieved-fg: #2a1018;
-  --lvl1-bg: #26252c;     --lvl1-fg: #c8c5d0;
-  --lvl2-bg: #3a1628;     --lvl2-fg: #ffa8cb;
-  --lvl3-bg: #f0e3ea;     --lvl3-fg: #2a1018;
-  --lvl1-fill: #5c5866;   --lvl2-fill: #ff5b9d;   --lvl3-fill: #f0e3ea;
+  --danger-ink: #1a1116;
+  --goal-bg: #2e2b36;     --goal-fg: #d3cfdb;
+  --progress-bg: #4b1c33; --progress-fg: #ffa8cb;
+  --achieved-bg: #ff5b9d; --achieved-fg: #17161a;
+  --lvl1-bg: #2e2b36;     --lvl1-fg: #d3cfdb;
+  --lvl2-bg: #4b1c33;     --lvl2-fg: #ffa8cb;
+  --lvl3-bg: #ff5b9d;     --lvl3-fg: #17161a;
+  --lvl1-fill: #6b6676;   --lvl2-fill: #ff5b9d;   --lvl3-fill: #ffa8cb;
 }
 
 /* ---------- base ---------- */
@@ -192,6 +207,11 @@ main:focus { outline: none; }
 .brand em { font-weight: 400; color: var(--accent); }
 
 #nav { display: flex; gap: 2px; }
+
+#goal-dialog-title{
+  margin-bottom:1rem;
+  border-bottom:1px solid var(--line);
+}
 #nav a {
   position: relative; color: inherit; text-decoration: none;
   /* The highlight is a rounded rectangle, not a capsule: on a phone each tab is a wide flex cell, and
@@ -314,6 +334,23 @@ p { max-width: 68ch; }
   .head-field .diff-edit { flex-direction: column; align-items: flex-start; gap: 0; }
   .head-field .diff-label { margin-left: 6px; }
 }
+/* The move's name is the page's title, and when the move is filed under a trick the title links to
+   it, so the name that is written here is also the way to the dictionary's version of it. Nothing is
+   drawn around the title, and nothing repeats it: the pencil beside it opens the one place the name
+   and that link are changed. */
+.move-ident { flex: 1 1 260px; min-width: 0; }
+.move-title-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.move-title { flex: 1 1 auto; min-width: 0; display: block; }
+/* Big type needs a rule it can be seen under: the quiet link's hairline is doubled at this size and
+   sits further from the baseline than it does in a line of body text. */
+.move-title .quiet-link { text-decoration-thickness: 2px; text-underline-offset: 5px; }
+
+/* The move's dictionary entry, in the details dialogue: the trick it is filed under as a link, and
+   the select that changes it folded away behind Change until it is wanted. */
+.dict-link { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.dict-hint { margin: 4px 0 0; font-size: .8rem; color: var(--muted); }
+.dict-hint:empty { display: none; }
+
 /* The Back button a screen shows when it is only ever reached from another one. Every screen uses the
    same one - a small button, the shape of every other button here - so going back is the same gesture
    and the same target wherever a dancer happens to be; only the word after the arrow changes. */
@@ -333,6 +370,7 @@ p { max-width: 68ch; }
   font-variant-numeric: tabular-nums;
 }
 .lede { color: var(--muted); margin: 8px 0 22px; font-size: 1.02rem; }
+.page-head .lede { margin: 8px 0 0; }
 
 /* ---------- buttons ---------- */
 
@@ -346,18 +384,24 @@ p { max-width: 68ch; }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 .btn.danger { color: var(--danger); border-color: var(--danger); }
-.btn.danger:hover { background: var(--danger); border-color: var(--danger); color: var(--bar-ink); }
+.btn.danger:hover { background: var(--danger); border-color: var(--danger); color: var(--danger-ink); }
 .btn.small { min-height: 36px; padding: 0 14px; font-size: .85rem; }
 .btn.block { width: 100%; }
 .btn[disabled] { opacity: .45; cursor: not-allowed; }
 .btn[disabled]:hover { border-color: var(--line); }
 /* An icon-only button: the collection pencil, beside the move count in a page head. */
-.icon-btn, .icon-btn-hover {
+.icon-btn, .icon-btn-hover, .icon-btn-in-moves {
   display: inline-flex; align-items: center; justify-content: center;
   width: 40px; height: 40px; padding: 0; flex: none;
   border: 1px solid var(--line); border-radius: var(--radius-sm);
   background: var(--surface); color: var(--ink); cursor: pointer;
 }
+.icon-btn svg, .icon-btn-hover svg, .icon-btn-in-moves svg { width: 18px; height: 18px; }
+
+.icon-btn-in-moves {
+  background: var(--accent); color: var(--accent-ink);
+}
+
 .icon-btn-hover:hover { border-color: var(--accent); color: var(--accent-strong); }
 .icon-btn[aria-expanded="true"] { border-color: var(--accent-strong); color: var(--accent-strong); background: var(--accent-soft); }
 .head-actions { display: flex; align-items: center; gap: 10px; }
@@ -386,7 +430,62 @@ p { max-width: 68ch; }
 .coll-tile .count { align-self: flex-end; }
 .coll-new { align-items: flex-start; border-style: dashed; color: var(--muted); }
 .coll-new .coll-plus { font-size: 2rem; line-height: 1; color: var(--accent); }
-.coll-section .inline-form[hidden] { display: none; }
+/* An invitation is a tile in this same grid, because that is where a dancer looks for the collections
+ * they can open - and it is the one tile that is a question, so it takes the whole row: the mark,
+ * the name and who sent it on the left, the two answers on the right. The dashed edge is the same
+ * "not a collection yet" the + tile wears, in the reading pink rather than the sheen: what it asks
+ * for is an answer, and the answer turns it into one of the tiles below it. */
+.coll-invite {
+  grid-column: 1 / -1; aspect-ratio: auto;
+  flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+  border-style: dashed; border-color: var(--accent-strong);
+}
+/* What is being asked, together: the mark, the collection and who sent the invitation wrap among
+ * themselves instead of being spread across the row, which is what `space-between` from the square
+ * tiles would otherwise do to them. */
+.coll-invite-main { flex: 1 1 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; }
+/* On a phone the answers drop onto their own line rather than squeezing the name into a column of
+ * three one-word rows; once there is room they sit beside it, level with the middle of the tile. */
+@media (min-width: 480px) {
+  .coll-invite-main { flex: 1 1 0; }
+}
+.coll-invite-main .coll-name { overflow-wrap: anywhere; }
+.coll-invite:hover { border-color: var(--accent-strong); }   /* it is not a link; nothing to open */
+.coll-invite-mark {
+  padding: 2px 9px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent-strong);
+  font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+}
+.coll-invite-from { color: var(--muted); font-size: .85rem; }
+.coll-invite-actions { display: flex; gap: 8px; margin-left: auto; }
+/* A collection you joined wears "shared" where the others wear the count of your moves in them: the
+ * count would read 0 for a class that is full of everybody else's work. */
+.coll-shared {
+  align-self: flex-end; font-size: .72rem; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted);
+}
+/* Sharing a collection is inviting a dancer to it, so the collection's own page carries the one
+ * control that does it: a name and a press when the collection is open, and a sentence and a button
+ * that opens it when it is not. Everything about sharing is in this quiet panel. */
+.share-box {
+  margin: 14px 0 6px; padding: 12px 14px;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2);
+}
+.share-box p { margin: 0; }
+.share-box .actions { margin-top: 10px; }
+.share-box .share-lead { margin-bottom: 4px; }
+/* The field takes the room the button does not. */
+.invite-form { display: flex; gap: 8px; margin-top: 14px; }
+.invite-form input { flex: 1; min-width: 0; }
+/* Who the owner is waiting on. A label rather than a sentence so the list reads as names and a
+ * state, and a Cancel beside each name because withdrawing is the only thing left to do with one. */
+.share-box .invite-waiting-label {
+  margin: 16px 0 6px;
+  font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+}
+.invite-waiting { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.invite-waiting li { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.invite-waiting a { font-weight: 600; }
 .card {
   position: relative;            /* the container a preview's stretched link covers */
   display: block; padding: 16px 18px; border: 1px solid var(--line);
@@ -463,8 +562,8 @@ a.card:hover { border-color: var(--accent); }
 .trick-card .trick-alias { font-style: italic; }
 .trick-actions { display: flex; align-items: center; gap: 8px;}
 /* The add and in-your-moves marks on a dictionary row are a small mark beside the name, not a big button. */
-.trick-tail .icon-btn, .trick-tail .icon-btn-hover { width: 32px; height: 32px; }
-.trick-tail .icon-btn svg, .trick-tail .icon-btn-hover svg { width: 15px; height: 15px; }
+.trick-tail .icon-btn, .trick-tail .icon-btn-hover, .trick-tail .icon-btn-in-moves { width: 32px; height: 32px; }
+.trick-tail .icon-btn svg, .trick-tail .icon-btn-hover svg, .trick-tail .icon-btn-in-moves svg { width: 15px; height: 15px; }
 .trick-actions .btn { margin: 0; }
 .trick-actions .remove-dash { margin-left: auto; }
 
@@ -481,6 +580,9 @@ a.card:hover { border-color: var(--accent); }
   position: relative; z-index: 3; transition: none;
   border-color: var(--accent-strong);
   box-shadow: 0 14px 30px rgb(0 0 0 / 18%);
+  /* A card picked up by a finger would otherwise select its own words, and a long press on a link
+   * would offer the browser's picture menu, halfway through the drag. */
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
 }
 .card.drop-before { box-shadow: inset 0 3px 0 var(--accent-strong); }
 
@@ -576,10 +678,6 @@ a.card:hover { border-color: var(--accent); }
 .diff-step:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .diff-label { margin: 0 0 0 6px; color: var(--muted); font-size: .85rem; font-weight: 600; }
 
-/* The + that adds a collection, and the box that names it: both sit in the row of collections the
- * move is already in, at the end of it, rather than on a line of their own below. */
-.checks > .icon-btn { flex: none; }
-.checks > input[type="text"] { flex: 1 1 160px; min-width: 0; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .section .chips { margin-top: 0; }
@@ -623,6 +721,13 @@ a.chip:hover { outline: 1px solid var(--accent); }
 .row-main { display: grid; gap: 2px; min-width: 0; flex: 1 1 auto; }
 .row-main strong { overflow-wrap: anywhere; }
 .row .actions { margin: 0; flex: none; }
+/* The review queue is the one list that is a to-do rather than a record, so the rules between its
+   rows are drawn in --accent instead of --line: a border is a shape, so the palette's rule at the
+   top of this file says --accent and not --accent-strong. A trick waiting for a decision then reads
+   as something with an answer owed on it, rather than as one more row of history. The line above
+   the first one is left alone, so the queue starts on the page with the same --line every other
+   list starts with instead of being framed in pink. */
+.review-list > .row { border-bottom-color: var(--accent); }
 .member-card-link {
   display: flex; align-items: center; gap: 12px;
   flex: 1 1 auto; min-width: 0; color: inherit; text-decoration: none;
@@ -634,11 +739,17 @@ a.chip:hover { outline: 1px solid var(--accent); }
 
 /* A post in the Community feed: whose it is on the left, and one of the shared preview cards on the
    right. The avatar is the feed's own mark - who posted it - which a preview of a trick has no
-   business carrying, so the two live side by side and only the card is the preview. */
+   business carrying, so the two live side by side and only the card is the preview.
+
+   Every update is one of these. A move, a move marked achieved and a clip all wear the same card, in
+   the same column beside the same avatar, because they are all the same thing to the person reading
+   the tab: something somebody did, with a name on it. The date sits in the card's detail line with
+   the name that goes with it, so there is no separate timestamp column to line up. */
 .feed-post {
   display: flex; align-items: flex-start; gap: 10px;
   padding: 12px 0; border-bottom: 1px solid var(--line);
 }
+.feed-list > .feed-post:last-child { border-bottom: 0; }
 .feed-post .card { flex: 1 1 auto; min-width: 0; }
 .feed-post .card:has(.trick-card):hover { border-color: var(--line); }
 /* One Instagram account on a studio page: the chip and the pencil that changes it, or the + that
@@ -727,12 +838,8 @@ a.chip:hover { outline: 1px solid var(--accent); }
 /* A label and the pencil that opens its field for editing, on one line. */
 .field-head { display: flex; align-items: center; gap: 4px; }
 
-/* What a field reads as before its control is tapped: the chip field loses its box and its × buttons
- * and shows plain pills. An empty one is not given words of its own - the + beside the label is the
- * way in, and it turns into a pencil once there is something to edit. */
-.field[data-editing="off"] .chip-field { padding: 0; border: 0; background: none; cursor: default; }
-.field[data-editing="off"] .chip-x,
-.field[data-editing="off"] .chip-text { display: none; }
+/* Entries, exits and combos are always editable: their chips keep their ×, and the + at the end of
+ * the row is how another is added. Only Notes is opened and closed, so only Notes carries the state. */
 
 /* Notes: the paragraph the move's own page draws, or the box to write in, never both. */
 .field[data-editing="off"] .notes-input { display: none; }
@@ -796,28 +903,36 @@ input.hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 
 }
 .seg label input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 2px; }
 
-.checks { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Collections are a list of ticks and names, nothing drawn around them. A bordered pill made the
+ * list read as a row of buttons to press, and the pink fill on a ticked one competed with the move's
+ * own accents; the tick itself is the answer, and the name is the label. */
+.checks { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .check {
-  display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px;
-  border: 1px solid var(--line); border-radius: 999px; background: var(--surface); cursor: pointer;
+  display: flex; align-items: center; gap: 10px; max-width: 100%;
+  min-height: 34px; padding: 2px 0; cursor: pointer;
 }
-.check:hover { border-color: var(--muted); }
-.check:has(input:checked) { border-color: var(--accent-strong); background: var(--accent-soft); }
+.check input { width: 20px; height: 20px; margin: 0; flex: none; }
+/* A shared collection says so quietly after its name: the name is the label, this is a note on it. */
+.check-shared {
+  font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+}
 
-/* chip input for entries / exits / combos */
-.chip-field {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px;
-  border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); cursor: text;
-}
-.chip-field:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+/* Entries, exits and combos: the pills and the + that adds another, with nothing drawn around them.
+ * A box here was a second card inside the move's own card, and it said "field" about a row that is
+ * meant to read as the thing itself. The row is centred because the + is a 34px icon button while a
+ * pill is shorter; centring is what stops the two sizes from reading as a mistake. */
+.chip-field { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 34px; }
+/* The box the + opens takes the pace of a pill rather than a full-width field, so it grows out of
+ * the row instead of replacing it. Width comes from the flex basis, not the global `width: 100%`. */
 .chip-field .chip-text {
-  flex: 1; min-width: 150px; min-height: 34px; padding: 4px 6px;
-  border: 0; outline: none; background: transparent;
+  flex: 0 1 190px; width: auto; min-width: 130px; min-height: 34px; padding: 3px 12px;
+  border-radius: 999px;
 }
 .chip-x {
   min-width: 24px; min-height: 24px; padding: 0 2px; border: 0; background: none;
   color: inherit; font-size: 1.15rem; line-height: 1; cursor: pointer;
 }
+.chip-x:hover { color: var(--accent-strong); }
 
 /* ---------- move detail ---------- */
 
@@ -854,9 +969,18 @@ input.hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 
   flex: 1 1 220px; width: auto; min-width: 0; min-height: 40px;
   font: 700 clamp(1.25rem, 4.5vw, 1.6rem)/1.2 var(--serif);
 }
-/* The pencil reads as part of the name rather than a boxed control: no panel behind it. */
+/* A pencil reads as part of what it edits rather than a boxed control: no panel behind it. Every
+   edit pencil in the app is drawn this way - the field labels, the profile corner, and the
+   "Request edit" on a trick or a studio - so an edit is never the loudest thing on the page. */
 .icon-btn.plain { width: 34px; height: 34px; border-color: transparent; background: none; color: var(--muted); }
 .icon-btn.plain:hover { border-color: transparent; background: none; color: var(--accent-strong); }
+/* The open state still says so, in pink rather than in a white box. */
+.icon-btn.plain[aria-expanded="true"] {
+  border-color: transparent; background: var(--accent-soft); color: var(--accent-strong);
+}
+/* A corner pencil keeps the 40px target the other icon buttons have. */
+.icon-btn.plain.profile-edit, .icon-btn.plain.request-edit { width: 40px; height: 40px; }
+.profile-edit svg, .request-edit svg { width: 18px; height: 18px; }
 /* On a phone the avatar leaves no room for a name, an input and two buttons on one line, so the
  * input takes the width and the buttons take the next line on purpose instead of by accident. */
 @media (max-width: 460px) {
@@ -966,9 +1090,9 @@ img.avatar { background: #fff; padding: calc(5px * var(--avatar-scale)); }
 img.avatar-art { background: #f2f2f5; }
 /* No picture: the initial sits on the same light disc and pink rim as the heel photos, with the
    letter in the brand pink. The rim comes from .avatar, so the only thing this rule changes is the
-   fill and the letter colour; the alt variant is the dark disc with the same pink rim. */
+   fill and the letter colour - every circle in the app wears the one rim, whether it holds a photo,
+   the artwork or a letter. */
 .avatar-letter { background: var(--surface); color: var(--accent-strong); font: 700 calc(1rem * var(--avatar-scale))/1 var(--sans); }
-.avatar-letter.alt { background: var(--ink); color: var(--paper); }
 .avatar-xs { width: calc(20px * var(--avatar-scale)); height: calc(20px * var(--avatar-scale)); }
 .avatar-sm { width: calc(34px * var(--avatar-scale)); height: calc(34px * var(--avatar-scale)); }
 .avatar-md { width: calc(52px * var(--avatar-scale)); height: calc(52px * var(--avatar-scale)); }
@@ -1001,10 +1125,21 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
    between carry no margin of their own. The bars grow and the button does not, so the button stays
    pinned right even when the bars wrap onto a second line on a phone. */
 .who .btn { margin: 8px 0; }
-.follow-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin: 8px 0; }
+/* The bars are pills, so their labels begin one padding inside the row's left edge while the lines
+   under them - Poler since, where they train - start at that edge. Pulling the row out by exactly
+   that padding puts "Followers" and "Poler since" on one vertical line, which is the line the eye
+   follows down the block. The pill's own border hangs just outside it, which is how a control that
+   holds a word should sit against a column of text. */
+.follow-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin: 8px 0 8px -10px; }
 .follow-row .follow-bars { flex: 1 1 auto; }
-.follow-toggle { width: 30px; height: 30px; }
-.follow-toggle svg { width: 16px; height: 16px; }
+/* The follow control is the same height as the pills it stands beside, and round like them: one more
+   mark on that line rather than a 40px button that happened to land next to a caption. flex-start
+   keeps it against the first line when the bars wrap onto a second one on a phone. */
+.follow-toggle {
+  width: 26px; height: 26px; min-height: 26px; padding: 0;
+  border-radius: 999px;
+}
+.follow-toggle svg { width: 15px; height: 15px; }
 .follow-toggle:hover { border-color: var(--accent); color: var(--accent-strong); }
 .follow-toggle[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-strong); }
 .who .eyebrow { margin-bottom: 6px; }
@@ -1023,6 +1158,10 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
   width: max-content; max-width: 100%;
 }
 .follow-bar { min-width: 0; }
+/* The summary is the whole bar, so it is aligned to the top of its own line box rather than on the
+ * text baseline: otherwise the row reserves a couple of pixels of leading above the pill, and the
+ * Follow button beside it - aligned to the row, not to the baseline - sits that much higher. */
+.follow-bar > summary { vertical-align: top; }
 /* Label-sized on purpose: the bars sit just under the dancer's name, so they read as a caption on
  * that name rather than as three controls that happened to land there. The
  * padding is asymmetric because the count on the right carries its own pink pill. */
@@ -1106,6 +1245,15 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
 }
 .sheet::backdrop { background: rgb(0 0 0 / .45); }
 .sheet h2 { margin: 0 0 6px; }
+/* A question about one thing is a sentence and two buttons, so it is narrower than a form's sheet.
+   There is no positioning here on purpose: a modal <dialog> is centred in the top layer by the
+   browser (margin: auto), so the box sits in the middle of the page at any window size - which is
+   the one thing window.confirm() could never be told to do. */
+.confirm-sheet { width: min(420px, calc(100% - 24px)); }
+.confirm-sheet p { margin: 0 0 16px; }
+/* The question is the one thing being read, so the sentence under it is the ink, not the muted grey
+   a caption would use, and it wraps at the box rather than at a measure. */
+.confirm-sheet #confirm-body { color: var(--ink); overflow-wrap: anywhere; }
 /* The form's own fields carry a bottom margin everywhere else, but the last thing in a dialogue is
    its button row and that margin would leave the box looking unfinished. */
 .sheet .actions { margin-bottom: 0; }
@@ -1119,10 +1267,10 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
  * is a dialogue with its own Save. */
 #avatar-dialog .avatar-picker { margin: 12px 0 0; }
 
-/* The "Add new goal" panel: three stacked blocks - one of my moves, a trick from the dictionary, a move
- * that is not in the dictionary - rather than a method to choose first and that method's options beside
- * it. The radio group that asked the question hid two of the three ways behind a click; a block each
- * says what it does, and there is nothing to choose before you can see what you are choosing. */
+/* The "Add new goal" panel: the two ways in as tabs across the top - one of my moves, a trick from
+ * the dictionary - and the chosen one's options underneath. A column down the left made the box as
+ * tall as the longest way in and left the list squeezed into a narrow strip beside it; along the top
+ * the box reads in one direction: which way in, then the way in. */
 .goal-add {
   position: relative;
   margin-top: 18px; padding: 14px 16px 16px;
@@ -1139,16 +1287,18 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
   background: var(--surface); color: var(--ink); cursor: pointer;
 }
 .panel-x:hover { border-color: var(--accent); color: var(--accent-strong); }
-/* The three sources down the left, the chosen one's panel beside it. The top padding is the band the
- * cross sits in, so nothing is ever drawn under it. One column on a phone, with the rail stacked
- * above the panel: three full-width words read better than three squeezed columns. */
+/* The ways in in one row above the panel, one column of content under them. The top padding is the
+ * band the cross sits in, so nothing is ever drawn under it. `flex: 1 1 0` with `min-width: 0` gives
+ * the tabs equal widths rather than widths sized to their words: a row that sized to its text would
+ * make one way in look more important than the other, and these are a choice between equals. */
 .goal-add-grid {
-  display: grid; grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
-  gap: 12px 20px; align-items: start; padding-top: 30px;
+  display: grid; grid-template-columns: minmax(0, 1fr);
+  gap: 12px; align-items: start; padding-top: 30px;
 }
-.goal-sources { display: grid; gap: 6px; min-width: 0; }
+.goal-sources { display: flex; gap: 6px; min-width: 0; }
 .goal-source-btn {
-  min-height: 40px; padding: 8px 12px; text-align: left;
+  flex: 1 1 0; min-width: 0;
+  min-height: 40px; padding: 8px 10px; text-align: center; overflow-wrap: anywhere;
   border: 1px solid var(--line); border-radius: var(--radius-sm);
   background: var(--surface); color: var(--ink);
   font: 700 .85rem/1.25 var(--sans); cursor: pointer;
@@ -1159,10 +1309,14 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
 .goal-source-btn[aria-pressed="true"] {
   border-color: var(--accent-strong); background: var(--accent-soft); color: var(--accent-strong);
 }
-.goal-source-block { display: grid; gap: 10px; align-content: start; min-width: 0; }
-@media (max-width: 640px) {
-  .goal-add-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+/* On a narrow phone the dialogue leaves each tab less than a word wide at the normal size, and a tab
+ * label must never break down the middle of a word. A slightly smaller label and tighter side
+ * padding below 380px keeps both on one unbroken line; `overflow-wrap` on the button above stays as
+ * the last resort for anything narrower than that. */
+@media (max-width: 380px) {
+  .goal-source-btn { padding: 8px 6px; font-size: .8rem; }
 }
+.goal-source-block { display: grid; gap: 10px; align-content: start; min-width: 0; }
 /* In the overlay the panel is the dialogue itself: no box inside a box. The cross is placed in the
  * dialogue's own corner, so the panel is not positioned against the box it used to sit in. */
 .goal-sheet .goal-add { position: static; margin-top: 0; padding: 0; border: 0; background: transparent; }
@@ -1187,9 +1341,9 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
 /* A member page has no corner pencil, so the room it reserves would leave its follow control short
    of the edge every other row on the page ends at. */
 .profile-head.no-pencil { padding-right: 0; }
-/* The same corner pencil asks an admin for a correction on studio and trick pages. */
+/* The same corner pencil asks an admin for a correction on studio and trick pages. Like every other
+   pencil it is drawn without a panel behind it, so it is the icon that changes colour, not a box. */
 .request-edit { position: absolute; top: 0; right: 0; }
-.request-edit:hover { border-color: var(--accent); color: var(--accent-strong); }
 
 .avatar-upload { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 12px 0 0; }
 .avatar-picker { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0 0; }
@@ -1204,10 +1358,12 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
 
 /* the avatar that opens a feed row, so a name is not just text */
 .feed-who { flex: none; line-height: 0; }
-/* The thumbnail on an upload in the feed, so a photo reads differently from a move at a glance
- * without needing a second column of its own. */
+/* The picture on an upload in the feed, so a photo reads differently from a move at a glance. It is
+ * part of that update's card, under the line that says what it is: full width and 16:9, like a media
+ * card anywhere else, rather than a 72px square at the end of a row that no longer exists. */
 .feed-media {
-  flex: none; width: 72px; height: 72px; border-radius: var(--radius-sm); overflow: hidden;
+  display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; max-height: 220px; margin-top: 2px;
+  border-radius: var(--radius-sm); overflow: hidden;
   border: 1px solid var(--line); line-height: 0;
 }
 .feed-media img, .feed-media video { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -1235,7 +1391,7 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
   border: 0; border-radius: 50%; background: rgb(28 27 32 / .55); color: #fff;
   font: 700 1.05rem/1 var(--sans); cursor: pointer;
 }
-.media-remove:hover { background: var(--danger); }
+.media-remove:hover { background: var(--danger); color: var(--danger-ink); }
 .upload-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
 .upload-note { font-size: .8rem; }
 
@@ -1243,6 +1399,9 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
    Chosen but not yet uploaded, so each row is a name and a way to take it back off before saving.
    The name truncates rather than wrapping: a long filename should not push the remove button off. */
 .file-list { list-style: none; display: grid; gap: 8px; margin: 12px 0 0; padding: 0; }
+/* Nothing picked yet: the list is not a row of its own, so it must not leave the gap of one under
+   the label - the + beside the label is the whole empty state. */
+.file-list:empty { display: none; }
 .file-chip {
   display: flex; align-items: center; gap: 10px; padding: 8px 10px;
   border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2);
@@ -1289,19 +1448,73 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
 
 /* The list of studios in the profile editor: one row per place, in the dancer's own order, with the
    top row marked because that is the one a profile shows. Rows rather than chips because a row has
-   room for the order arrows and the count of rows is what the +N counts. */
-.studio-draft { list-style: none; margin: 0; padding: 0; }
+   room for the remove control and the count of rows is what the +N counts. */
+/* min-width: 0 is what makes the ellipsis work. The list is a grid item in .set-block, and an auto
+   grid track sizes itself to its widest row: without this the one long name would widen the whole
+   sheet instead of being cut, and every other row would stretch with it. */
+.studio-draft { list-style: none; margin: 0; padding: 0; min-width: 0; }
 .studio-draft-row {
-  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0;
   padding: 8px 0; border-bottom: 1px solid var(--line);
 }
 .studio-draft-row:first-child { border-top: 1px solid var(--line); }
-.studio-draft-name { font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
-/* The arrows and Remove stay together at the far end of their row, and a long studio name wraps
-   inside its own line rather than shoving them onto the next one. */
+/* One line, shortened with an ellipsis. A studio's name is not what this editor is for, and a name
+   long enough to wrap would push the arrows and Remove onto a line of their own and make the editor
+   taller than the fields around it. The whole name is the row's title, and the studio's own page
+   carries it in full. */
+.studio-draft-name {
+  flex: 1 1 10rem; min-width: 9rem; font-weight: 700;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* The arrows and Remove stay together at the far end of their row. */
 .studio-draft-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; }
 .studio-draft-actions .icon-btn.plain { width: 30px; height: 30px; }
 .studio-draft-actions .icon-btn.plain svg { width: 15px; height: 15px; }
+
+
+/* The + under the list opens the studios to choose from, as a panel over the form rather than a
+   dropdown: the list is what is being read, so it carries a search box, then the studios, then the
+   way to a studio nobody has added yet. Short and scrollable, and over the fields rather than
+   between them, so opening it never moves the list it belongs to. */
+.studio-pick-wrap { position: relative; margin-top: 10px; }
+.studio-picker {
+  position: absolute; left: 0; top: calc(100% + 6px); z-index: 6;
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px;
+  width: min(420px, 100%); max-height: 320px; overflow: auto;
+  padding: 10px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); box-shadow: 0 18px 40px rgb(0 0 0 / 18%);
+}
+/* The + sits near the bottom of a sheet that fills a phone, so the panel opens upwards when there
+   is more room above it. It is flipped only when both sides fit, so it never leaves the screen. */
+.studio-picker.opens-up { top: auto; bottom: calc(100% + 6px); }
+.studio-picker[hidden] { display: none; }
+.studio-picker input[type="search"] { width: 100%; }
+.studio-picker-list { list-style: none; margin: 0; padding: 0; min-width: 0; }
+.studio-picker-row {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; box-sizing: border-box;
+  padding: 9px 8px; border: 0; border-radius: var(--radius-sm);
+  background: none; color: var(--ink); text-align: left; cursor: pointer;
+  font: 700 .9rem/1.2 var(--sans);
+}
+.studio-picker-row:hover { background: var(--surface-2); }
+/* The same one line as the list above: a long name is shortened rather than allowed to widen the
+   panel, and the town gives way before the name does. */
+.studio-picker-name {
+  flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.studio-picker-city {
+  flex: 0 1 auto; min-width: 0; color: var(--muted); font-weight: 400;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.studio-picker-added {
+  flex: none; padding: 3px 8px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent-strong); font: 700 .72rem/1 var(--sans);
+}
+/* A studio already in the list answers "can I add this?" by saying so, and is not a control. */
+.studio-picker-row.is-added { color: var(--muted); cursor: default; }
+.studio-picker-row.is-added:hover { background: none; }
+.studio-picker .btn { justify-self: start; }
+.studio-picker .field-row input { flex: 1 1 7rem; width: auto; }
 
 /* A link inside a line of text that must still read as text - the studio on a profile, which is worth
    following to its page and should not shout about it. */
@@ -1370,6 +1583,17 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
   color: var(--muted); font-size: .66rem; font-weight: 700;
   letter-spacing: .12em; text-transform: uppercase;
 }
+/* The third fact is a button: the answer is what the tile says, and the line under it is what pressing
+   it does. Hovering or tabbing to it swaps that line - it is not added, so the strip never changes
+   height under the pointer and the other two facts stay where they were - and the tile takes the soft
+   pink so the whole block reads as the target rather than the two words in the corner. */
+.fact-do { color: inherit; text-decoration: none; cursor: pointer; }
+.fact-do .fact-say { display: none; color: var(--accent-strong); }
+.fact-do:hover, .fact-do:focus-visible { background: var(--accent-soft); }
+.fact-do:hover .fact-quiet, .fact-do:focus-visible .fact-quiet { display: none; }
+.fact-do:hover .fact-say, .fact-do:focus-visible .fact-say { display: inline; }
+.fact-do:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
 /* Once there is room, the same three facts are the tiles they were designed as. */
 @media (min-width: 560px) {
   .entry-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -1389,7 +1613,7 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
   transition: opacity .2s, transform .2s;
 }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
-#toast.error { background: var(--danger); color: var(--bar-ink); }
+#toast.error { background: var(--danger); color: var(--danger-ink); }
 @media (min-width: 701px) { #toast { bottom: 32px; } }
 
 /* ---------- community difficulty (levels) ---------- */

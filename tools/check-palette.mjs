@@ -144,6 +144,7 @@ const TEXT = [
   ['label on a primary button', '--accent-ink', '--accent'],
   ['bar ink on bar', '--bar-ink', '--bar'],
   ['danger ink on surface', '--danger', '--surface'],
+  ['toast ink on a danger fill', '--danger-ink', '--danger'],
   ['goal fg on goal bg', '--goal-fg', '--goal-bg'],
   ['progress fg on progress bg', '--progress-fg', '--progress-bg'],
   ['achieved fg on achieved bg', '--achieved-fg', '--achieved-bg'],
