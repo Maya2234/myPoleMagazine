@@ -603,6 +603,22 @@ export async function deleteAccount() {
   await supabase.auth.signOut();
 }
 
+/* Dancers whose username matches what has been typed, for the + beside Dancers and the new-collection
+ * sheet. Two letters is the shortest useful search, and eight rows is enough to find a name without
+ * turning the field into a directory. The caller marks the ones already in the collection or already
+ * invited, so the search answers "who is there?" rather than hiding them. */
+export async function searchDancers(query) {
+  requireUser();
+  const q = String(query ?? '').trim().replace(/^@+/, '');
+  if (q.length < 2) return [];
+  const rows = must(await supabase.from('profiles').select('*')
+    .neq('id', me.id)
+    .ilike('username', `%${escapeLike(q)}%`)
+    .order('username')
+    .limit(8));
+  return rows.map(remember);
+}
+
 /* Everyone except me, for Members. */
 export async function listOtherUsers() {
   requireUser();
@@ -775,20 +791,27 @@ export async function getCategory(id) {
   return row ? toCategory(row) : null;
 }
 
-/* A new collection, personal unless `shared` is asked for - and a shared one is a collection its
- * owner can invite somebody to, from its first moment rather than after a switch is flipped
- * (setCategorySharing opens an existing one the same way). `is_shared` is left off a personal
- * collection entirely, so this still works on a project where supabase/shared-collections.sql has
- * not been run. */
-export async function createCategory(name, { shared = false } = {}) {
+/* A new collection is open to invitations from the moment it is made: there is no "share" switch to
+ * find, because the share box behind the people icon on its page is the whole question. `is_shared` is only the database
+ * marker the policies read, not a choice offered to the dancer. The one caller that passes
+ * `shared: false` is the automatic Current goals collection, which stays personal because it is the
+ * home page's list. A project that has not run supabase/shared-collections.sql falls back to a
+ * personal collection rather than refusing to make one. */
+export async function createCategory(name, { shared = true } = {}) {
   requireUser();
   const clean = String(name ?? '').trim().slice(0, 40);
   if (!clean) throw new Error('Give the collection a name.');
   const existing = (await listCategories(me.id)).find((c) => sameText(c.name, clean));
   if (existing) return existing;
 
-  const row = shared ? { name: clean, is_shared: true } : { name: clean };
-  const { data, error } = await supabase.from('categories').insert(row).select().single();
+  const insert = (row) => supabase.from('categories').insert(row).select().single();
+  let { data, error } = await insert(shared ? { name: clean, is_shared: true } : { name: clean });
+  if (error && shared && missingSharedColumn(error.message)) {
+    /* No is_shared column: the collection still gets made, as a personal one, and the screens that
+     * offer invitations say which file to run. */
+    sharedReady = false;
+    ({ data, error } = await insert({ name: clean }));
+  }
   if (error) throw new Error(shared ? explainShared(error.message) : error.message);
   return toCategory(data);
 }
@@ -824,6 +847,8 @@ const SHARED_HINT = 'Shared collections are not switched on for this project yet
   + 'supabase/shared-collections.sql in the Supabase SQL editor, then reload.';
 const explainShared = (message) =>
   (/does not exist|schema cache|could not find|permission denied/i.test(message) ? SHARED_HINT : message);
+const missingSharedColumn = (message) =>
+  /is_shared/i.test(message) && /does not exist|schema cache|could not find/i.test(message);
 
 /* False once the table turns out to be missing, so a screen can explain instead of offering an
  * invitation that could never be sent. */
@@ -980,11 +1005,16 @@ export async function listCategoryInvites(id) {
 }
 
 /* Sends the invitation. The username is looked up and the rules are checked in the database, so the
- * app cannot invite somebody into a collection it does not own, or into one that is not shared. */
+ * app cannot invite somebody into a collection it does not own. An older personal collection is
+ * opened to invitations here rather than being refused: the + beside Dancers is the only switch the
+ * app offers, so pressing it is what "shared" means now. */
 export async function inviteToCollection(id, username) {
   requireUser();
   const clean = String(username ?? '').trim().replace(/^@+/, '');
   if (!clean) throw new Error('Type the username of the dancer you want to invite.');
+  const cat = await getCategory(id);
+  if (!cat) throw new Error('That collection does not exist.');
+  if (!cat.isShared) await setCategorySharing(id, true);
   let inviteId;
   try {
     inviteId = must(await supabase.rpc('invite_to_collection', { p_category: id, p_username: clean }));
@@ -1002,6 +1032,19 @@ export async function respondToInvite(inviteId, accept) {
   try {
     return must(await supabase.rpc('respond_to_collection_invite',
       { p_invite: inviteId, p_accept: !!accept }));
+  } catch (err) {
+    throw new Error(explainInvites(err.message));
+  }
+}
+
+/* A dancer the owner wants out of a shared collection. Their membership and their moves' links to
+ * this one list go together, the same way leaving takes them off it - the function in
+ * supabase/shared-collections.sql does both, because a client may only delete its own membership
+ * row and its own move links. */
+export async function removeCategoryMember(id, userId) {
+  requireUser();
+  try {
+    must(await supabase.rpc('remove_collection_member', { p_category: id, p_user: userId }));
   } catch (err) {
     throw new Error(explainInvites(err.message));
   }
@@ -1068,7 +1111,7 @@ export async function goalsCategory(userId) {
 export async function ensureGoalsCategory() {
   const user = requireUser();
   const existing = await goalsCategory(user.id);
-  return existing ?? createCategory(GOALS_NAME);
+  return existing ?? createCategory(GOALS_NAME, { shared: false });
 }
 
 /* This move's links, with their places when the column exists. The same one-column fallback as

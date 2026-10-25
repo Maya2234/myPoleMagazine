@@ -372,6 +372,26 @@ p { max-width: 68ch; }
 .lede { color: var(--muted); margin: 8px 0 22px; font-size: 1.02rem; }
 .page-head .lede { margin: 8px 0 0; }
 
+/* A collection's name is renamed where it is written: the pencil swaps the heading for an input of
+ * the same size, with a check and a cross beside it, so the title never leaves the line it belongs
+ * to. The head wraps as a whole on a phone, which keeps the three controls off the name rather than
+ * squeezing it into a column. */
+.collection-head { flex-wrap: wrap; row-gap: 12px; }
+.collection-ident { flex: 1 1 240px; min-width: 0; }
+.collection-title-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.collection-title-row h1 { min-width: 0; }
+.collection-name-edit { display: flex; align-items: center; gap: 6px; flex: 0 1 auto; min-width: 0; max-width: 100%; }
+.collection-head .collection-name-edit input {
+  field-sizing: content;
+  flex: 0 1 auto; width: auto; min-width: 12ch; max-width: calc(100% - 80px);
+  min-height: 0; padding: 2px 8px;
+  font: 700 clamp(2rem, 6vw, 2.7rem)/1.05 var(--serif); letter-spacing: -.02em;
+}
+.collection-name-edit .icon-btn.plain { width: 34px; height: 34px; }
+.collection-name-edit .icon-btn.plain svg { width: 16px; height: 16px; }
+.collection-head .head-actions { margin-left: auto; }
+.icon-btn.plain.delete-btn:hover { color: var(--danger); }
+
 /* ---------- buttons ---------- */
 
 .btn {
@@ -464,28 +484,30 @@ p { max-width: 68ch; }
   align-self: flex-end; font-size: .72rem; letter-spacing: .06em; text-transform: uppercase;
   color: var(--muted);
 }
-/* Sharing a collection is inviting a dancer to it, so the collection's own page carries the one
- * control that does it: a name and a press when the collection is open, and a sentence and a button
- * that opens it when it is not. Everything about sharing is in this quiet panel. */
-.share-box {
-  margin: 14px 0 6px; padding: 12px 14px;
-  border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2);
+/* The share dialogue, opened by the people icon in a collection's head. It is the collection's whole
+ * sharing surface - invitations, members and withdrawals - so the page itself stays a page of moves
+ * rather than carrying a panel that repeats what the icon opens. */
+.share-sheet .share-search { margin: 18px 0 10px; }
+.share-sheet .share-section { margin-top: 18px; }
+.share-sheet .share-section .subhead { margin: 0 0 6px; }
+.share-sheet .chips { margin-top: 0; }
+.share-sheet > .field-help { margin-top: 14px; }
+/* A dancer's name is the link; the × beside it is the owner's way to take them out (or withdraw a
+ * question nobody has answered), so the chip's ink stays quiet rather than turning link-pink. */
+.chip a { color: inherit; text-decoration: none; }
+.chip a:hover { color: var(--accent-strong); }
+/* The username search the + opens, in the new-collection sheet and in the invite dialogue. */
+.dancer-picked { display: flex; flex-wrap: wrap; gap: 6px; }
+.dancer-picked:empty { display: none; }
+.dancer-search { margin-top: 2px; }
+.dancer-results { display: grid; margin-top: 8px; }
+.dancer-result {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 8px 0; border-top: 1px solid var(--line);
 }
-.share-box p { margin: 0; }
-.share-box .actions { margin-top: 10px; }
-.share-box .share-lead { margin-bottom: 4px; }
-/* The field takes the room the button does not. */
-.invite-form { display: flex; gap: 8px; margin-top: 14px; }
-.invite-form input { flex: 1; min-width: 0; }
-/* Who the owner is waiting on. A label rather than a sentence so the list reads as names and a
- * state, and a Cancel beside each name because withdrawing is the only thing left to do with one. */
-.share-box .invite-waiting-label {
-  margin: 16px 0 6px;
-  font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
-}
-.invite-waiting { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.invite-waiting li { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.invite-waiting a { font-weight: 600; }
+.dancer-result:first-child { border-top: 0; }
+.dancer-name { font-weight: 600; overflow-wrap: anywhere; }
+.dancer-note { margin: 8px 0 0; color: var(--muted); font-size: .85rem; }
 .card {
   position: relative;            /* the container a preview's stretched link covers */
   display: block; padding: 16px 18px; border: 1px solid var(--line);

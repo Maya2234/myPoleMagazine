@@ -214,18 +214,34 @@ each one on the phone.
 - [ ] **Add a studio that is not listed** opens the name and town fields inside the panel, and adding
       one puts it in your list straight away, ready to save.
 
-**Sharing a collection**
+**Renaming, deleting and sharing a collection**
 
-- [ ] On a collection of your own, **Invite dancers** in the sharing panel opens it to invitations and
-      puts the cursor in the username box; there is no code to copy anywhere.
-- [ ] Inviting a dancer puts them under **Waiting to hear back** with a Cancel beside the name.
+- [ ] **Moves → New collection** has no sharing checkbox. Its **Dancers** field carries a **+** that
+      opens a username search, and two letters are enough to find somebody; there is no code to copy
+      anywhere.
+- [ ] On a collection of your own, the name line carries a **pencil**, a **trash** and a **people**
+      icon. On a phone the icons never push the name into a squeeze: the action row wraps instead.
+- [ ] The **pencil** turns the name into a box on the same line, with a check and a cross beside it.
+      Enter or the check saves the new name and the page title changes with it; Escape or the cross
+      leaves the old name untouched. There is no separate rename dialog.
+- [ ] The **trash** opens the same in-app question used when removing a goal from **Current goals**,
+      with **Cancel** focused. **Delete** returns to **Moves**, and every move that was in the
+      collection is still in **Skills**.
+- [ ] The **people** icon opens **Share collection**. Its search invites a dancer by username, an
+      invitation already waiting reads **Invited**, and a dancer already in it reads **In collection**.
+- [ ] Creating the collection with a dancer picked sends the invitation, and the new collection's
+      **Share collection** box shows that dancer under **Invited, waiting to answer**.
+- [ ] An invitation can be withdrawn with the **×** on its chip, and the question disappears from the
+      other dancer's **Moves** page.
 - [ ] Signed in as the invited dancer, the invitation is a tile at the top of the **Collections** grid
       on **Moves**, full width, dashed edge, marked **Invitation**, with **Accept** and **Decline** on
       it. On a phone the two buttons stay on the row or drop together under the name, never clipped.
 - [ ] **Accept** opens the collection; back on **Moves**, the tile is now an ordinary collection marked
       `shared`. **Decline** takes the tile away and says so.
-- [ ] **Stop sharing** on the collection's page asks first, then comes back with nobody in it and the
-      invitation gone from the other dancer's **Moves** page.
+- [ ] As the owner, the **×** on an accepted member in **Share collection** asks first, then removes
+      them from the list; their moves come off that collection but stay in their own lists.
+- [ ] A member who is not the owner can open **Share collection** to see who is in it, but gets no
+      search and no **×**, and is told only the owner can invite or remove dancers.
 
 **The floating notepad**
 

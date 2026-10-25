@@ -7,11 +7,12 @@
 --   1. categories.is_shared - true on a collection its owner has opened to invitations
 --   2. category_members - who has accepted an invitation to one
 --   3. category_invites - the owner invites a dancer by username, who accepts or declines
---   4. reading: a member may see the collection and who else is in it, and so may a dancer with an
+--   4. removal - the owner takes a member out, and that dancer's moves come off the list
+--   5. reading: a member may see the collection and who else is in it, and so may a dancer with an
 --      invitation to it that they have not answered yet
---   5. move_categories - a member may put their own move into a collection they belong to
---   6. stopping - a collection that stops being shared keeps no members and no invitations
---   7. the code, retired - joining by code is gone
+--   6. move_categories - a member may put their own move into a collection they belong to
+--   7. stopping - a collection that stops being shared keeps no members and no invitations
+--   8. the code, retired - joining by code is gone
 --
 -- A collection is shared by naming the dancer you are sharing it with. There is no code to pass
 -- around and nothing to type: the owner invites, the dancer answers, and the membership is written
@@ -296,7 +297,59 @@ end $$;
 grant execute on function public.respond_to_collection_invite(uuid, boolean) to authenticated;
 
 
--- 4. Reading ------------------------------------------------------------------------
+-- 4. Removing a member --------------------------------------------------------------
+
+-- The owner may take somebody out, not only the member choosing to leave. It is the same outcome as
+-- leaving - their moves come off this one list with them, and nothing else of theirs is touched - but
+-- the client may only delete its own membership row and its own links, so both deletes happen here.
+-- The function checks ownership itself; it does not rely on a policy, because a security-definer
+-- function runs outside them.
+create or replace function public.remove_collection_member(p_category uuid, p_user uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  owner_id uuid;
+  present boolean;
+begin
+  if auth.uid() is null then
+    raise exception 'Sign in to remove a dancer.';
+  end if;
+
+  select c.user_id into owner_id from public.categories c where c.id = p_category;
+  if owner_id is null then
+    raise exception 'That collection does not exist.';
+  end if;
+  if owner_id <> auth.uid() then
+    raise exception 'Only the dancer who made a collection can remove somebody from it.';
+  end if;
+  if p_user = auth.uid() then
+    raise exception 'Use Leave collection to take yourself out.';
+  end if;
+
+  select exists (select 1 from public.category_members m
+                  where m.category_id = p_category and m.user_id = p_user)
+    into present;
+  if not present then
+    raise exception 'That dancer is not in this collection.';
+  end if;
+
+  delete from public.move_categories mc
+   using public.moves m
+   where mc.move_id = m.id
+     and mc.category_id = p_category
+     and m.user_id = p_user;
+
+  delete from public.category_members
+   where category_id = p_category and user_id = p_user;
+end $$;
+
+grant execute on function public.remove_collection_member(uuid, uuid) to authenticated;
+
+
+-- 5. Reading ------------------------------------------------------------------------
 
 -- An invitation has to say which collection it is about, and the dancer reading it is not a member
 -- yet - that is the whole point of the question. Without this the invitation row is readable and the
@@ -334,7 +387,7 @@ create policy categories_member_read on public.categories for select to authenti
 -- policy on categories, so the owner's existing ones are the only ones there are.
 
 
--- 5. Moves in a shared collection ----------------------------------------------------
+-- 6. Moves in a shared collection ----------------------------------------------------
 
 -- A member may put their own move into a collection they belong to. The move still has to be theirs;
 -- this adds a second permissive policy rather than replacing the existing one, so an insert that
@@ -359,7 +412,7 @@ create policy move_categories_member_read on public.move_categories for select t
   );
 
 
--- 6. Stopping -----------------------------------------------------------------------
+-- 7. Stopping -----------------------------------------------------------------------
 
 -- A collection that stops being shared keeps no members and no unanswered invitations. Without
 -- this the rows would go on letting everybody who ever accepted read it and add to it, with nothing
@@ -385,7 +438,7 @@ create trigger categories_share_cleared
   for each row execute function public.clear_collection_members();
 
 
--- 7. The code, retired --------------------------------------------------------------
+-- 8. The code, retired --------------------------------------------------------------
 
 -- Joining with a code is gone. The function that answered one is dropped, so a collection cannot be
 -- entered without the owner inviting the dancer who enters it - the app stops offering the box, and
@@ -398,7 +451,8 @@ drop function if exists public.join_shared_collection(text);
 
 
 -- Done. Check it worked: a shared collection is a row with is_shared, and its members are rows in
--- category_members. This lists both, read-only:
+-- category_members. New collections are created with is_shared already true, because the Dancers
+-- panel is the only sharing control the app shows. This lists both, read-only:
 --
 --   select c.name, c.is_shared, count(cm.user_id) as members
 --     from public.categories c

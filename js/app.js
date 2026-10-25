@@ -174,6 +174,10 @@ const crossIcon = html`<svg viewBox="0 0 24 24" width="18" height="18" fill="non
 const trashIcon = html`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`;
+const peopleIcon = html`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <circle cx="9" cy="8" r="3.25"/><path d="M3.5 19.5a5.5 5.5 0 0 1 11 0"/>
+  <path d="M16 5.25a3.25 3.25 0 0 1 0 5.5"/><path d="M17.5 14.5a5.5 5.5 0 0 1 3 5"/></svg>`;
 const settingsIcon = html`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <circle cx="12" cy="12" r="3"/>
@@ -1653,7 +1657,7 @@ async function viewMoveForm(id, query) {
       <div class="field" id="field-cats">
         <div class="field-head"><span class="label" id="cats-label">Collections</span>${addCollectionButton}</div>
         <div class="checks" id="move-cats" role="group" aria-labelledby="cats-label">
-          ${cats.map((c) => html`<label class="check"><input type="checkbox" name="cat" value="${c.id}" ${m.categoryIds.includes(c.id) ? raw('checked') : ''}> ${c.name}${c.isShared ? html`<span class="check-shared">shared</span>` : ''}</label>`)}
+          ${cats.map((c) => html`<label class="check"><input type="checkbox" name="cat" value="${c.id}" ${m.categoryIds.includes(c.id) ? raw('checked') : ''}> ${c.name}${c.isShared && c.userId !== me.id ? html`<span class="check-shared">shared</span>` : ''}</label>`)}
         </div>
       </div>
 
@@ -2049,10 +2053,87 @@ function confirmDialog({ title, body, confirmLabel = 'OK', cancelLabel = 'Cancel
   });
 }
 
-/* The + beside Collections opens this rather than unrolling a box inside the form. It is a short
- * form of its own, it gives the shared option the sentence that explains what sharing means, and it
- * can be opened from anywhere a collection can be made. It resolves with the collection it made, or
- * null when it was closed, and the caller decides what to do with it - the move form ticks it on. */
+/* A search for one dancer by username, used by the new-collection sheet's Dancers field and by the
+ * share box the people icon opens on a collection. The question is the same in both places - which
+ * dancer? - and both get back the one that was picked. `taken` is a Map from dancer id to the word that stands
+ * in for the action once they are spoken for ("Added" while a collection is being made, "Invited" or
+ * "In collection" on its page); the caller owns it, so the results and the list beside them agree
+ * about who is already there. */
+function wireDancerSearch({ input, results, taken, action = 'Invite', onPick }) {
+  let rows = [];
+  let searched = false;
+  let ticket = 0;
+  let timer = null;
+
+  const draw = () => {
+    if (!rows.length) {
+      results.innerHTML = searched
+        ? String(html`<p class="dancer-note">No dancer has a username like that.</p>`)
+        : '';
+      return;
+    }
+    results.innerHTML = rows.map((u) => {
+      const mark = taken.get(u.id);
+      return String(html`<div class="dancer-result">
+        <span class="dancer-name">@${u.username}</span>
+        <button type="button" class="btn small ${mark ? '' : 'primary'}" data-dancer="${u.id}"
+          ${mark ? raw('disabled') : ''}>${mark ?? action}</button>
+      </div>`);
+    }).join('');
+    $$('[data-dancer]', results).forEach((btn) => btn.addEventListener('click', () => attempt(async () => {
+      const user = rows.find((u) => u.id === btn.dataset.dancer);
+      if (!user || taken.has(user.id)) return;
+      btn.disabled = true;
+      let answer;
+      try {
+        answer = await onPick(user);
+      } catch (err) {
+        btn.disabled = false;
+        throw err;
+      }
+      if (answer === false) { btn.disabled = false; return; }
+      taken.set(user.id, action === 'Add' ? 'Added' : 'Invited');
+      draw();
+    })));
+  };
+
+  const search = async () => {
+    const query = input.value.trim();
+    if (query.replace(/^@+/, '').length < 2) {
+      rows = [];
+      searched = false;
+      ticket += 1;   // an answer to an older query must not land on a newer one
+      results.innerHTML = '';
+      return;
+    }
+    const mine = ++ticket;
+    try {
+      const found = await store.searchDancers(query);
+      if (mine !== ticket) return;
+      rows = found;
+      searched = true;
+      draw();
+    } catch (err) {
+      if (mine !== ticket) return;
+      rows = [];
+      searched = false;
+      results.innerHTML = String(html`<p class="dancer-note">${err.message}</p>`);
+    }
+  };
+
+  input.addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = setTimeout(search, 180);
+  });
+
+  return { draw };
+}
+
+/* The + beside Collections opens this rather than unrolling a box inside the form. It asks for a
+ * name and, beside it, for the dancers to invite: the moment a collection exists it is open to
+ * invitations, so there is no "share" checkbox to tick first - the picker asks the same question the
+ * collection's **Share collection** box asks afterwards. It resolves with the collection it made, or null when it was
+ * closed, and the caller decides what to do with it - the move form ticks it on. */
 function newCollectionDialog() {
   return new Promise((resolve) => {
     let dialog = $('#new-collection-dialog');
@@ -2061,21 +2142,35 @@ function newCollectionDialog() {
         '<dialog class="sheet" id="new-collection-dialog" aria-labelledby="new-collection-title"></dialog>');
       dialog = $('#new-collection-dialog');
     }
+    const canInvite = store.sharedEnabled() && store.invitesEnabled();
+    const picked = new Map();   // dancer id -> profile, as chosen before the collection exists
+    const taken = new Map();    // dancer id -> what the search button should say once picked
+
     dialog.innerHTML = String(html`
       <h2 id="new-collection-title">New collection</h2>
       <form class="form" id="new-collection-form">
         <label class="field"><span>Name</span>
           <input type="text" name="name" maxlength="40" required autocomplete="off"
             placeholder="Monday class"></label>
-        <label class="check-row field">
-          <input type="checkbox" name="shared">
-          <span><strong>Share it with a class</strong>
-            <small>${store.sharedEnabled()
-              ? html`You invite dancers by username from the collection's page. Whoever accepts can
-                  put their own moves in it - and their moves stay as private as their account is.`
-              : html`Not switched on for this project yet: run <code>supabase/shared-collections.sql</code>
-                  in the Supabase SQL editor, then reload.`}</small></span>
-        </label>
+        <div class="field" id="new-collection-dancers">
+          <div class="field-head">
+            <span class="label">Dancers</span>
+            ${canInvite ? html`<button type="button" class="icon-btn plain"
+              id="new-collection-add-dancer" aria-label="Add a dancer" title="Add a dancer"
+              aria-expanded="false" aria-controls="new-collection-search">${plusIcon}</button>` : ''}
+          </div>
+          <div class="dancer-picked" id="new-collection-picked"></div>
+          ${canInvite ? html`
+            <div class="dancer-search" id="new-collection-search" hidden>
+              <input type="search" id="new-collection-search-input" autocomplete="off"
+                placeholder="Search by username" aria-label="Search dancers by username">
+              <div class="dancer-results" id="new-collection-results" aria-live="polite"></div>
+            </div>
+            <p class="field-help">They get an invitation when the collection is made. Their own moves
+              stay as private as their account is.</p>` : html`
+            <p class="field-help">Invitations are not switched on for this project yet: run
+              <code>supabase/shared-collections.sql</code> in the Supabase SQL editor, then reload.</p>`}
+        </div>
         <div class="actions">
           <button class="btn primary" type="submit">Create</button>
           <button class="btn" type="button" id="new-collection-cancel">Cancel</button>
@@ -2093,6 +2188,44 @@ function newCollectionDialog() {
      * is caught. */
     dialog.addEventListener('close', () => finish(null));
 
+    const pickedBox = $('#new-collection-picked', dialog);
+    const drawPicked = () => {
+      pickedBox.innerHTML = [...picked.values()].map((u) => String(html`<span class="chip">@${u.username}
+        <button type="button" class="chip-x" data-unpick="${u.id}"
+          aria-label="Take ${u.username} off the invitation list">×</button></span>`)).join('');
+    };
+
+    let picker = null;
+    if (canInvite) {
+      const searchBox = $('#new-collection-search', dialog);
+      const toggle = $('#new-collection-add-dancer', dialog);
+      toggle.addEventListener('click', () => {
+        const open = searchBox.hidden;
+        searchBox.hidden = !open;
+        toggle.setAttribute('aria-expanded', String(open));
+        if (open) $('#new-collection-search-input', dialog).focus();
+      });
+      picker = wireDancerSearch({
+        input: $('#new-collection-search-input', dialog),
+        results: $('#new-collection-results', dialog),
+        taken,
+        action: 'Add',
+        onPick: (user) => {
+          picked.set(user.id, user);
+          drawPicked();
+          return true;
+        },
+      });
+      pickedBox.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-unpick]');
+        if (!btn) return;
+        picked.delete(btn.dataset.unpick);
+        taken.delete(btn.dataset.unpick);
+        drawPicked();
+        picker.draw();
+      });
+    }
+
     const form = $('#new-collection-form', dialog);
     form.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -2101,8 +2234,26 @@ function newCollectionDialog() {
       button.disabled = true;
       attempt(async () => {
         try {
-          const cat = await store.createCategory(data.get('name'), { shared: !!data.get('shared') });
-          toast(cat.isShared ? `“${cat.name}” is ready for invitations.` : 'Collection made.');
+          const cat = await store.createCategory(data.get('name'));
+          let failures = 0;
+          let firstError = '';
+          for (const user of picked.values()) {
+            try {
+              await store.inviteToCollection(cat.id, user.username);
+            } catch (err) {
+              failures += 1;
+              firstError ||= err.message;
+            }
+          }
+          if (!cat.isShared && picked.size) {
+            toast('Collection made. Invitations are not switched on for this project yet.', true);
+          } else if (failures) {
+            toast(`Collection made, but ${plural(failures, 'invitation')} could not be sent: ${firstError}`, true);
+          } else if (picked.size) {
+            toast(`Collection made, with ${plural(picked.size, 'invitation')} sent.`);
+          } else {
+            toast('Collection made.');
+          }
           finish(cat);
         } finally { button.disabled = false; }
       });
@@ -2111,6 +2262,152 @@ function newCollectionDialog() {
 
     dialog.showModal();
     form.elements.name.focus();
+  });
+}
+
+/* The people icon in a collection's head opens this. It is the collection's whole sharing surface:
+ * the owner searches a username to invite somebody, sees who is in it and withdraws an invitation or
+ * takes a member out; a member opens the same box read-only to see who else is there. Everything a
+ * change needs is redrawn inside the box, so the page behind it is only refreshed when it closes.
+ * Resolves true when something changed. */
+function shareCollectionDialog(cat, dancers, pending) {
+  return new Promise((resolve) => {
+    let dialog = $('#share-collection-dialog');
+    if (!dialog) {
+      document.body.insertAdjacentHTML('beforeend',
+        '<dialog class="sheet share-sheet" id="share-collection-dialog" aria-labelledby="share-collection-title"></dialog>');
+      dialog = $('#share-collection-dialog');
+      /* Going somewhere else closes the box; the question belongs to the page it was asked on. */
+      addEventListener('hashchange', () => { if (dialog.open) dialog.close(); });
+    }
+    if (dialog.open) return resolve(false);
+
+    const me = store.currentUser();
+    const isOwner = cat.userId === me.id;
+    const canInvite = isOwner && store.sharedEnabled() && store.invitesEnabled();
+    const canRemove = isOwner && store.sharedEnabled();
+    const ownerName = dancers.find((u) => u.id === cat.userId)?.username ?? 'the owner';
+    const members = [...dancers];
+    const waiting = [...pending];
+    const taken = new Map();
+    members.forEach((u) => { if (u.id !== cat.userId) taken.set(u.id, 'In collection'); });
+    waiting.forEach((i) => taken.set(i.userId, 'Invited'));
+    let changed = false;
+
+    dialog.innerHTML = String(html`
+      <h2 id="share-collection-title">Share collection</h2>
+      <p class="muted">${isOwner
+        ? `“${cat.name}” is open to invitations. Dancers you invite can add their own moves and see
+          everybody's; their moves stay as private as their account is.`
+        : `“${cat.name}” belongs to ${ownerName}. These are the dancers in it.`}</p>
+      ${canInvite ? html`
+        <div class="field share-search">
+          <label class="label" for="share-collection-search">Invite a dancer</label>
+          <input type="search" id="share-collection-search" placeholder="Search by username"
+            autocomplete="off" aria-describedby="share-collection-help">
+          <p class="field-help" id="share-collection-help">Two letters are enough to start.</p>
+        </div>
+        <div class="dancer-results" id="share-collection-results" aria-live="polite"></div>` : ''}
+      <section class="share-section" aria-labelledby="share-members-title">
+        <h3 class="subhead" id="share-members-title">Dancers</h3>
+        <div class="chips" id="share-members"></div>
+      </section>
+      ${isOwner ? html`
+        <section class="share-section" id="share-waiting" ${waiting.length ? '' : raw('hidden')}>
+          <h3 class="subhead">Invited, waiting to answer</h3>
+          <div class="chips" id="share-waiting-list"></div>
+        </section>` : ''}
+      ${isOwner && !canInvite ? html`
+        <p class="field-help">Inviting dancers needs
+          <code>supabase/shared-collections.sql</code> re-run in the Supabase SQL editor.</p>` : ''}
+      ${!isOwner ? html`<p class="field-help">Only ${ownerName} can invite or remove dancers.</p>` : ''}
+      <div class="actions">
+        <button type="button" class="btn" id="share-collection-done">Done</button>
+      </div>`);
+
+    const membersBox = $('#share-members', dialog);
+    const waitingBox = $('#share-waiting-list', dialog);
+
+    const drawMembers = () => {
+      membersBox.innerHTML = members.length
+        ? members.map((u) => String(html`<span class="chip">
+          <a href="#/user/${u.id}">${u.username}${u.id === cat.userId ? ' · owner' : ''}</a>
+          ${canRemove && u.id !== cat.userId ? html`<button type="button" class="chip-x"
+            data-share-remove="${u.id}"
+            aria-label="Remove ${u.username} from this collection">×</button>` : ''}
+        </span>`)).join('')
+        : String(html`<p class="muted">Nobody has joined yet.</p>`);
+      $$('[data-share-remove]', membersBox).forEach((btn) => btn.addEventListener('click', () => attempt(async () => {
+        const person = members.find((u) => u.id === btn.dataset.shareRemove);
+        const yes = await confirmDialog({
+          title: 'Remove this dancer?',
+          body: `${person?.username ?? 'This dancer'} leaves “${cat.name}”, and their moves come off
+            this list with them. Nothing they logged is deleted.`,
+          confirmLabel: 'Remove',
+          danger: true,
+        });
+        if (!yes) return;
+        await store.removeCategoryMember(cat.id, btn.dataset.shareRemove);
+        const at = members.findIndex((u) => u.id === btn.dataset.shareRemove);
+        if (at >= 0) members.splice(at, 1);
+        taken.delete(btn.dataset.shareRemove);
+        changed = true;
+        drawMembers();
+        picker?.draw();
+        toast('Removed from the collection.');
+      })));
+    };
+
+    const drawWaiting = () => {
+      const section = $('#share-waiting', dialog);
+      if (!section) return;
+      section.hidden = !waiting.length;
+      waitingBox.innerHTML = waiting.map((i) => String(html`<span class="chip">
+        <a href="#/user/${i.userId}">${i.username}</a>
+        <button type="button" class="chip-x" data-share-cancel="${i.id}"
+          aria-label="Cancel the invitation for ${i.username}">×</button>
+      </span>`)).join('');
+      $$('[data-share-cancel]', waitingBox).forEach((btn) => btn.addEventListener('click', () => attempt(async () => {
+        await store.cancelInvite(btn.dataset.shareCancel);
+        const gone = waiting.find((i) => i.id === btn.dataset.shareCancel);
+        if (gone) taken.delete(gone.userId);
+        const at = waiting.findIndex((i) => i.id === btn.dataset.shareCancel);
+        if (at >= 0) waiting.splice(at, 1);
+        changed = true;
+        drawWaiting();
+        picker?.draw();
+        toast('Invitation cancelled.');
+      })));
+    };
+
+    let picker = null;
+    if (canInvite) {
+      picker = wireDancerSearch({
+        input: $('#share-collection-search', dialog),
+        results: $('#share-collection-results', dialog),
+        taken,
+        action: 'Invite',
+        onPick: async (user) => {
+          const id = await store.inviteToCollection(cat.id, user.username);
+          waiting.push({ id, userId: user.id, username: user.username });
+          changed = true;
+          drawWaiting();
+          toast(`Invitation sent to ${user.username}.`);
+          return true;
+        },
+      });
+    }
+
+    drawMembers();
+    drawWaiting();
+
+    dialog.addEventListener('close', () => resolve(changed), { once: true });
+    $('#share-collection-done', dialog).addEventListener('click', () => {
+      if (dialog.open) dialog.close();
+    });
+
+    dialog.showModal();
+    (canInvite ? $('#share-collection-search', dialog) : $('#share-collection-done', dialog)).focus();
   });
 }
 
@@ -2123,16 +2420,17 @@ function appendCollectionPill(cat) {
   if (!box) return;
   const already = box.querySelector(`input[value="${cat.id}"]`);
   if (already) { already.checked = true; return; }
+  /* Only a collection somebody else owns is worth marking "shared": every collection of your own is
+   * open to invitations now, so the word beside all of them would be noise rather than a note. */
   const label = document.createElement('label');
   label.className = 'check';
   label.innerHTML = String(html`<input type="checkbox" name="cat" value="${cat.id}" checked>
-    ${cat.name}${cat.isShared ? html`<span class="check-shared">shared</span>` : ''}`);
+    ${cat.name}${cat.isShared && cat.userId !== store.currentUser().id
+      ? html`<span class="check-shared">shared</span>` : ''}`);
   box.append(label);
 }
 
 //---------- collections ----------
-
-let editingCollection = null;
 
 async function viewCollection(id) {
   const cat = await store.getCategory(id);
@@ -2153,65 +2451,56 @@ async function viewCollection(id) {
     : shared
       ? await store.listCategoryMoves(cat.id)
       : (await store.listMoves(cat.userId)).filter((m) => m.categoryIds.includes(cat.id));
-  const dancers = shared ? [owner, ...await store.listCategoryMembers(cat.id)].filter(Boolean) : [];
   const canManage = mine && !cat.isDefault;
-  /* Only the owner invites, and only into a collection that is actually shared: an invitation to a
-   * personal collection would be a way in that does not exist. */
-  const pending = canManage && shared ? await store.listCategoryInvites(cat.id) : [];
-  const editing = editingCollection === cat.id;
-  const eyebrow = shared
-    ? (mine ? 'Shared collection' : `Shared by ${ownerName}`)
-    : (mine ? 'Collection' : `Collection by ${ownerName}`);
+  /* The people icon is the whole sharing surface: the list of who is in the collection, the search
+   * that adds somebody, and the × that takes them out. A member sees the same list read-only. */
+  const canSeeDancers = (mine || member) && !cat.isDefault;
+  const dancers = canSeeDancers
+    ? [owner, ...(shared ? await store.listCategoryMembers(cat.id) : [])].filter(Boolean)
+    : [];
+  const canInvite = canManage && store.sharedEnabled() && store.invitesEnabled();
+  const pending = canInvite ? await store.listCategoryInvites(cat.id) : [];
+  const eyebrow = mine ? 'Collection' : shared ? `Shared by ${ownerName}` : `Collection by ${ownerName}`;
 
   show(html`
     ${backLink(mine || member ? '#/moves' : `#/user/${cat.userId}`,
       mine || member ? 'Moves' : `${ownerName}'s profile`)}
-    <div class="page-head">
-      <div><p class="eyebrow">${eyebrow}</p><h1>${cat.name}</h1></div>
+    <div class="page-head collection-head">
+      <div class="collection-ident">
+        <p class="eyebrow">${eyebrow}</p>
+        <div class="collection-title-row">
+          <h1 id="collection-title">${cat.name}</h1>
+          ${canManage ? html`<form class="collection-name-edit" id="collection-rename" hidden>
+            <input type="text" name="name" maxlength="40" value="${cat.name}"
+              aria-label="Collection name" autocomplete="off" required>
+            <button type="submit" class="icon-btn plain" aria-label="Save name" title="Save name">
+              ${checkIcon}</button>
+            <button type="button" class="icon-btn plain" id="rename-cancel"
+              aria-label="Cancel renaming" title="Cancel">${crossIcon}</button>
+          </form>` : ''}
+        </div>
+      </div>
       <div class="head-actions">
         <span class="count">${moves.length}</span>
-        ${canManage ? html`<button type="button" class="icon-btn plain" id="edit-collection"
-          aria-label="Rename or delete this collection" aria-expanded="${editing}"
-          aria-controls="collection-manage">${pencilIcon}</button>` : ''}
+        ${canManage ? html`
+          <button type="button" class="icon-btn plain" id="rename-collection"
+            aria-label="Rename this collection" title="Rename" aria-expanded="false"
+            aria-controls="collection-rename">${pencilIcon}</button>
+          <button type="button" class="icon-btn plain delete-btn" id="delete-collection"
+            aria-label="Delete this collection" title="Delete collection">${trashIcon}</button>` : ''}
+        ${canSeeDancers ? html`<button type="button" class="icon-btn plain" id="share-collection"
+          aria-label="Share and collaborators" title="Share and collaborators"
+          aria-haspopup="dialog">${peopleIcon}</button>` : ''}
       </div>
     </div>
 
-    ${!mine && !shared ? '' : html`
-      <div class="share-box">
-        ${mine ? html`
-          ${shared ? '' : html`
-            <p class="share-lead">Share this collection by inviting a dancer to it. The invitation
-              waits beside their collections until they answer.</p>`}
-          ${store.invitesEnabled() ? (shared ? html`
-            <form class="invite-form" id="invite-form">
-              <input type="text" name="username" maxlength="40" autocomplete="off" required
-                placeholder="username" aria-label="Username to invite">
-              <button type="submit" class="btn small primary">Invite</button>
-            </form>
-            ${pending.length ? html`
-              <p class="invite-waiting-label">Waiting to hear back</p>
-              <ul class="invite-waiting">
-                ${pending.map((i) => html`<li>
-                  <a href="#/user/${i.userId}">${i.username}</a>
-                  <button type="button" class="btn small" data-cancel-invite="${i.id}"
-                    aria-label="Cancel the invitation for ${i.username}">Cancel</button>
-                </li>`)}
-              </ul>` : ''}` : '')
-            : html`<p class="muted fineprint">Inviting dancers needs
-              <code>supabase/shared-collections.sql</code> re-run in the Supabase SQL editor.</p>`}
-          <div class="actions">
-            ${shared
-              ? html`<button type="button" class="btn small" id="share-off">Stop sharing</button>`
-              : store.invitesEnabled()
-                ? html`<button type="button" class="btn small" id="share-on">Invite dancers</button>`
-                : ''}
-          </div>
-          ` : member ? html`
-          <p>You are in ${ownerName}'s collection, so you can put your own moves in it and see the
-            ones the others have put in. <span class="muted">${plural(dancers.length, 'dancer')} so far.</span></p>` : html`
-          <p>${ownerName} shares this collection by invitation. Ask them to invite you and it appears
-            beside your collections until you answer it.</p>`}
-      </div>`}
+    ${!mine && !member ? html`
+      <p class="lede">${ownerName} shares this collection by invitation. Ask them to invite you and it
+        appears beside your collections until you answer it.</p>` : ''}
+
+    ${!mine && member ? html`
+      <p class="lede">You are in ${ownerName}'s collection, so you can put your own moves in it and
+        see the ones the others have put in.</p>` : ''}
 
     ${member ? html`
       <div class="actions"><button type="button" class="btn primary" style="margin-bottom:1rem;" id="add-to-collection-toggle"
@@ -2221,26 +2510,6 @@ async function viewCollection(id) {
       moves.map((m) => moveCard(m, new Map(), shared ? store.usernameOf(m.userId) : ''))}</div>`
       : html`<div class="empty"><p>No moves in this collection yet.</p></div>`}
 
-    ${!shared ? '' : html`
-      <div class="section"><h2 class="subhead">Dancers</h2>
-        <div class="chips">${dancers.map((u) => html`<a class="chip" href="#/user/${u.id}">${
-          u.id === cat.userId ? `${u.username} · owner` : u.username}</a>`)}</div>
-      </div>`}
-
-    ${!canManage ? '' : html`
-      <div id="collection-manage" ${editing ? '' : raw('hidden')}>
-        <h2 class="subhead">Manage</h2>
-        <form class="inline-form" id="rename">
-          <input type="text" name="name" maxlength="40" value="${cat.name}" aria-label="Collection name" required>
-          <button class="btn" type="submit">Rename</button>
-        </form>
-        <div class="actions">
-          <button type="button" class="btn danger" id="delete">Delete collection</button>
-        </div>
-        <p class="muted fineprint">Deleting a collection never deletes its moves.${
-          shared ? ' Everybody who joined loses it.' : ''}</p>
-      </div>`}
-
     ${!member || mine ? '' : html`
       <div class="actions" style="margin-top:16px">
         <button type="button" class="btn danger" id="leave-collection">Leave collection</button>
@@ -2248,26 +2517,11 @@ async function viewCollection(id) {
 
   $('#add-to-collection-toggle')?.addEventListener('click', () => attempt(() => openGoalPanel(cat, `“${cat.name}”`)));
 
-  $('#share-off')?.addEventListener('click', () => attempt(async () => {
-    const yes = await confirmDialog({
-      title: 'Stop sharing this collection?',
-      body: `Everybody who accepted an invitation to “${cat.name}” comes out of it, and the
-        invitations nobody has answered are withdrawn. Their moves stay in their own lists.`,
-      confirmLabel: 'Stop sharing',
-      danger: true,
-    });
-    if (!yes) return;
-    await store.setCategorySharing(cat.id, false);
-    toast('The collection is yours alone again.');
-    await route({ keepScroll: true });
-  }));
-
-  /* Opening the collection and then putting the cursor in the box: the press that turns sharing on is
-   * a press with a dancer in mind, so the place to type that dancer's name is the next thing. */
-  $('#share-on')?.addEventListener('click', () => attempt(async () => {
-    await store.setCategorySharing(cat.id, true);
-    await route({ keepScroll: true });
-    $('#invite-form input')?.focus();
+  /* The people icon is the only sharing surface: invitations, members and withdrawals live in the
+   * box it opens. The page is redrawn on close only when something changed there. */
+  $('#share-collection')?.addEventListener('click', () => attempt(async () => {
+    const changed = await shareCollectionDialog(cat, dancers, pending);
+    if (changed) await route({ keepScroll: true });
   }));
 
   $('#leave-collection')?.addEventListener('click', () => attempt(async () => {
@@ -2283,41 +2537,59 @@ async function viewCollection(id) {
     go('#/moves');
   }));
 
-  /* Inviting is one name and one press: the answer goes to the dancer, not into this screen, so a
-   * sent invitation is all that changes here - and it appears in the waiting list underneath. */
-  $('#invite-form')?.addEventListener('submit', (e) => {
+  /* Renaming happens in the name line itself: the pencil swaps the heading for the same words in a
+   * box, and Enter (or the check) writes it. Escape or the cross puts the heading back untouched. */
+  const renameForm = $('#collection-rename');
+  const title = $('#collection-title');
+  const pencil = $('#rename-collection');
+  const closeRename = (focus) => {
+    if (!renameForm || renameForm.hidden) return;
+    renameForm.hidden = true;
+    title.hidden = false;
+    renameForm.elements.name.value = cat.name;
+    pencil?.setAttribute('aria-expanded', 'false');
+    if (focus) pencil?.focus();
+  };
+  pencil?.addEventListener('click', () => {
+    if (!renameForm.hidden) return closeRename(true);
+    title.hidden = true;
+    renameForm.hidden = false;
+    pencil.setAttribute('aria-expanded', 'true');
+    renameForm.elements.name.focus();
+    renameForm.elements.name.select();
+  });
+  $('#rename-cancel')?.addEventListener('click', () => closeRename(true));
+  renameForm?.elements.name.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeRename(true);
+    }
+  });
+  let renaming = false;
+  renameForm?.addEventListener('submit', (e) => {
     e.preventDefault();
-    const form = e.target;
-    const button = form.querySelector('button[type="submit"]');
-    button.disabled = true;
+    if (renaming) return;
+    const name = renameForm.elements.name.value.trim();
+    if (!name) { renameForm.elements.name.focus(); return; }
+    const save = renameForm.querySelector('button[type="submit"]');
+    renaming = true;
+    save.disabled = true;
     attempt(async () => {
       try {
-        await store.inviteToCollection(cat.id, new FormData(form).get('username'));
-        toast('Invitation sent.');
-        await route({ keepScroll: true });
-      } finally { button.disabled = false; }
+        await store.renameCategory(cat.id, name);
+        cat.name = name;
+        title.textContent = name;
+        setTitle(name);
+        closeRename(true);
+        toast('Renamed.');
+      } finally {
+        renaming = false;
+        save.disabled = false;
+      }
     });
   });
 
-  $$('[data-cancel-invite]').forEach((btn) => btn.addEventListener('click', () => attempt(async () => {
-    await store.cancelInvite(btn.dataset.cancelInvite);
-    toast('Invitation cancelled.');
-    await route({ keepScroll: true });
-  })));
-
-  $('#edit-collection')?.addEventListener('click', () => {
-    editingCollection = editing ? null : cat.id;
-    route({ keepScroll: true });
-  });
-  $('#rename')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    attempt(async () => {
-      await store.renameCategory(cat.id, new FormData(e.target).get('name'));
-      toast('Renamed.');
-      await route({ keepScroll: true });
-    });
-  });
-  $('#delete')?.addEventListener('click', () => attempt(async () => {
+  $('#delete-collection')?.addEventListener('click', () => attempt(async () => {
     /* A shared collection takes its members' way in with it, so the question says so before the
      * answer is given rather than after. */
     const warn = shared ? ' Everybody who joined it loses it.' : '';
@@ -2827,10 +3099,11 @@ async function drawFeed() {
         <div class="card">${it.kind === 'move' ? trickPreview({
           href: `#/move/${it.move.id}`,
           name: it.move.name,
-          difficulty: it.move.difficulty,
           /* What the dancer did, not only what it was done to: a name and a date under it says the
            * move exists, which the card already says, and leaves the reader to work out why it is
-           * here. Every other post in this list names its verb; this one did not. */
+           * here. Every other post in this list names its verb; this one did not. The card carries no
+           * level: the feed is about what somebody did, and the move's own page is where its rating
+           * belongs. */
           detail: `${it.owner.username} logged a new move · ${dateText(it.at)}`,
         }) : it.kind === 'event' ? trickPreview({
           href: `#/move/${it.moveId}`,
