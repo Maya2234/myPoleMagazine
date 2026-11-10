@@ -70,8 +70,9 @@
   --lvl3-bg: #33101f;     --lvl3-fg: #ffc9de;
   --lvl1-fill: #c8c5d0;   --lvl2-fill: #ff2d85;   --lvl3-fill: #33101f;
 
-  --radius: 12px;
-  --radius-sm: 8px;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow-float: 0 18px 48px rgb(17 16 22 / 18%), 0 2px 6px rgb(17 16 22 / 8%);
   /* Every avatar on every screen is sized from this one number, and the circle and its inset
    * multiply together, so the shoe keeps the same share of the circle at any scale. */
   --avatar-scale: 1.25;
@@ -81,36 +82,34 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    /* The same palette read upside down, with three things chosen rather than inverted: a surface
-       LIFTS as it comes forward (the page is the deepest thing on the screen, cards and tracks sit
-       above it), the hairlines are brighter than the step between surfaces so a card still has an
-       edge on a dim screen, and the top of the ramp - achieved, advanced - is the pink FILL with
-       dark ink on it. That last one used to be a cream block, which was the light theme's deep plum
-       slab reversed: a big pale rectangle in the middle of a dark page, louder than anything it was
-       labelling. The pink costs nothing and matches the rest of the palette. */
-    --paper: #111014;          /* deeper than before, so the cards have somewhere to lift from */
-    --surface: #211f28;
-    --surface-2: #2e2b36;
-    --ink: #f2eef8;            /* ~14:1 on a card: crisp, without the glare of a pure white */
-    --muted: #bab5c4;          /* second-rank text, over 7:1 on every surface it is drawn on */
-    --line: #4c4757;           /* brighter than surface -> surface-2, so an edge still reads */
-    --accent: #ff5b9d;
-    --accent-ink: #17161a;
-    --accent-soft: #4b1c33;
-    --accent-strong: #ffa8cb;
-    --accent-hover: #ff7bb2;
-    --bar: #24222b;            /* a shade above the page: the header is a raised band, not a hole */
-    --bar-ink: #efeef4;
-    --focus: #ff5b9d;
-    --danger: #ff8098;
-    --danger-ink: #1a1116;
-    --goal-bg: #2e2b36;     --goal-fg: #d3cfdb;
-    --progress-bg: #4b1c33; --progress-fg: #ffa8cb;
-    --achieved-bg: #ff5b9d; --achieved-fg: #17161a;
-    --lvl1-bg: #2e2b36;     --lvl1-fg: #d3cfdb;
-    --lvl2-bg: #4b1c33;     --lvl2-fg: #ffa8cb;
-    --lvl3-bg: #ff5b9d;     --lvl3-fg: #17161a;
-    --lvl1-fill: #6b6676;   --lvl2-fill: #ff5b9d;   --lvl3-fill: #ffa8cb;
+    /* A neutral dark theme in the widely used Material / system style: a near-black page (#121212),
+       surfaces that lift in plain grey steps (#1e1e1e, #2c2c2c), off-white text rather than pure
+       white, and mid-grey hairlines. No colour cast in the greys, so the pink is the only colour on
+       the screen. The pink itself is a step softer than in light mode, the usual move on a dark
+       background, where a fully saturated pink glows. */
+    --paper: #121212;
+    --surface: #1e1e1e;
+    --surface-2: #2c2c2c;
+    --ink: #ececec;
+    --muted: #a8a8a8;
+    --line: #3a3a3a;
+    --accent: #ff5c99;
+    --accent-ink: #121212;
+    --accent-soft: #3d2230;
+    --accent-strong: #ff9cc4;
+    --accent-hover: #ff7aac;
+    --bar: #1a1a1a;
+    --bar-ink: #ececec;
+    --focus: #ff5c99;
+    --danger: #ff7a8f;
+    --danger-ink: #1a1214;
+    --goal-bg: #2c2c2c;     --goal-fg: #d0d0d0;
+    --progress-bg: #3d2230; --progress-fg: #ff9cc4;
+    --achieved-bg: #ff5c99; --achieved-fg: #121212;
+    --lvl1-bg: #2c2c2c;     --lvl1-fg: #d0d0d0;
+    --lvl2-bg: #3d2230;     --lvl2-fg: #ff9cc4;
+    --lvl3-bg: #ff5c99;     --lvl3-fg: #121212;
+    --lvl1-fill: #5c5c5c;   --lvl2-fill: #ff5c99;   --lvl3-fill: #ff9cc4;
   }
 }
 
@@ -145,29 +144,29 @@ html[data-theme="light"] {
 html[data-theme="dark"] {
   color-scheme: dark;
   /* Identical to the media block above - see the comment there for why these values are these. */
-  --paper: #111014;
-  --surface: #211f28;
-  --surface-2: #2e2b36;
-  --ink: #f2eef8;
-  --muted: #bab5c4;
-  --line: #4c4757;
-  --accent: #ff5b9d;
-  --accent-ink: #17161a;
-  --accent-soft: #4b1c33;
-  --accent-strong: #ffa8cb;
-  --accent-hover: #ff7bb2;
-  --bar: #24222b;
-  --bar-ink: #efeef4;
-  --focus: #ff5b9d;
-  --danger: #ff8098;
-  --danger-ink: #1a1116;
-  --goal-bg: #2e2b36;     --goal-fg: #d3cfdb;
-  --progress-bg: #4b1c33; --progress-fg: #ffa8cb;
-  --achieved-bg: #ff5b9d; --achieved-fg: #17161a;
-  --lvl1-bg: #2e2b36;     --lvl1-fg: #d3cfdb;
-  --lvl2-bg: #4b1c33;     --lvl2-fg: #ffa8cb;
-  --lvl3-bg: #ff5b9d;     --lvl3-fg: #17161a;
-  --lvl1-fill: #6b6676;   --lvl2-fill: #ff5b9d;   --lvl3-fill: #ffa8cb;
+  --paper: #121212;
+  --surface: #1e1e1e;
+  --surface-2: #2c2c2c;
+  --ink: #ececec;
+  --muted: #a8a8a8;
+  --line: #3a3a3a;
+  --accent: #ff5c99;
+  --accent-ink: #121212;
+  --accent-soft: #3d2230;
+  --accent-strong: #ff9cc4;
+  --accent-hover: #ff7aac;
+  --bar: #1a1a1a;
+  --bar-ink: #ececec;
+  --focus: #ff5c99;
+  --danger: #ff7a8f;
+  --danger-ink: #1a1214;
+  --goal-bg: #2c2c2c;     --goal-fg: #d0d0d0;
+  --progress-bg: #3d2230; --progress-fg: #ff9cc4;
+  --achieved-bg: #ff5c99; --achieved-fg: #121212;
+  --lvl1-bg: #2c2c2c;     --lvl1-fg: #d0d0d0;
+  --lvl2-bg: #3d2230;     --lvl2-fg: #ff9cc4;
+  --lvl3-bg: #ff5c99;     --lvl3-fg: #121212;
+  --lvl1-fill: #5c5c5c;   --lvl2-fill: #ff5c99;   --lvl3-fill: #ff9cc4;
 }
 
 /* ---------- base ---------- */
@@ -197,7 +196,7 @@ main:focus { outline: none; }
   padding-top: env(safe-area-inset-top);
 }
 .topbar-inner {
-  max-width: 760px; margin: 0 auto; padding: 10px 16px;
+  max-width: 820px; margin: 0 auto; padding: 10px 20px;
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
 }
 .brand {
@@ -208,104 +207,87 @@ main:focus { outline: none; }
 
 #nav { display: flex; gap: 2px; }
 
-#goal-dialog-title{
-  margin-bottom:1rem;
-  border-bottom:1px solid var(--line);
-}
+main { max-width: 820px; margin: 0 auto; padding: 24px 20px 72px; }
+
+#goal-dialog-title { margin-bottom: 1rem; }
+
+/* On a wide screen the tabs are words in the bar: the current one in full ink with a pink rule under
+ * it, the others a step quieter. The rule is a shape, so it takes --accent. Colour changes, geometry
+ * never does, so choosing a tab does not shift its neighbours. */
 #nav a {
-  position: relative; color: inherit; text-decoration: none;
-  /* The highlight is a rounded rectangle, not a capsule: on a phone each tab is a wide flex cell, and
-   * a stadium at 999px turned the active one into a long oval that read as a shape of its own rather
-   * than as the tab being lit. Sized like the app's other controls. */
+  position: relative; display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 12px; border-radius: var(--radius-sm);
+  color: color-mix(in srgb, var(--bar-ink) 72%, transparent); text-decoration: none;
   font-size: .9rem; font-weight: 600;
-  /* The current tab changes colour, never geometry: same padding, same weight, same line box, so
-   * selecting one does not move the label or shift the tabs beside it. Two earlier rules gave the
-   * active tab a smaller padding of its own, which shrank it by two pixels on each side and made the
-   * whole bar twitch on every tap. The pill is painted on the box the tab already had. */
   transition: background-color .15s ease, color .15s ease;
 }
-
-#nav .home-nav-icon svg {
-  width: 18px;
-  height: 18px;
+#nav .nav-ico { display: none; }
+#nav .nav-ico svg { width: 22px; height: 22px; }
+#nav a:hover { color: var(--bar-ink); background: rgb(255 255 255 / .08); }
+#nav a[aria-current="page"] { color: var(--bar-ink); }
+#nav a[aria-current="page"]::after {
+  content: ""; position: absolute; left: 12px; right: 12px; bottom: -11px; height: 2px;
+  border-radius: 2px; background: var(--accent);
 }
-/* The wrapper has to be a box, not a word in a line: as an inline span its line box was 22-23px tall
- * around an 18px glyph, so centring the wrapper left the star itself about 2.5px above the middle of
- * its tab - the one icon in the bar that was not where it looked like it should be. */
-#nav .home-nav-icon { display: inline-flex; }
-#nav a:hover { background: rgb(255 255 255 / .1); }
-/* Pink pill, charcoal label: the bar is dark in both themes, so this reads the same either way
-   without needing a token of its own for text on the accent. */
-#nav a[aria-current="page"] {
-  background: var(--accent);
-  color: var(--bar);
-}
-#nav a[aria-current="page"]:hover { background: var(--accent); }
-/* The account tab is drawn as an icon rather than a word, so the link centres it itself - a text
- * link gets that for free from its own line box. */
-#nav a.icon-only { display: inline-flex; align-items: center; justify-content: center; }
-/* The glyph sits inside a ring, the way an avatar placeholder does. The ring is the border and the
- * space between it and the glyph is the padding, so shrinking one without the other cannot make the
- * two collide. Sized so 22 + the link's 8px padding either side lands on the height the word tabs
- * already are, which keeps the whole bar on one line. */
-#nav a.icon-only > svg {
-  width: 22px; height: 22px; padding: 2.5px;
-  border: 1.5px solid currentColor; border-radius: 50%;
-}
-/* The direct-child rule matters: the Home star is an icon in the bar too, but it is nested inside
- * .home-nav-icon for its own sizing, and a ring drawn around a star reads as an avatar nobody set. */
+/* Home, as it first was: the star alone, a pink rounded square with a dark star when it is the
+ * current page, and its name in the tooltip. */
+#nav a[data-nav="home"] { padding: 10px; }
+#nav a[data-nav="home"] .nav-ico { display: inline-flex; }
+#nav a[data-nav="home"] .nav-ico svg { width: 20px; height: 20px; }
+#nav a[data-nav="home"] .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+#nav a[data-nav="home"][aria-current="page"] { background: var(--accent); color: var(--bar); }
+#nav a[data-nav="home"][aria-current="page"]::after { display: none; }
 #nav .pill {
-  display: inline-block; min-width: 18px; margin-left: 4px; padding: 0 5px;
+  display: inline-block; min-width: 18px; padding: 0 5px;
   border-radius: 999px; background: var(--accent); color: var(--bar);
-  font-size: .72rem; font-weight: 700; text-align: center;
+  font-size: .7rem; font-weight: 700; line-height: 18px; text-align: center;
 }
-/* The count that used to sit on the Review tab rides on the profile instead, so a queue of
- * suggestions is visible from every screen. Absolute, so a badge cannot widen the tab or nudge the
- * icon the way a trailing inline pill would. */
-#nav a.icon-only .pill {
-  position: absolute; top: 0; right: 0; margin: 0;
-  min-width: 16px; padding: 0 4px; font-size: .62rem; line-height: 16px;
-}
-
-main { max-width: 760px; margin: 0 auto; padding: 22px 16px 56px; }
 
 @media (max-width: 700px) {
+  /* On a phone the tabs are the bottom bar: an icon over a short word, five equal cells, and the
+   * current one lit in pink. Home stays in the middle, where a thumb lands. */
   #nav {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
     justify-content: space-around; gap: 0;
-    background: var(--bar); border-top: 1px solid rgb(255 255 255 / .14);
+    background: var(--bar); border-top: 1px solid rgb(255 255 255 / .1);
     padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
   }
-  /* Every tab the same box, and each one centres what it holds. Text on its own sits a couple of
-   * pixels above the middle of a stretched cell, which is exactly the kind of "slightly off" that is
-   * easy to see and hard to name; as a flex item it lands on the middle like the icons do. */
   #nav a {
-    flex: 1; display: inline-flex; align-items: center; justify-content: center;
-    text-align: center; font-size: .72rem; padding: 10px 2px;
+    flex: 1; flex-direction: column; justify-content: center; gap: 3px;
+    padding: 6px 2px; font-size: .68rem; font-weight: 600; letter-spacing: .01em;
   }
-  /* Home moves to the middle of the bar on a phone. The two lists a dancer opens most often sit
-   * either side of it and the star is the way back to the top, one thumb-width from the centre of
-   * the screen. The markup keeps a single order and the two layouts differ only here, so they cannot
-   * drift apart. Desktop is unchanged, with Home leading. */
+  #nav .nav-ico { display: inline-flex; }
+  #nav a:hover { background: none; }
+  #nav a[data-nav="home"] { padding: 6px 2px; }
+  #nav a[data-nav="home"] .nav-ico svg { width: 22px; height: 22px; }
+  #nav a[data-nav="home"] .nav-label { position: static; width: auto; height: auto; overflow: visible; clip-path: none; }
+  #nav a[data-nav="home"][aria-current="page"] { background: none; color: var(--accent); }
+  #nav a[aria-current="page"] { color: var(--accent); }
+  #nav a[aria-current="page"]::after { display: none; }
+  #nav .pill {
+    position: absolute; top: 2px; left: calc(50% + 6px);
+    min-width: 16px; padding: 0 4px; font-size: .62rem; line-height: 16px;
+  }
   #nav a[data-nav="moves"] { order: 1; }
   #nav a[data-nav="dictionary"] { order: 2; }
   #nav a[data-nav="home"] { order: 3; }
   #nav a[data-nav="community"] { order: 4; }
   #nav a[data-nav="account"] { order: 5; }
-  main { padding-bottom: 104px; }
+  main { padding-bottom: 112px; }
 }
 
 /* ---------- type & page structure ---------- */
 
+/* Page titles are in the serif, the way the app first read. */
 h1 {
   font: 700 clamp(2rem, 6vw, 2.7rem)/1.05 var(--serif);
   letter-spacing: -.02em; margin: 0; overflow-wrap: anywhere;
 }
+h2 { font: 650 1.05rem/1.3 var(--sans); letter-spacing: -.01em; margin: 0; }
 h3 { margin: 0; font: 700 1.06rem/1.25 var(--sans); letter-spacing: -.01em; overflow-wrap: anywhere; }
 p { max-width: 68ch; }
 .eyebrow {
-  margin: 0 0 6px; color: var(--accent-strong); font-size: .7rem; font-weight: 700;
+  margin: 0 0 6px; color: var(--muted); font: 700 .72rem/1.3 var(--sans);
   letter-spacing: .12em; text-transform: uppercase;
 }
 /* A hairline under the head, not a rule: the page already reads as a page, and a bar of near-black
@@ -316,47 +298,14 @@ p { max-width: 68ch; }
   display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
   padding-bottom: 14px; margin-bottom: 20px; border-bottom: 1px solid var(--line);
 }
-/* A move's own page: the name, where it is in your goals and how hard it is, read as one line. The
-   two fields keep their labels - without them the pink pill reads as a status of the page rather than
-   of this move, and five dashes read as decoration - and sit at the far end of the name's row. */
-.move-head { flex-wrap: wrap; row-gap: 12px; }
-.head-fields { display: grid; gap: 10px; }
-.head-field { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.head-field > .label { flex: none; font-size: .76rem; font-weight: 700; color: var(--muted); }
-/* Beside its label the written level sits on the same line as the dashes, not under them - and drops
-   to a line of its own when the row is too narrow to hold it, which is what a phone does. */
-.head-field .diff-edit { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 0; }
-.head-field .diff-label { margin: 0 0 0 8px; font-size: .8rem; }
-/* A phone cannot hold the label, the five dashes and the written level on one line. The level goes
-   under the dashes rather than the whole control dropping below its label, so *Difficulty* keeps the
-   thing it names beside it - the dashes - and the reading sits under them as it does in the form. */
-@media (max-width: 700px) {
-  .head-field .diff-edit { flex-direction: column; align-items: flex-start; gap: 0; }
-  .head-field .diff-label { margin-left: 6px; }
-}
-/* The move's name is the page's title, and when the move is filed under a trick the title links to
-   it, so the name that is written here is also the way to the dictionary's version of it. Nothing is
-   drawn around the title, and nothing repeats it: the pencil beside it opens the one place the name
-   and that link are changed. */
-.move-ident { flex: 1 1 260px; min-width: 0; }
-.move-title-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.move-title { flex: 1 1 auto; min-width: 0; display: block; }
-/* Big type needs a rule it can be seen under: the quiet link's hairline is doubled at this size and
-   sits further from the baseline than it does in a line of body text. */
-.move-title .quiet-link { text-decoration-thickness: 2px; text-underline-offset: 5px; }
-
-/* The move's dictionary entry, in the details dialogue: the trick it is filed under as a link, and
-   the select that changes it folded away behind Change until it is wanted. */
-.dict-link { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.dict-hint { margin: 4px 0 0; font-size: .8rem; color: var(--muted); }
-.dict-hint:empty { display: none; }
 
 /* The Back button a screen shows when it is only ever reached from another one. Every screen uses the
    same one - a small button, the shape of every other button here - so going back is the same gesture
    and the same target wherever a dancer happens to be; only the word after the arrow changes. */
-.page-back { margin-bottom: 14px; width: 40px; padding: 0; justify-content: center; font-size: 1.1rem; line-height: 1; }
-.subhead {
-  margin: 30px 0 10px; color: var(--muted); font-size: .72rem; font-weight: 700;
+/* Section labels everywhere are the small grey capitals: Collections, Moves, Current goals, the
+ * labels on a move's page. One look, so .subhead, .block-head h2 and .detail-row dt share it. */
+.subhead, .block-head h2 {
+  margin: 30px 0 10px; color: var(--muted); font: 700 .72rem/1.3 var(--sans);
   letter-spacing: .12em; text-transform: uppercase;
 }
 /* A line under a subhead that explains it, without the gap .fineprint leaves above itself. */
@@ -398,8 +347,11 @@ p { max-width: 68ch; }
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   min-height: 44px; padding: 0 18px; border-radius: 999px;
   border: 1px solid var(--line); background: var(--surface); color: var(--ink);
-  font: 700 .95rem/1 var(--sans); text-decoration: none; cursor: pointer;
+  font: 650 .95rem/1 var(--sans); text-decoration: none; cursor: pointer; white-space: nowrap;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease, transform .1s ease;
 }
+.btn:active { transform: scale(.98); }
+.btn svg { width: 17px; height: 17px; flex: none; }
 .btn:hover { border-color: var(--muted); }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
@@ -435,55 +387,10 @@ p { max-width: 68ch; }
 .stack { display: grid; gap: 10px; }
 
 /* Collections at the top of the Moves page: square tiles, with a + tile first to make a new one. */
-.coll-section { margin-bottom: 28px; }
-.coll-grid {
-  display: grid; gap: 10px; margin-bottom: 12px;
-  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
-}
-.coll-tile {
-  aspect-ratio: 1; display: flex; flex-direction: column; justify-content: space-between;
-  padding: 12px; min-width: 0; border: 1px solid var(--line); border-radius: var(--radius);
-  background: var(--surface); color: var(--ink); text-decoration: none; font: inherit; text-align: left; cursor: pointer;
-}
-.coll-tile:hover { border-color: var(--accent); }
-.coll-tile .coll-name { font-weight: 600; overflow-wrap: anywhere; }
-.coll-tile .count { align-self: flex-end; }
-.coll-new { align-items: flex-start; border-style: dashed; color: var(--muted); }
-.coll-new .coll-plus { font-size: 2rem; line-height: 1; color: var(--accent); }
-/* An invitation is a tile in this same grid, because that is where a dancer looks for the collections
- * they can open - and it is the one tile that is a question, so it takes the whole row: the mark,
- * the name and who sent it on the left, the two answers on the right. The dashed edge is the same
- * "not a collection yet" the + tile wears, in the reading pink rather than the sheen: what it asks
- * for is an answer, and the answer turns it into one of the tiles below it. */
-.coll-invite {
-  grid-column: 1 / -1; aspect-ratio: auto;
-  flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px 12px;
-  border-style: dashed; border-color: var(--accent-strong);
-}
-/* What is being asked, together: the mark, the collection and who sent the invitation wrap among
- * themselves instead of being spread across the row, which is what `space-between` from the square
- * tiles would otherwise do to them. */
-.coll-invite-main { flex: 1 1 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; }
-/* On a phone the answers drop onto their own line rather than squeezing the name into a column of
- * three one-word rows; once there is room they sit beside it, level with the middle of the tile. */
-@media (min-width: 480px) {
-  .coll-invite-main { flex: 1 1 0; }
-}
-.coll-invite-main .coll-name { overflow-wrap: anywhere; }
-.coll-invite:hover { border-color: var(--accent-strong); }   /* it is not a link; nothing to open */
-.coll-invite-mark {
-  padding: 2px 9px; border-radius: 999px;
-  background: var(--accent-soft); color: var(--accent-strong);
-  font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
-}
-.coll-invite-from { color: var(--muted); font-size: .85rem; }
-.coll-invite-actions { display: flex; gap: 8px; margin-left: auto; }
+
 /* A collection you joined wears "shared" where the others wear the count of your moves in them: the
  * count would read 0 for a class that is full of everybody else's work. */
-.coll-shared {
-  align-self: flex-end; font-size: .72rem; letter-spacing: .06em; text-transform: uppercase;
-  color: var(--muted);
-}
+.coll-shared { font-size: .82rem; color: var(--muted); }
 /* The share dialogue, opened by the people icon in a collection's head. It is the collection's whole
  * sharing surface - invitations, members and withdrawals - so the page itself stays a page of moves
  * rather than carrying a panel that repeats what the icon opens. */
@@ -627,6 +534,7 @@ a.card:hover { border-color: var(--accent); }
 .status-goal     { background: var(--goal-bg);     color: var(--goal-fg); }
 .status-progress { background: var(--progress-bg); color: var(--progress-fg); }
 .status-achieved { background: var(--achieved-bg); color: var(--achieved-fg); }
+.status-review   { background: var(--surface);     color: var(--accent-strong); box-shadow: inset 0 0 0 1.5px var(--accent); }
 /* The native arrow is swapped for a small chevron drawn in the pill's own colour, so the control
    reads as one shape with its text rather than as a grey box with a system arrow. */
 .status-pick select {
@@ -663,6 +571,7 @@ a.card:hover { border-color: var(--accent); }
 .badge-goal     { background: var(--goal-bg);     color: var(--goal-fg); }
 .badge-progress { background: var(--progress-bg); color: var(--progress-fg); }
 .badge-achieved { background: var(--achieved-bg); color: var(--achieved-fg); }
+.badge-review   { background: var(--surface);     color: var(--accent-strong); box-shadow: inset 0 0 0 1.5px var(--accent); }
 
 .tag {
   display: inline-block; padding: 2px 9px; border-radius: 6px; border: 1px solid var(--line);
@@ -683,32 +592,11 @@ a.card:hover { border-color: var(--accent); }
 
 /* The five pills in the add-move form: tighter than the default radio pills so all five fit a
    phone, and allowed to wrap when they do not. */
-/* The editable dashes on a move's own page. Each step is a button with a generous hit area around a
-   thin dash, so it is easy to hit on a phone. The written level sits underneath. */
-.diff-edit { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
-.diff-steps { display: inline-flex; gap: 2px; }
-.diff-step {
-  appearance: none; border: 0; background: none; cursor: pointer;
-  padding: 12px 6px; border-radius: 10px;
-}
-.diff-step::before {
-  content: ""; display: block; width: 34px; height: 7px; border-radius: 3px;
-  background: var(--surface-2); border: 1px solid var(--line);
-}
-.diff-step.on::before { background: var(--accent); border-color: var(--accent); }
-.diff-step:hover::before { border-color: var(--accent); }
-.diff-step:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.diff-label { margin: 0 0 0 6px; color: var(--muted); font-size: .85rem; font-weight: 600; }
 
 
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .section .chips { margin-top: 0; }
-.chip {
-  display: inline-flex; align-items: center; gap: 4px; padding: 4px 11px;
-  border-radius: 999px; background: var(--accent-soft); color: var(--ink);
-  font-size: .85rem; text-decoration: none;
-}
-a.chip:hover { outline: 1px solid var(--accent); }
+
 
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
 .stat {
@@ -719,7 +607,7 @@ a.chip:hover { outline: 1px solid var(--accent); }
   display: block; font: 700 1.7rem/1.15 var(--sans);
   letter-spacing: -.03em; font-variant-numeric: tabular-nums;
 }
-.stat span { color: var(--muted); font-size: .68rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.stat span { color: var(--muted); font-size: .82rem; font-weight: 600; }
 
 .empty {
   padding: 34px 16px; text-align: center; color: var(--muted);
@@ -842,7 +730,7 @@ a.chip:hover { outline: 1px solid var(--accent); }
 .seg-tabs .seg-btn:hover { background: var(--surface); }
 .seg-tabs .seg-btn[aria-pressed="true"],
 .seg-tabs .seg-btn[aria-pressed="true"]:hover {
-  background: var(--accent); color: var(--accent-ink);
+  background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgb(17 16 22 / 12%);
 }
 
 /* A secondary switch: the audience filter beside a heading. Quieter than the tabs on purpose - it
@@ -860,31 +748,16 @@ a.chip:hover { outline: 1px solid var(--accent); }
 /* A label and the pencil that opens its field for editing, on one line. */
 .field-head { display: flex; align-items: center; gap: 4px; }
 
-/* Entries, exits and combos are always editable: their chips keep their ×, and the + at the end of
- * the row is how another is added. Only Notes is opened and closed, so only Notes carries the state. */
 
-/* Notes: the paragraph the move's own page draws, or the box to write in, never both. */
-.field[data-editing="off"] .notes-input { display: none; }
-.field[data-editing="on"] .notes-read { display: none; }
-.notes-read {
-  white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: 12px 16px;
-  border: 1px solid var(--line); border-left: 3px solid var(--accent);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0; background: var(--surface);
-  max-width: none;   /* the 68ch that prose paragraphs keep: this one stands in for a field, so it lines
-                        up with the box it replaces rather than reading short of it on a wide screen */
-}
-/* An empty note has no box of its own: the + beside the label is the whole empty state. */
-.notes-read.is-empty { display: none; }
-
-input[type="text"], input[type="search"], input[type="password"], input[type="email"], input[type="number"], select, textarea {
-  width: 100%; min-height: 44px; padding: 10px 12px; border-radius: var(--radius-sm);
+input[type="text"], input[type="search"], input[type="password"], input[type="email"], input[type="number"], input[type="date"], select, textarea {
+  width: 100%; min-height: 44px; padding: 10px 14px; border-radius: var(--radius-sm);
   border: 1px solid var(--line); background: var(--surface); color: var(--ink);
   font: inherit;
 }
 /* A ring on :focus rather than :focus-visible: a field you are typing in should show where the
    caret is, whether you got there by tab or by tap. */
 input:focus, select:focus, textarea:focus {
-  outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent);
+  outline: 3px solid color-mix(in srgb, var(--accent) 28%, transparent); outline-offset: 0; border-color: var(--accent);
 }
 textarea { resize: vertical; min-height: 110px; }
 input::placeholder, textarea::placeholder { color: var(--muted); opacity: .75; }
@@ -935,40 +808,21 @@ input.hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 
 }
 .check input { width: 20px; height: 20px; margin: 0; flex: none; }
 /* A shared collection says so quietly after its name: the name is the label, this is a note on it. */
-.check-shared {
-  font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
-}
+.check-shared { font-size: .8rem; color: var(--muted); }
 
 /* Entries, exits and combos: the pills and the + that adds another, with nothing drawn around them.
  * A box here was a second card inside the move's own card, and it said "field" about a row that is
  * meant to read as the thing itself. The row is centred because the + is a 34px icon button while a
  * pill is shorter; centring is what stops the two sizes from reading as a mistake. */
-.chip-field { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 34px; }
-/* The box the + opens takes the pace of a pill rather than a full-width field, so it grows out of
- * the row instead of replacing it. Width comes from the flex basis, not the global `width: 100%`. */
-.chip-field .chip-text {
-  flex: 0 1 190px; width: auto; min-width: 130px; min-height: 34px; padding: 3px 12px;
-  border-radius: 999px;
-}
-.chip-x {
-  min-width: 24px; min-height: 24px; padding: 0 2px; border: 0; background: none;
-  color: inherit; font-size: 1.15rem; line-height: 1; cursor: pointer;
-}
-.chip-x:hover { color: var(--accent-strong); }
+
 
 /* ---------- move detail ---------- */
 
 .section { margin: 24px 0; }
 .section h2 {
-  margin: 0 0 8px; color: var(--muted); font-size: .72rem; font-weight: 700;
-  letter-spacing: .12em; text-transform: uppercase;
+  margin: 0 0 10px; color: var(--ink); font-size: 1.05rem; font-weight: 650; letter-spacing: -.01em;
 }
 .section p { margin: 0; }
-.notes {
-  white-space: pre-wrap; overflow-wrap: anywhere; padding: 12px 16px;
-  border: 1px solid var(--line); border-left: 3px solid var(--accent);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0; background: var(--surface);
-}
 
 /* A support message in the inbox: what somebody wrote is a paragraph, not a line, so the row lines up
    at the top and the body gets a little air above it. */
@@ -989,7 +843,7 @@ input.hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 
 .name-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
 .name-form input {
   flex: 1 1 220px; width: auto; min-width: 0; min-height: 40px;
-  font: 700 clamp(1.25rem, 4.5vw, 1.6rem)/1.2 var(--serif);
+  font: 700 clamp(1.25rem, 4.5vw, 1.6rem)/1.2 var(--sans);
 }
 /* A pencil reads as part of what it edits rather than a boxed control: no panel behind it. Every
    edit pencil in the app is drawn this way - the field labels, the profile corner, and the
@@ -1014,29 +868,6 @@ input.hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 
 .set-block { display: grid; gap: 10px; }
 .set-block + .set-block { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
 .set-label { font-size: .9rem; font-weight: 700; }
-/* The Settings entry on the profile page: a gear and its name. A row sized for a thumb rather than
- * a pill that asks to be noticed. */
-.set-link {
-  display: inline-flex; align-items: center; gap: 10px; min-height: 44px;
-  font-size: .9rem; font-weight: 700; color: var(--ink); text-decoration: none;
-}
-.set-link:hover { color: var(--accent-strong); }
-
-/* A whole row that is a link: the Support and Settings entries at the foot of a profile. The icon
- * keeps a column of its own so two rows line up, and a label over its one-line explanation is the
- * same shape as every other titled row in the app. */
-.link-row {
-  display: flex; align-items: center; gap: 14px; min-height: 56px;
-  color: var(--ink); text-decoration: none;
-}
-.link-row svg { flex: none; color: var(--muted); }
-.link-row strong { display: block; font-weight: 700; }
-.link-row small { display: block; color: var(--muted); font-size: .85rem; }
-.link-row:hover { color: var(--accent-strong); }
-.link-row:hover svg { color: var(--accent-strong); }
-/* The chevron is a sibling of the text in the same flex row, so it has to be told to go to the far
- * edge; without this it would sit right after the last word of the explanation. */
-.link-row > svg:last-child { margin-left: auto; }
 
 /* Logging out sits apart from the rows above it - a rule between them - so it is a deliberate step
  * rather than the next line of the settings list. */
@@ -1141,6 +972,45 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
 .profile-head { align-items: flex-start; flex-wrap: wrap; gap: 14px 18px; }
 .who > div { flex: 1 1 auto; min-width: 0; }
 .who p { margin: 0; }
+/* A profile head, streamlined: one serif name, one quiet line of counts, one quiet line about where
+ * they train. No pills on the counts - the number in ink, the word in grey - so the name is the only
+ * loud thing in the block, and every line starts on the same left edge. */
+.profile-head .who { align-items: center; gap: 24px; }
+.profile-head h1 { font-size: clamp(1.9rem, 5vw, 2.4rem); line-height: 1.05; }
+.profile-head .name-row { align-items: center; gap: 8px 12px; margin-bottom: 10px; }
+.profile-head .role-chip {
+  padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: none;
+  color: var(--muted); font: 700 .64rem/1 var(--sans); letter-spacing: .12em; text-transform: uppercase;
+}
+.profile-head .follow-row { margin: 0 0 8px; align-items: center; }
+.profile-head .who > div > .follow-bars { margin-bottom: 8px; }
+.profile-head .follow-bars { gap: 4px 20px; }
+.profile-head .follow-bar > summary {
+  min-height: 0; padding: 2px 0; gap: 5px; border: 0; border-radius: 4px; background: none;
+  color: var(--muted); font: 500 .92rem/1.35 var(--sans);
+}
+.profile-head .follow-bar .count {
+  order: -1; min-width: 0; padding: 0; border-radius: 0; background: none;
+  color: var(--ink); font: 700 .92rem/1.35 var(--sans);
+}
+.profile-head .follow-bar > summary:hover,
+.profile-head .follow-bar[open] > summary { color: var(--ink); }
+.profile-head .follow-bar > summary:hover .count,
+.profile-head .follow-bar[open] > summary .count { color: var(--accent-strong); }
+.profile-head .follow-bar > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.profile-head .who p.muted { font-size: .92rem; line-height: 1.45; }
+.profile-head .who > div > p + p { margin-top: 6px; }
+.profile-head .studio-more-count {
+  min-width: 0; min-height: 20px; padding: 0 7px; border: 0; background: var(--surface-2);
+  color: var(--muted); font: 700 .7rem/1 var(--sans);
+}
+.profile-head .studio-more:hover .studio-more-count { color: var(--ink); }
+/* The camera sits on the avatar's lower right edge, a small round button with its own edge. */
+.profile-head .avatar-cam {
+  left: auto; right: 0; bottom: 0; transform: none; width: 28px; height: 28px;
+  border: 1px solid var(--line); box-shadow: 0 2px 8px rgb(0 0 0 / 12%);
+}
+.profile-head .avatar-cam svg { width: 14px; height: 14px; }
 /* Somebody else's profile keeps its follow control on the same line as the count bars, at the far
    end of it: the bars answer "who", and the one thing you can do about it sits at the end of that
    sentence rather than halfway down the page. It brings its own room because the lines it sits
@@ -1236,26 +1106,6 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
  * cursor that says the drag is the point. */
 .journal-fab.dragging { cursor: grabbing; transform: scale(1.05); transition: none; }
 @media (prefers-reduced-motion: reduce) { .journal-fab { transition: none; } }
-.journal-drawer {
-  position: fixed; top: 0; right: 0; bottom: 0; left: auto; margin: 0; height: 100dvh; max-height: 100dvh;
-  width: min(420px, 100vw); max-width: 100vw;
-  padding: 18px 20px; border: 0; border-left: 1px solid var(--line);
-  background: var(--surface); color: var(--ink); overflow-y: auto;
-  box-shadow: -24px 0 60px rgb(0 0 0 / 22%);
-}
-.journal-drawer:focus { outline: none; }
-.journal-drawer::backdrop { background: rgb(0 0 0 / .35); }
-.journal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
-.journal-head h2 { margin: 0; }
-.journal-day { margin: 0 0 8px; color: var(--muted); font-weight: 600; }
-.journal-list { list-style: none; margin: 20px 0 0; padding: 0; }
-.journal-entry { padding: 12px 0; border-top: 1px solid var(--line); }
-.journal-entry-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.journal-entry-head time { color: var(--muted); font-size: .9rem; font-weight: 600; }
-.journal-entry-body { margin: 6px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
-.journal-media { margin-top: 10px; }
-.journal-media .media-item img, .journal-media .media-item video { aspect-ratio: 4 / 3; }
-
 /* ---------- a dialogue ----------
    The browser owns the backdrop, the Escape key and the focus trap; this is only the box. Used by
    the add-a-trick form, which asks three questions that belong together. */
@@ -1601,10 +1451,7 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
   font: 700 1.2rem/1.2 var(--sans); letter-spacing: -.02em;
   font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
 }
-.fact-label {
-  color: var(--muted); font-size: .66rem; font-weight: 700;
-  letter-spacing: .12em; text-transform: uppercase;
-}
+.fact-label { color: var(--muted); font-size: .82rem; font-weight: 600; }
 /* The third fact is a button: the answer is what the tile says, and the line under it is what pressing
    it does. Hovering or tabbing to it swaps that line - it is not added, so the strip never changes
    height under the pointer and the other two facts stay where they were - and the tile takes the soft
@@ -1686,10 +1533,7 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
 /* Entries & exits, gathered from every move of this trick: two short lists of the same chips, each
    with its own small heading, because "what do people get into this from" and "what do they get out
    into" are different questions with different answers. */
-.parts-title {
-  margin: 16px 0 0; color: var(--muted); font: 700 .72rem/1.2 var(--sans);
-  letter-spacing: .12em; text-transform: uppercase;
-}
+.parts-title { margin: 16px 0 0; color: var(--muted); font: 600 .88rem/1.3 var(--sans); }
 .parts-title + .chips { margin-top: 8px; }
 /* The number of members who said it, on the chip: quieter than the name, so a common entry does not
    shout over the trick it belongs to. */
@@ -1727,6 +1571,616 @@ img.avatar-lg { padding: calc(10px * var(--avatar-scale)); }
   .level-row { grid-template-columns: 5.5rem 1fr 2.5rem; }
   .level-count { display: none; }   /* the share is the answer; the count is the detail */
 }
+
+/* ---------- page furniture ----------
+   The pieces every screen is built from: a bar with Back on the left and the screen's one action on
+   the right, blocks with a plain heading, and lists grouped into one rounded surface. */
+
+.page-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: 44px; margin-bottom: 14px;
+}
+.page-back {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; margin-left: -8px; border-radius: 999px;
+  color: var(--ink); text-decoration: none;
+  transition: background-color .15s ease;
+}
+.page-back:hover { background: var(--surface-2); }
+/* A Back on its own, above a page head that carries its own controls. */
+.page-back:not(.page-bar .page-back) { margin-bottom: 10px; }
+
+.block { margin-top: 30px; }
+.page-head + .block { margin-top: 0; }
+.detail-list + .block { margin-top: 24px; }
+.block-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+.block-head h2 { margin: 0; }
+.block-count { color: var(--muted); font: 700 .72rem/1.3 var(--sans); letter-spacing: .06em; font-variant-numeric: tabular-nums; }
+
+/* A text button: an action that is not the page's main one, and must not look like it. */
+.btn-text {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 6px;
+  border: 0; border-radius: var(--radius-sm); background: none; color: var(--accent-strong);
+  font: 650 .9rem/1 var(--sans); cursor: pointer;
+}
+.btn-text:hover { background: var(--surface-2); }
+.btn-text.danger { color: var(--danger); }
+.btn-text svg { width: 16px; height: 16px; }
+
+/* ---------- search ---------- */
+
+.search-box {
+  position: relative; display: flex; align-items: center; margin-bottom: 12px;
+}
+.search-box > svg {
+  position: absolute; left: 14px; color: var(--muted); pointer-events: none;
+}
+.search-box input[type="search"] {
+  padding-left: 42px; padding-right: 44px; border-radius: 999px; background: var(--surface);
+  -webkit-appearance: none; appearance: none;
+}
+.search-box input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
+.search-clear {
+  position: absolute; right: 6px; display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; padding: 0; border: 0; border-radius: 999px;
+  background: var(--surface-2); color: var(--muted); cursor: pointer;
+}
+.search-clear svg { width: 14px; height: 14px; }
+.search-clear:hover { color: var(--ink); }
+
+/* ---------- a grouped list of moves ---------- */
+
+.list-group {
+  display: grid; overflow: hidden;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface);
+}
+.list-group.is-empty { border-style: dashed; background: none; }
+.list-empty { margin: 0; padding: 22px 16px; color: var(--muted); text-align: center; max-width: none; }
+.move-row {
+  display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 10px 12px 10px 16px;
+  color: inherit; text-decoration: none;
+  transition: background-color .12s ease;
+}
+.move-row + .move-row { border-top: 1px solid var(--line); }
+.move-row:hover { background: color-mix(in srgb, var(--surface-2) 60%, var(--surface)); }
+.move-row:focus-visible { outline-offset: -3px; border-radius: var(--radius); }
+.move-row-main { display: grid; gap: 1px; flex: 1 1 auto; min-width: 0; }
+.move-row-name { font-weight: 650; }
+.move-row-sub { color: var(--muted); font-size: .85rem; }
+.move-row-sub:empty { display: none; }
+.move-row-chev { flex: none; display: inline-flex; color: var(--muted); }
+.move-row-chev svg { width: 16px; height: 16px; }
+
+
+/* ---------- collections ---------- */
+
+/* Square tiles, with a + tile first to make a new one and a pink count pill on each collection. */
+.coll-section { margin-bottom: 28px; }
+.coll-grid {
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+}
+.coll-tile {
+  aspect-ratio: 4 / 3; display: flex; flex-direction: column; justify-content: space-between;
+  padding: 14px 16px; min-width: 0;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); color: var(--ink); text-decoration: none; font: inherit; text-align: left;
+  cursor: pointer; transition: border-color .15s ease;
+}
+.coll-tile:hover { border-color: var(--accent); }
+.coll-tile .coll-name {
+  font-size: 1.02rem; font-weight: 650; line-height: 1.25; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.coll-tile .count { align-self: flex-end; }
+.coll-new { align-items: flex-start; border-style: dashed; color: var(--muted); }
+/* "New collection" is set exactly like the other tiles' titles; only the dashed edge and the + say
+ * it is the one that makes a tile. */
+.coll-new .coll-name { color: var(--ink); }
+.coll-new .coll-plus { font-size: 2rem; line-height: 1; color: var(--accent); }
+.coll-shared {
+  align-self: flex-end; font-size: .72rem; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted);
+}
+/* The floating journal button would sit on top of Save on a form, so a form hides it. */
+body.on-form .journal-fab { display: none; }
+.coll-invite {
+  grid-column: 1 / -1; aspect-ratio: auto; flex-direction: row; flex-wrap: wrap; align-items: center;
+  border-style: dashed; border-color: var(--accent-strong); background: var(--surface);
+}
+.coll-invite-main { flex: 1 1 200px; display: grid; gap: 2px; min-width: 0; }
+.coll-invite-from { color: var(--muted); font-size: .85rem; }
+.coll-invite-actions { display: flex; gap: 8px; }
+
+/* ---------- one move ---------- */
+
+.move-hero { display: grid; gap: 12px; margin-bottom: 26px; }
+
+.diff-meter { display: inline-flex; align-items: center; gap: 10px; }
+.diff-meter-bars { display: inline-flex; gap: 3px; }
+.diff-meter-bars > span { width: 18px; height: 6px; border-radius: 3px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line); }
+.diff-meter-bars > span.on { background: var(--accent); box-shadow: none; }
+.diff-meter-label { color: var(--muted); font-size: .9rem; font-weight: 600; }
+/* On your own move the dashes are buttons. The hit area is taller than the dash so it is easy to tap,
+ * and hovering a dash previews the level up to it. */
+.diff-picker .diff-meter-bars { gap: 0; }
+.diff-picker .diff-meter-bars > button {
+  position: relative; width: 21px; height: 22px; padding: 0; border: 0; background: none; cursor: pointer;
+}
+.diff-picker .diff-meter-bars > button::before {
+  content: ""; position: absolute; left: 0; right: 3px; top: 8px; height: 6px; border-radius: 3px;
+  background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line); transition: background-color .12s ease;
+}
+.diff-picker .diff-meter-bars > button.on::before { background: var(--accent); box-shadow: none; }
+.diff-picker .diff-meter-bars:hover > button::before { background: var(--accent); box-shadow: none; }
+.diff-picker .diff-meter-bars > button:hover ~ button::before { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line); }
+.diff-picker .diff-meter-bars > button:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; border-radius: 4px; }
+
+/* The status bar on a move page: an x shows on hover (and on focus) to hide it for this move. */
+.status-bar-wrap { position: relative; display: flex; align-items: center; gap: 6px; max-width: 520px; }
+.status-bar-wrap .segmented { flex: 1 1 auto; max-width: none; }
+.status-bar-close {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; padding: 0; border: 0; border-radius: 999px;
+  background: none; color: var(--muted); cursor: pointer;
+  opacity: 0; transition: opacity .15s ease, background-color .15s ease, color .15s ease;
+}
+.status-bar-close svg { width: 15px; height: 15px; }
+.status-bar-wrap:hover .status-bar-close, .status-bar-close:focus-visible { opacity: 1; }
+.status-bar-close:hover { background: var(--surface-2); color: var(--ink); }
+/* A touch screen has no hover, so there the x is always shown. */
+@media (hover: none) { .status-bar-close { opacity: 1; } }
+
+/* The collections a move is in: their own bar under the details card, outside it. The label and the
+ * chips sit on the same columns as the card's rows (16px in, then the 7.5rem label column), so
+ * COLLECTIONS lines up under NOTES and the chips line up under the values. */
+.move-colls {
+  display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); align-items: center; gap: 12px;
+  margin: 14px 0 0; padding: 0 17px;
+}
+.move-colls-label {
+  color: var(--muted); font: 700 .72rem/1.3 var(--sans); letter-spacing: .12em; text-transform: uppercase;
+}
+.move-colls .chips { margin: 0; }
+.move-colls .chip { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+.move-colls .chip:hover { box-shadow: inset 0 0 0 1px var(--accent); }
+@media (max-width: 480px) {
+  .move-colls { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+}
+
+/* One choice from a few: a muted track with the chosen option lifted onto the surface. */
+.segmented {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 2px;
+  padding: 3px; border-radius: 999px; background: var(--surface-2);
+  max-width: 460px;
+}
+.segmented-opt { position: relative; display: flex; }
+.segmented-opt input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.segmented-opt span {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center;
+  min-height: 38px; padding: 0 10px; border-radius: 999px;
+  color: var(--muted); font-size: .88rem; font-weight: 600; text-align: center; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+  transition: background-color .15s ease, color .15s ease, box-shadow .15s ease;
+}
+.segmented-opt:hover span { color: var(--ink); }
+.segmented-opt input:checked + span {
+  background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgb(17 16 22 / 14%);
+}
+.segmented-opt input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 1px; }
+/* The status a move is at, painted in the ramp so the answer reads the way it does in a list. */
+.segmented-opt input[value="progress"]:checked + span { background: var(--progress-bg); color: var(--progress-fg); }
+.segmented-opt input[value="achieved"]:checked + span { background: var(--achieved-bg); color: var(--achieved-fg); }
+/* Needs review: the plain surface with a pink ring, so it reads as a flag rather than a stage. */
+.segmented-opt input[value="review"]:checked + span { background: var(--surface); color: var(--accent-strong); box-shadow: inset 0 0 0 1.5px var(--accent); }
+
+/* The facts of a move: a label column and its chips, one row each, inside one surface. */
+.detail-list {
+  margin: 0 0 4px; padding: 4px 16px;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface);
+}
+.detail-row {
+  display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); align-items: start; gap: 12px;
+  padding: 14px 0;
+}
+.detail-row + .detail-row { border-top: 1px solid var(--line); }
+.detail-row dt {
+  padding-top: 9px; color: var(--muted); font: 700 .72rem/1.3 var(--sans);
+  letter-spacing: .12em; text-transform: uppercase;
+}
+.detail-row dd { margin: 0; min-width: 0; }
+.detail-row .chips { margin: 0; }
+@media (max-width: 480px) {
+  .detail-row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .detail-row dt { padding-top: 0; }
+}
+.chip {
+  display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px;
+  border-radius: 999px; background: var(--surface-2); color: var(--ink);
+  font-size: .88rem; font-weight: 500; text-decoration: none;
+}
+a.chip:hover { outline: 0; background: var(--accent-soft); color: var(--accent-strong); }
+.notes {
+  margin: 0; padding: 16px 18px; max-width: none;
+  border: 1px solid var(--line); border-left: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6;
+}
+.empty-link { display: block; color: inherit; text-decoration: none; }
+.empty-link:hover { border-color: var(--accent); }
+.empty-link h3 { color: var(--accent-strong); }
+
+/* ---------- the move form ---------- */
+
+.move-form { display: grid; gap: 12px; margin-top: 0; }
+.form-card {
+  display: grid; gap: 18px; padding: 18px;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface);
+}
+.form-card > .field { margin: 0; }
+.form-card .field > .label, .form-card .field > legend.label {
+  display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px;
+  font-size: .9rem; font-weight: 650;
+}
+.label-value { color: var(--muted); font-weight: 500; }
+fieldset.field > legend.label { float: left; width: 100%; margin-bottom: 8px; }
+fieldset.field > legend.label + * { clear: both; }
+
+/* The dictionary entry a move is filed under, under its name. */
+.dict-line { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; margin-top: -8px; }
+.dict-state { display: inline-flex; align-items: center; gap: 8px; min-width: 0; font-size: .9rem; }
+.dict-state svg { flex: none; color: var(--muted); }
+.dict-picker { margin-top: -6px; }
+.move-form .check-row { align-items: center; font-size: .92rem; }
+.move-form .check-row input { margin: 0; }
+
+/* Difficulty: five bars, filled up to the one chosen. Each bar is a radio with a tall hit area. */
+.diff-pick { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; max-width: 460px; }
+.diff-opt { position: relative; display: block; padding: 12px 0; cursor: pointer; }
+.diff-opt input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.diff-opt span {
+  display: block; height: 10px; border-radius: 5px;
+  background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line);
+  transition: background-color .15s ease;
+}
+.diff-opt:hover span { box-shadow: inset 0 0 0 1px var(--accent); }
+.diff-opt input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 3px; }
+.diff-pick:has(input[value="1"]:checked) .diff-opt:nth-child(-n+1) span,
+.diff-pick:has(input[value="2"]:checked) .diff-opt:nth-child(-n+2) span,
+.diff-pick:has(input[value="3"]:checked) .diff-opt:nth-child(-n+3) span,
+.diff-pick:has(input[value="4"]:checked) .diff-opt:nth-child(-n+4) span,
+.diff-pick:has(input[value="5"]:checked) .diff-opt:nth-child(-n+5) span { background: var(--accent); box-shadow: none; }
+
+/* A tag field: the chips and the box to type the next one in, inside one field. */
+.tag-input {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  min-height: 48px; padding: 6px 8px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface);
+  cursor: text;
+}
+.tag-input:focus-within {
+  border-color: var(--accent); outline: 3px solid color-mix(in srgb, var(--accent) 28%, transparent);
+}
+.tag-input .chip { padding: 4px 4px 4px 12px; background: var(--surface-2); }
+.tag-input input.tag-text {
+  flex: 1 1 140px; width: auto; min-width: 120px; min-height: 34px; padding: 4px 6px;
+  border: 0; outline: 0; background: none;
+}
+.tag-input input.tag-text:focus { outline: 0; }
+/* Suggestions still drop down as you type; the browser's own arrow for them is not drawn. */
+.tag-input input.tag-text::-webkit-calendar-picker-indicator { display: none !important; }
+#move-name::-webkit-calendar-picker-indicator { display: none !important; }
+.chip-x {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%;
+  background: none; color: var(--muted); cursor: pointer;
+}
+.chip-x svg { width: 13px; height: 13px; }
+.chip-x:hover { background: var(--surface); color: var(--danger); }
+
+/* Collections as chips that are ticked by tapping them (Watermelon's chip checkboxes): the tick only
+ * appears inside a chosen one. */
+.check-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.check-chip { position: relative; display: inline-flex; }
+.check-chip input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.check-chip > span {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 14px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--surface);
+  font-size: .9rem; font-weight: 600; transition: border-color .15s ease, background-color .15s ease;
+}
+.check-chip svg { display: none; width: 15px; height: 15px; }
+.check-chip:hover > span { border-color: var(--muted); }
+.check-chip input:checked + span {
+  border-color: var(--accent-strong); background: var(--accent-soft); color: var(--accent-strong);
+}
+.check-chip input:checked + span svg { display: inline; }
+.check-chip input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 2px; }
+.check-chip-note { color: var(--muted); font-weight: 500; }
+.add-chip {
+  display: inline-flex; align-items: center; gap: 4px; min-height: 38px; padding: 0 14px 0 10px;
+  border: 1px dashed var(--line); border-radius: 999px; background: none; color: var(--muted);
+  font: 600 .9rem/1 var(--sans); cursor: pointer;
+}
+.add-chip svg { width: 16px; height: 16px; }
+.add-chip:hover { border-color: var(--accent); color: var(--accent-strong); }
+
+/* The way to add photos and videos: a wide, quiet target rather than a lone +. */
+.drop-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+  min-height: 56px; padding: 0 16px;
+  border: 1px dashed var(--line); border-radius: var(--radius-sm); background: none;
+  color: var(--muted); font: 600 .92rem/1 var(--sans); cursor: pointer;
+}
+.drop-btn svg { width: 18px; height: 18px; }
+.drop-btn:hover { border-color: var(--accent); color: var(--accent-strong); }
+#media-field .media-grid { margin: 0 0 4px; }
+#media-field .file-list { margin: 0 0 4px; }
+
+.danger-line { display: flex; justify-content: center; padding: 8px 0 0; }
+
+/* Save and Cancel stay in reach while the form scrolls: pinned to the bottom of the screen, above
+ * the phone's tab bar. */
+.form-bar {
+  position: sticky; bottom: 0; z-index: 4;
+  display: flex; justify-content: flex-end; gap: 10px;
+  margin: 8px -20px 0; padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--paper) 94%, transparent);
+  border-top: 1px solid var(--line);
+}
+.form-bar .btn { min-width: 112px; }
+@media (max-width: 700px) {
+  .form-bar { bottom: calc(62px + env(safe-area-inset-bottom)); padding-bottom: 12px; }
+  .form-bar .btn { flex: 1; }
+}
+
+/* ---------- media ---------- */
+
+.media-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px; margin-top: 0;
+}
+.media-item { border: 0; border-radius: var(--radius-sm); background: var(--surface-2); }
+.file-chip { border-radius: var(--radius-sm); }
+.file-chip-x { display: inline-flex; align-items: center; justify-content: center; }
+.file-chip-x svg { width: 14px; height: 14px; }
+
+/* ---------- date field (Watermelon's date picker trigger, on the native picker) ---------- */
+
+.date-field {
+  position: relative; display: inline-flex; align-items: center; max-width: 100%;
+}
+.date-field > svg { position: absolute; left: 14px; color: var(--muted); pointer-events: none; }
+.date-field input[type="date"] {
+  width: auto; min-width: 200px; min-height: 42px; padding: 8px 14px 8px 40px;
+  border-radius: 999px; font-weight: 600; font-variant-numeric: tabular-nums;
+}
+/* The whole field opens the picker, and the calendar mark on the left is the only one drawn. */
+.date-field input[type="date"]::-webkit-calendar-picker-indicator {
+  position: absolute; inset: 0; width: auto; height: auto; margin: 0; opacity: 0; cursor: pointer;
+}
+
+/* ---------- journal ----------
+ * A native <dialog> docked to the right edge, so Escape and the focus trap come from the browser, and
+ * a floating notepad button that opens it. */
+.journal-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; left: auto; margin: 0; height: 100dvh; max-height: 100dvh;
+  width: min(440px, 100vw); max-width: 100vw;
+  padding: calc(16px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom));
+  border: 0; background: var(--paper); color: var(--ink); overflow-y: auto;
+  box-shadow: var(--shadow-float);
+}
+.journal-drawer:focus { outline: none; }
+.journal-drawer::backdrop { background: rgb(17 16 22 / .4); }
+.journal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.journal-head h2 { font-size: 1.4rem; font-weight: 700; letter-spacing: -.02em; }
+.journal-compose, .journal-edit {
+  display: grid; gap: 10px; padding: 14px;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface);
+}
+.journal-compose textarea, .journal-edit textarea {
+  min-height: 96px; border: 0; padding: 4px 2px; background: none; resize: none;
+}
+.journal-compose textarea:focus, .journal-edit textarea:focus { outline: 0; }
+.journal-compose:focus-within, .journal-edit:focus-within { border-color: var(--accent); }
+.journal-compose .date-field input, .journal-edit .date-field input { min-height: 36px; min-width: 0; }
+.journal-compose .file-list { margin: 0; }
+.journal-compose-bar { display: flex; align-items: center; gap: 8px; }
+.journal-compose-bar .spacer { flex: 1; }
+.journal-compose-bar .btn.primary { margin-left: auto; }
+.journal-compose-bar .icon-btn.plain svg { width: 18px; height: 18px; }
+.journal-list { list-style: none; margin: 22px 0 0; padding: 0; display: grid; gap: 4px; }
+.journal-entry { padding: 14px 2px; }
+.journal-entry + .journal-entry { border-top: 1px solid var(--line); }
+.journal-entry.is-editing { padding: 10px 0; border-top: 0; }
+.journal-entry.is-editing + .journal-entry { border-top: 0; }
+.journal-entry-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.journal-entry-head time { font-size: .9rem; font-weight: 650; }
+.journal-entry-head .icon-btn.plain { width: 32px; height: 32px; margin-right: -6px; }
+.journal-entry-head .icon-btn.plain svg { width: 16px; height: 16px; }
+.journal-entry-body { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; max-width: none; }
+.journal-media { margin-top: 10px; }
+.journal-media .media-item img, .journal-media .media-item video { aspect-ratio: 4 / 3; }
+.journal-empty { padding: 24px 0; color: var(--muted); text-align: center; }
+
+
+/* ---------- one look for every list ----------
+   Lists of tricks and goals read as one grouped surface with rules between the rows, the same way
+   My moves does, instead of a pile of separate boxes. */
+.stack.grouped {
+  gap: 0; overflow: hidden;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface);
+}
+.stack.grouped > .card { border: 0; border-radius: 0; padding: 14px 16px; }
+.stack.grouped > .card + .card { border-top: 1px solid var(--line); }
+.stack.grouped > .card:hover { background: color-mix(in srgb, var(--surface-2) 60%, var(--surface)); }
+.stack.grouped > .card.reordering { border-radius: var(--radius); box-shadow: var(--shadow-float); background: var(--surface); }
+.stack.grouped > .empty { border: 0; border-radius: 0; }
+.stack.grouped:has(> .empty:only-child) { border-style: dashed; background: none; }
+.trick-name { font-weight: 650; }
+.trick-actions .remove-dash { width: 36px; height: 36px; color: var(--muted); }
+.trick-actions .remove-dash:hover { color: var(--danger); }
+.trick-actions .remove-dash svg { width: 16px; height: 16px; }
+
+/* Badges never drop under a readable size. */
+.badge.sm, .badge.xs, .diff-badge, .diff-unrated { font-size: .72rem; padding: 2px 8px; font-weight: 600; }
+.diff-badge { border: 0; background: var(--surface-2); color: var(--muted); }
+
+/* The add mark and the in-your-moves mark on a dictionary row: round, and the tick is soft pink
+ * rather than a hot pink square, so a list of tricks you already have is calm. */
+.icon-btn, .icon-btn-hover, .icon-btn-in-moves { border-radius: 999px; transition: border-color .15s ease, color .15s ease, background-color .15s ease; }
+.icon-btn-in-moves { border-color: transparent; background: var(--accent-soft); color: var(--accent-strong); }
+
+/* A secondary filter: the chosen pill is ink, not the accent, so pink stays for actions and data. */
+.seg-btn[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+.seg-tabs .seg-btn[aria-pressed="true"] { border-color: transparent; }
+
+/* The page's one line under its title. */
+.page-sub { margin: 4px 0 0; color: var(--muted); font-size: .92rem; }
+.collection-head { flex-wrap: nowrap; align-items: flex-start; }
+.collection-head .head-actions { gap: 2px; margin-top: 2px; }
+.head-actions .btn.small svg { width: 16px; height: 16px; }
+.role-chip {
+  flex: none; padding: 2px 9px; border-radius: 999px;
+  background: var(--surface-2); color: var(--muted); font-size: .75rem; font-weight: 650;
+}
+
+/* ---------- a trick's page ---------- */
+.entry-head { padding: 0 52px 0 0; border-bottom: 0; }
+.level-card, .alias-card, .parts-card, .section.panel { padding: 18px; }
+.level-pick .seg {
+  gap: 2px; padding: 3px; border-radius: 999px; background: var(--surface-2);
+}
+.level-pick .seg label span {
+  min-width: 0; min-height: 38px; padding: 0 6px; border: 0; background: none;
+  color: var(--muted); font-size: .85rem; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.level-pick .seg label input:checked + span {
+  background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgb(17 16 22 / 14%);
+}
+.level-row { font-size: .88rem; }
+.level-name { font-weight: 600; }
+.upload-row { display: grid; gap: 6px; margin-top: 12px; }
+
+/* ---------- the community feed ---------- */
+.feed-post .card { padding: 2px 0 0; border: 0; background: none; }
+.feed-post .card:hover { border: 0; }
+
+/* ---------- account ---------- */
+.menu-group {
+  margin-top: 18px; overflow: hidden;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface);
+}
+.menu-row {
+  display: flex; align-items: center; gap: 14px; min-height: 56px; padding: 10px 16px;
+  color: var(--ink); text-decoration: none; cursor: pointer;
+  transition: background-color .12s ease;
+}
+.menu-row + .menu-row { border-top: 1px solid var(--line); }
+a.menu-row:hover { background: color-mix(in srgb, var(--surface-2) 60%, var(--surface)); }
+.menu-row > svg { flex: none; width: 20px; height: 20px; color: var(--muted); }
+.menu-row > svg:last-child { width: 16px; height: 16px; }
+.menu-text { flex: 1 1 auto; display: grid; gap: 2px; min-width: 0; }
+.menu-text strong { font-weight: 600; }
+.menu-text small { color: var(--muted); font-size: .85rem; }
+.account-actions { margin-top: 18px; padding-top: 0; border-top: 0; }
+
+/* A switch for an on/off setting: a checkbox drawn as a track and a knob. */
+input.switch {
+  appearance: none; -webkit-appearance: none; flex: none; position: relative;
+  width: 46px; height: 28px; margin: 0; border-radius: 999px;
+  background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line); cursor: pointer;
+  transition: background-color .18s ease;
+}
+input.switch::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgb(17 16 22 / 30%); transition: transform .18s ease;
+}
+input.switch:checked { background: var(--accent); box-shadow: none; }
+input.switch:checked::after { transform: translateX(18px); }
+input.switch:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* The dictionary's search and filters wear the same rounded shape as the search on My moves. */
+.filters input[type="search"], .filters select { border-radius: 999px; padding-left: 16px; }
+
+
+/* ---------- a move's page: name, frame, attributes ---------- */
+.move-title-line { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.move-title-line h1 { min-width: 0; }
+/* The dictionary trick a move is filed under, as a book beside its name. */
+/* No fill behind it: a pink line drawing, darker on hover. */
+.dict-icon-link {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; background: none; color: var(--accent); text-decoration: none;
+  transition: color .15s ease;
+}
+.dict-icon-link svg { width: 26px; height: 26px; }
+.dict-icon-link:hover { color: var(--accent-strong); }
+.move-byline { margin: -6px 0 0; color: var(--muted); }
+
+/* One frame for photos and videos, the same shape whether it is empty or full. */
+.move-media { margin: 0 0 12px; }
+.media-stage {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: 100%; aspect-ratio: 4 / 3; max-height: 62vh; overflow: hidden;
+  border-radius: var(--radius); background: var(--surface-2);
+}
+.media-stage > img, .media-stage > video { width: 100%; height: 100%; object-fit: contain; display: block; }
+/* Empty, it is a small box rather than the full 4:3 frame, and the owner can close it with the ×. */
+.media-stage.is-empty {
+  aspect-ratio: auto; min-height: 96px;
+  flex-direction: column; gap: 6px; padding: 14px 40px;
+  border: 1px dashed var(--line); background: var(--surface-2); color: var(--muted);
+  font: 600 .95rem/1.3 var(--sans); text-align: center;
+}
+.media-stage.is-empty svg { width: 22px; height: 22px; }
+.media-empty-wrap { position: relative; }
+.media-empty-close {
+  position: absolute; top: 6px; right: 6px; display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; padding: 0; border: 0; border-radius: 999px;
+  background: none; color: var(--muted); cursor: pointer; transition: background-color .15s ease, color .15s ease;
+}
+.media-empty-close:hover { background: var(--surface); color: var(--ink); }
+.media-empty-close svg { width: 16px; height: 16px; }
+button.attr-add { background: none; font-family: inherit; cursor: pointer; }
+.media-stage.is-empty small { font-weight: 500; font-size: .82rem; }
+button.media-stage.is-empty { cursor: pointer; transition: border-color .15s ease, color .15s ease; }
+button.media-stage.is-empty:hover { border-color: var(--accent); color: var(--accent-strong); }
+.media-stage-note { margin: 0; max-width: 40ch; }
+
+.media-thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.media-thumb { position: relative; display: inline-flex; width: 64px; height: 64px; flex: none; }
+.media-thumb-btn {
+  width: 100%; height: 100%; padding: 0; overflow: hidden; cursor: pointer;
+  border: 2px solid transparent; border-radius: var(--radius-sm); background: var(--surface-2);
+}
+.media-thumb-btn img, .media-thumb-btn video { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+.media-thumb-btn.is-on { border-color: var(--accent); }
+.media-thumb .media-remove {
+  top: -6px; right: -6px; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center;
+}
+.media-thumb .media-remove svg { width: 12px; height: 12px; }
+.media-thumb-add {
+  align-items: center; justify-content: center; padding: 0; cursor: pointer;
+  border: 1px dashed var(--line); border-radius: var(--radius-sm); background: none; color: var(--muted);
+}
+.media-thumb-add:hover { border-color: var(--accent); color: var(--accent-strong); }
+
+/* The attributes under the frame: every field, filled or not. */
+.attr-add {
+  display: inline-flex; align-items: center; gap: 4px; min-height: 32px; padding: 0 12px 0 8px;
+  border: 1px dashed var(--line); border-radius: 999px; color: var(--muted);
+  font-size: .88rem; font-weight: 600; text-decoration: none;
+}
+.attr-add svg { width: 15px; height: 15px; }
+.attr-add:hover { border-color: var(--accent); color: var(--accent-strong); }
+.attr-none { color: var(--muted); }
+.attr-notes { margin: 0; padding-top: 4px; white-space: pre-wrap; overflow-wrap: anywhere; max-width: none; line-height: 1.6; }
+
+/* The book after a move's name in a list: a mark, quieter than the name. */
+.move-row-name { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.move-row-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.move-row-dict { flex: none; display: inline-flex; color: var(--muted); }
+.move-row-dict svg { width: 14px; height: 14px; }
 
 /* ---------- misc ---------- */
 

@@ -18,6 +18,7 @@ export const STATUSES = [
   { value: 'goal', label: 'Not started' },
   { value: 'progress', label: 'In progress' },
   { value: 'achieved', label: 'Achieved' },
+  { value: 'review', label: 'Needs review' },
 ];
 
 /* ---------- small caches so a few functions can stay synchronous ---------- */
@@ -1402,19 +1403,23 @@ export async function removeEntryAlias(id) {
 
 /* ---------- difficulty: a dancer's own rating, and the community's ---------- */
 
-/* A dancer's own rating of their own move, gentlest first. `value` is the 1-5 the moves table
- * stores (a check constraint keeps it in that range) and `label` is what a dancer reads. The two
- * "+" rungs sit between the three names everyone already uses, so a move that is harder than
- * beginner but not yet intermediate has somewhere honest to go.
+/* How hard a move is for the dancer who logged it, gentlest first. `value` is the 1-5 the moves
+ * table stores (a check constraint keeps it in that range) and `label` is what a dancer reads.
  *
- * The order is the order of the pills in the add-move form and of the segments in the meter on a
- * move card, so it lives here once instead of in each screen. */
+ * These words are deliberately not the dictionary's Beginner / Intermediate / Advanced (LEVELS,
+ * below). That scale is the community's view of a trick; this one is how it feels in one body, and
+ * a move can be Brutal for you and Beginner for the room. Keeping the vocabularies apart is what
+ * stops the two from being read as the same claim. Only the words changed: the stored numbers are
+ * the same, so every existing move keeps its rating.
+ *
+ * The order is the order of the bars in the move form and of the segments in the meter on a move's
+ * page, so it lives here once instead of in each screen. */
 export const DIFFICULTIES = [
-  { value: 1, label: 'Beginner' },
-  { value: 2, label: 'Beginner+' },
-  { value: 3, label: 'Intermediate' },
-  { value: 4, label: 'Intermediate+' },
-  { value: 5, label: 'Advanced' },
+  { value: 1, label: 'Easy' },
+  { value: 2, label: 'Comfortable' },
+  { value: 3, label: 'Challenging' },
+  { value: 4, label: 'Tough' },
+  { value: 5, label: 'Brutal' },
 ];
 
 /* '' for anything that is not one of the five, so a hand-edited row shows no made-up level. */
@@ -2133,15 +2138,46 @@ export async function listJournal(limit = 60) {
   return entries.map((e) => ({ ...e, media: byEntry.get(e.id) ?? [] }));
 }
 
-/* `date` is the dancer's own local day, YYYY-MM-DD, so the entry lands on the day they see. */
-export async function addJournalEntry({ date, body } = {}) {
-  const user = requireUser();
+/* A journal day is the dancer's own local day, YYYY-MM-DD: today or any day before it. A day that
+ * has not happened yet is refused here as well as in the picker, so a typed date cannot slip past. */
+const pad = (n) => String(n).padStart(2, '0');
+const localToday = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+function journalDay(date) {
+  const value = String(date ?? '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(value))) throw new Error('That date is not valid.');
+  if (value > localToday()) throw new Error('Journal entries can be dated today or earlier.');
+  return value;
+}
+function journalText(body) {
   const text = String(body ?? '').trim();
   if (!text) throw new Error('Write what you worked on first.');
   if (text.length > 2000) throw new Error('Keep the entry under 2000 characters.');
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date ?? ''))) throw new Error('That date is not valid.');
+  return text;
+}
+
+/* `date` is the dancer's own local day, YYYY-MM-DD, so the entry lands on the day they see. */
+export async function addJournalEntry({ date, body } = {}) {
+  const user = requireUser();
+  const text = journalText(body);
+  const day = journalDay(date);
   return toJournal(must(await supabase.from('journal_entries')
-    .insert({ user_id: user.id, entry_date: date, body: text }).select().single()));
+    .insert({ user_id: user.id, entry_date: day, body: text }).select().single()));
+}
+
+/* Change the day an entry is filed under, what it says, or both. The update policy in
+ * supabase/journal.sql only lets a dancer change their own entries. */
+export async function updateJournalEntry(id, { date, body } = {}) {
+  requireUser();
+  const row = {};
+  if (date !== undefined) row.entry_date = journalDay(date);
+  if (body !== undefined) row.body = journalText(body);
+  if (!Object.keys(row).length) throw new Error('Nothing to change.');
+  const saved = must(await supabase.from('journal_entries').update(row).eq('id', id).select().maybeSingle());
+  if (!saved) throw new Error('That journal entry is missing.');
+  return toJournal(saved);
 }
 
 /* One photo or video for one of my entries. The storage path starts with my id, which is the whole

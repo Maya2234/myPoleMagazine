@@ -72,10 +72,7 @@ function applyTheme(value) {
 
 //---------- shared bits ----------
 
-const UNRATED = 'unrated';
-
 const diffMeter = (n) => {
-  if (n === UNRATED) return html`<span class="diff-badge diff-unrated">Unrated</span>`;
   const value = Math.min(5, Math.max(1, Number(n) || 3));
   const label = store.difficultyLabel(value);
   return html`<span class="diff-badge">${label}</span>`;
@@ -84,6 +81,8 @@ const diffMeter = (n) => {
 //statuses of moves in current goals
 const statusValue = (value) =>
   (store.STATUSES.find((s) => s.value === value) ?? store.STATUSES[0]).value;
+const statusLabel = (value) =>
+  (store.STATUSES.find((s) => s.value === statusValue(value)) ?? store.STATUSES[0]).label;
 
 /* `headingId` names a visible label beside the control - the move's own page says *Current goal* next
  * to it - and takes over as the accessible name when it is given, since that is what the dancer can
@@ -152,9 +151,19 @@ const cameraIcon = html`<svg viewBox="0 0 24 24" width="14" height="14" fill="no
 const pencilIcon = html`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <path d="M4 20h4L20 8a2.83 2.83 0 0 0-4-4L4 16v4Z"/><path d="M14.5 5.5l4 4"/></svg>`;
-const profileIcon = html`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
-  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-  <circle cx="12" cy="8" r="3.75"/><path d="M4.75 20.5a7.25 7.25 0 0 1 14.5 0"/></svg>`;
+/* People are glossy pink figures with a highlight on the head and shoulders. The gradients live once
+ * in index.html (#pm-pink, #pm-gloss, #pm-glow), so these do not follow currentColor. */
+const personGlyph = html`<g class="gloss-person">
+    <path d="M4.2 21.2C3.8 16 7.3 13.2 12 13.2s8.2 2.8 7.8 8c-.05.6-.5.9-1.1.9H5.3c-.6 0-1.05-.3-1.1-.9Z"
+      fill="url(#pm-pink)" stroke="#b3176b" stroke-width=".5"/>
+    <ellipse cx="12" cy="20.4" rx="5.4" ry="1.7" fill="url(#pm-glow)"/>
+    <path d="M7 15.6c1.3-1.1 3-1.6 5-1.6s3.7.5 5 1.6c-1.4.5-3.1.8-5 .8s-3.6-.3-5-.8Z" fill="url(#pm-gloss)"/>
+    <circle cx="12" cy="7.2" r="4.7" fill="url(#pm-pink)" stroke="#b3176b" stroke-width=".5"/>
+    <ellipse cx="12" cy="4.9" rx="3" ry="1.8" fill="url(#pm-gloss)"/>
+    <ellipse cx="12" cy="10.6" rx="2.4" ry=".9" fill="url(#pm-glow)"/>
+  </g>`;
+const profileIcon = html`<svg class="gloss-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+  ${personGlyph}</svg>`;
 const supportIcon = html`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <circle cx="12" cy="12" r="9.5"/><path d="M9.3 9.3a2.9 2.9 0 0 1 5.6 1c0 1.9-2.9 2.4-2.9 2.4"/>
@@ -174,17 +183,34 @@ const crossIcon = html`<svg viewBox="0 0 24 24" width="18" height="18" fill="non
 const trashIcon = html`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`;
-const peopleIcon = html`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
-  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-  <circle cx="9" cy="8" r="3.25"/><path d="M3.5 19.5a5.5 5.5 0 0 1 11 0"/>
-  <path d="M16 5.25a3.25 3.25 0 0 1 0 5.5"/><path d="M17.5 14.5a5.5 5.5 0 0 1 3 5"/></svg>`;
+/* Community and sharing use the same single glossy figure as Account. */
+const peopleIcon = html`<svg class="gloss-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+  ${personGlyph}</svg>`;
 const settingsIcon = html`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <circle cx="12" cy="12" r="3"/>
   <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`;
+/* Home is the original outline four-point star; on a wide screen it is the whole tab. */
 const homeIcon = html`<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M12 3L14.0357 8.16153C14.2236 8.63799 14.3175 8.87622 14.4614 9.0771C14.5889 9.25516 14.7448 9.41106 14.9229 9.53859C15.1238 9.68245 15.362 9.77641 15.8385 9.96432L21 12L15.8385 14.0357C15.362 14.2236 15.1238 14.3175 14.9229 14.4614C14.7448 14.5889 14.5889 14.7448 14.4614 14.9229C14.3175 15.1238 14.2236 15.362 14.0357 15.8385L12 21L9.96432 15.8385C9.77641 15.362 9.68245 15.1238 9.53859 14.9229C9.41106 14.7448 9.25516 14.5889 9.0771 14.4614C8.87622 14.3175 8.63799 14.2236 8.16153 14.0357L3 12L8.16153 9.96432C8.63799 9.77641 8.87622 9.68245 9.0771 9.53859C9.25516 9.41106 9.41106 9.25516 9.53859 9.0771C9.68245 8.87622 9.77641 8.63799 9.96432 8.16153L12 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`
+</svg>`;
+const listIcon = html`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg>`;
+const bookIcon = html`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>`;
+/* The dictionary mark beside a move's name: an open book with its spine, page lines and a ribbon. */
+const dictIcon = html`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+  stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M12 6.5C10.3 5.2 7.6 4.5 3 4.5v13.2c4.6 0 7.3.7 9 2 1.7-1.3 4.4-2 9-2V4.5c-4.6 0-7.3.7-9 2Z"/>
+  <path d="M12 6.5v13.2"/>
+  <path d="M5.5 8.2c1.8 0 3.3.3 4.5.8M5.5 11c1.8 0 3.3.3 4.5.8M5.5 13.8c1.8 0 3.3.3 4.5.8"/>
+  <path d="M14 9c1.2-.5 2.7-.8 4.5-.8M14 11.8c1.2-.5 2.7-.8 4.5-.8"/>
+  <path d="M15.5 4.9v5.6l1.25-1 1.25 1V4.6"/></svg>`;
+const calendarIcon = html`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`;
 
 const dateText = (iso) =>
   new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
@@ -192,7 +218,9 @@ const catMap = async (userId) => new Map((await store.listCategories(userId)).ma
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const compareNames = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
 
-const backLink = (href, label) => html`<a class="btn small page-back" href="${href}" aria-label="${label}" title="${label}">←</a>`;
+const backIcon = html`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>`;
+const backLink = (href, label) => html`<a class="page-back" href="${href}" aria-label="${label}" title="${label}">${backIcon}</a>`;
 
 const joinText = (bits) => bits.flatMap((bit, i) => (i ? [' · ', bit] : [bit]));
 
@@ -329,17 +357,17 @@ function wireFollowActions(refresh) {
   })));
 }
 
+/* One move in a list: its name and how hard it is (and whose it is, in a list that gathers several
+ * dancers' moves). Where a move has got to is left to Current goals, the one list that is about
+ * progress, and the dictionary link is left to the move's own page. */
 const moveCard = (m, names = new Map(), owner = '') => {
-  const tags = m.categoryIds.map((id) => names.get(id)).filter(Boolean);
-  /* `owner` is for the one list that gathers several dancers' moves - a shared collection - where
-   * whose move it is is the first thing the card has to say. Every other list is already somebody's
-   * own, so there the line says nothing about it. */
-  const detail = [
-    ...(owner ? [html`<span class="tag">${owner}</span>`] : []),
-    ...tags.map((n) => html`<span class="tag">${n}</span>`),
-  ];
-  return html`<a class="card" href="#/move/${m.id}">
-    ${trickPreview({ name: m.name, difficulty: m.difficulty, detail })}
+  const sub = [owner, store.difficultyLabel(levelOf(m.difficulty))].filter(Boolean).join(' · ');
+  return html`<a class="move-row" href="#/move/${m.id}">
+    <span class="move-row-main">
+      <span class="move-row-name"><span class="move-row-title">${m.name}</span></span>
+      <span class="move-row-sub">${sub}</span>
+    </span>
+    <span class="move-row-chev" aria-hidden="true">${chevronIcon}</span>
   </a>`;
 };
 
@@ -371,24 +399,25 @@ function renderNav(section) {
   if (!me) return;
 
   const items = [
-    { key: 'home', href: '#/', name: 'Home', icon: html`<span class="home-nav-icon">${homeIcon}</span>` },
-    { key: 'moves', href: '#/moves', name: 'My Moves' },
-    { key: 'dictionary', href: '#/dictionary', name: 'Dictionary' },
-    { key: 'community', href: '#/community', name: 'Community' },
+    { key: 'home', href: '#/', name: 'Home', icon: homeIcon },
+    { key: 'moves', href: '#/moves', name: 'Moves', icon: listIcon },
+    { key: 'dictionary', href: '#/dictionary', name: 'Dictionary', icon: bookIcon },
+    { key: 'community', href: '#/community', name: 'Community', icon: peopleIcon },
     { key: 'account', href: '#/account', name: 'Account', icon: profileIcon },
   ];
 
   const pending = store.pendingCount();
+  /* Every tab is an icon over its word: on a phone that is the bottom bar everybody already knows,
+   * and on a wide screen the stylesheet shows the words alone. */
   const link = ({ key, href, name, icon }) => {
     const here = key === section ? raw('aria-current="page"') : '';
     const waiting = key === 'account' && pending;
     const pill = waiting ? html`<span class="pill" aria-hidden="true">${pending}</span>` : '';
     /* The count is in the accessible name too, since the pill itself is hidden from a screen reader
      * in favour of this sentence. */
-    const named = waiting ? `${name}, ${plural(pending, 'suggestion')} waiting for review` : name;
-    return icon
-      ? String(html`<a class="icon-only" data-nav="${key}" href="${href}" ${here} aria-label="${named}" title="${name}">${icon}${pill}</a>`)
-      : String(html`<a data-nav="${key}" href="${href}" ${here}>${name}</a>`);
+    const named = waiting ? raw(String(html`aria-label="${name}, ${plural(pending, 'suggestion')} waiting for review"`)) : '';
+    const tip = key === 'home' ? raw('title="Home"') : '';
+    return String(html`<a data-nav="${key}" href="${href}" ${here} ${named} ${tip}><span class="nav-ico">${icon}</span><span class="nav-label">${name}</span>${pill}</a>`);
   };
   nav.innerHTML = items.map(link).join('');
 }
@@ -399,7 +428,9 @@ const raw = (s) => new Safe(s);
 
 let screenHash = '';
 let cameFromHash = '';
-const backTo = (fallback) => (cameFromHash && cameFromHash !== screenHash ? cameFromHash : fallback);
+/* A form is never somewhere to go back to: once it is saved or cancelled, Back skips over it. */
+const isForm = (hash) => /^#\/move\/(new|[^/?]+\/edit)/.test(hash);
+const backTo = (fallback) => (cameFromHash && cameFromHash !== screenHash && !isForm(cameFromHash) ? cameFromHash : fallback);
 
 /* Finishing a form - a new move saved - sends the dancer back to the screen they started on, and the
  * form is not left in the trail behind it. It is a redirect rather than a step: `location.replace`
@@ -442,6 +473,7 @@ async function route({ keepScroll = false } = {}) {
   if (SECTION[parts[0] ?? ''] !== 'account') { openEditor = null; studioDraft = null; }
 
   renderNav(SECTION[parts[0] ?? ''] ?? '');
+  document.body.classList.toggle('on-form', isForm(hash));
 
   try {
     const [view, a, b] = parts;
@@ -704,7 +736,7 @@ function addPanelHtml(target, moves) {
       return html`<section class="goal-source-block">
         <input type="search" id="goal-dictionary-q" placeholder="Search the dictionary"
           aria-label="Search the dictionary" value="${goaldictionaryQuery}">
-        <div class="stack" id="goal-dictionary-list"></div>
+        <div class="stack grouped" id="goal-dictionary-list"></div>
       </section>`;
     }
     if (!moves.length) {
@@ -715,7 +747,7 @@ function addPanelHtml(target, moves) {
     }
     return html`<section class="goal-source-block">
       ${newMove}
-      <div class="stack" id="goal-move-list">
+      <div class="stack grouped" id="goal-move-list">
         ${alreadyLast(moves, (m) => m.categoryIds.includes(target.id)).map((m) => {
           const already = m.categoryIds.includes(target.id);
           /* Each row is left as markup, not turned into a string: stringified here it would be escaped
@@ -956,13 +988,10 @@ function wireGoalReorder(list, goals) {
       list, goals, card, pointerId: e.pointerId, from,
       startY: e.clientY, moved: false, active: false, slot: from, timer: 0,
     };
-    /* A mouse is captured at once and the drag begins when it travels; a finger holds still first,
-     * because until it does the press could still be the start of a scroll. */
-    if (e.pointerType === 'mouse') {
-      try { card.setPointerCapture(e.pointerId); } catch { /* released already */ }
-    } else {
-      goalDrag.timer = setTimeout(activateGoalDrag, HOLD);
-    }
+    /* A mouse is captured only once it travels (below), so a plain click still lands on the move's
+     * link and opens it; a finger holds still first, because until it does the press could still be
+     * the start of a scroll. */
+    if (e.pointerType !== 'mouse') goalDrag.timer = setTimeout(activateGoalDrag, HOLD);
   });
 
   list.addEventListener('pointermove', (e) => {
@@ -977,6 +1006,7 @@ function wireGoalReorder(list, goals) {
       }
       if (Math.abs(dy) < SLOP) return;
       goalDrag.active = true;
+      try { goalDrag.card.setPointerCapture(goalDrag.pointerId); } catch { /* released already */ }
     }
     if (!goalDrag.moved) {
       if (Math.abs(dy) < SLOP) return;
@@ -1067,7 +1097,7 @@ async function viewHome() {
   const inGoals = goals ? orderInGoals(moves.filter((m) => m.categoryIds.includes(goals.id)), goals.id) : [];
 
   const addButton = html`
-    <button type="button" class="btn primary" id="add-goal-toggle" aria-haspopup="dialog">+ Add new goal</button>`;
+    <button type="button" class="btn primary" id="add-goal-toggle" aria-haspopup="dialog">${plusIcon}<span>Add goal</span></button>`;
 
   show(html`
     <div class="page-head">
@@ -1086,7 +1116,7 @@ async function viewHome() {
       </div>` : ''}
 
     ${!goals ? '' : inGoals.length ? html`
-      <div class="stack" id="goal-list">
+      <div class="stack grouped" id="goal-list">
         ${inGoals.map((m) => html`
           <div class="card goal-card" data-goal-card="${m.id}">
             ${trickPreview({
@@ -1098,9 +1128,9 @@ async function viewHome() {
                   class="icon-btn plain goal-grip" data-grip="${m.id}"
                   title="Drag to reorder"
                   aria-label="Reorder ${m.name}, drag or use the arrow keys">${gripIcon}</button>` : ''}${statusSelect(m)}
-                <button type="button" class="btn small remove-dash" data-drop="${m.id}"
+                <button type="button" class="icon-btn plain remove-dash" data-drop="${m.id}"
                   title="Remove from current goals"
-                  aria-label="Remove ${m.name} from current goals">—</button>`,
+                  aria-label="Remove ${m.name} from current goals">${crossIcon}</button>`,
             })}
           </div>`)}
       </div>
@@ -1136,10 +1166,26 @@ async function viewHome() {
 
 //---------- my moves ----------
 
-const filters = { q: '', sort: 'recent' };
+/* What the search box on My moves has typed in it, kept across redraws so a status change or a trip
+ * into a move and back does not throw the search away. */
+let moveQuery = '';
+
+/* Every word typed has to appear somewhere on the move: its name, an entry, an exit, a combo, the
+ * notes, a collection it is in, or how hard it is. Words rather than one phrase,
+ * so "spin inverts" finds the spins filed under Inverts. */
+function moveMatches(m, query, names) {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length) return true;
+  const hay = [
+    m.name, ...m.entries, ...m.exits, ...m.combos, m.notes,
+    ...m.categoryIds.map((cid) => names.get(cid) ?? ''),
+    store.difficultyLabel(m.difficulty),
+  ].join(' ').toLowerCase();
+  return words.every((w) => hay.includes(w));
+}
 
 async function viewMoves() {
-  setTitle('Skill Roster');
+  setTitle('My moves');
   const me = store.currentUser();
   /* Mine and the ones I have joined: both are collections a move of mine can be in, and the tiles
    * below are how you get to either. */
@@ -1148,25 +1194,14 @@ async function viewMoves() {
   ]);
   const names = new Map(cats.map((c) => [c.id, c.name]));
 
-  const head = html`
-  <br>
-    <div class="page-head">
-    
-      <div><h1>Skill Roster</h1></div>
-      <a class="btn primary" href="#/move/new">+ Add move</a>
-    </div>`;
-
   /* An invitation is a tile in the collections grid, not a list of its own: it is a question with an
-   * answer owed on it, and it is met where the collections are met. It wears an "Invitation" mark
-   * and the two answers until one is given, and the tile it becomes after that is a collection like
-   * any other. Accepting goes straight to the collection, because that is the thing the dancer just
-   * joined; declining leaves the screen where it was, with one fewer question on it. */
+   * answer owed on it, and it is met where the collections are met. Accepting goes straight to the
+   * collection; declining leaves the screen where it was, with one fewer question on it. */
   const inviteTiles = invites.map((i) => html`
     <div class="coll-tile coll-invite">
       <span class="coll-invite-main">
-        <span class="coll-invite-mark">Invitation</span>
         <span class="coll-name">${i.name}</span>
-        <span class="coll-invite-from">from ${i.ownerName}</span>
+        <span class="coll-invite-from">Invitation from ${i.ownerName}</span>
       </span>
       <span class="coll-invite-actions">
         <button type="button" class="btn small primary" data-invite-accept="${i.id}"
@@ -1176,10 +1211,8 @@ async function viewMoves() {
       </span>
     </div>`);
 
-  /* Collections sit above the moves: the tiles, the + tile that opens the new-collection dialogue,
-   * and the invitations first, because they are the ones with something owed on them. A joined
-   * collection wears "shared" instead of a count, because the count is the moves in it that are
-   * mine and the tile would then say 0 for a class that is full of everybody else's work. */
+  /* A joined collection says "Shared" where the others give the number of moves of mine in it: the
+   * count would read 0 for a class that is full of everybody else's work. */
   const collections = html`
     <section class="coll-section" aria-labelledby="coll-title">
       <h2 class="subhead" id="coll-title">Collections</h2>
@@ -1199,60 +1232,68 @@ async function viewMoves() {
       </div>
     </section>`;
 
-  /* Wired after every draw of this page, empty or not, so the tiles always work. */
-  const wireCollections = () => {
-    $$('[data-invite-accept]').forEach((btn) => btn.addEventListener('click', () => attempt(async () => {
-      const id = await store.respondToInvite(btn.dataset.inviteAccept, true);
-      toast('You joined the collection.');
-      go(`#/collection/${id}`);
-    })));
-    $$('[data-invite-decline]').forEach((btn) => btn.addEventListener('click', () => attempt(async () => {
-      await store.respondToInvite(btn.dataset.inviteDecline, false);
-      toast('Invitation declined.');
-      await route({ keepScroll: true });
-    })));
-    $('#new-cat-open').addEventListener('click', () => attempt(async () => {
-      const cat = await newCollectionDialog();
-      if (cat) go(`#/collection/${cat.id}`);
-    }));
-  };
-
-  if (!moves.length) {
-    show(html`${head}${collections}
-      <div class="empty">
-        <h3>No moves yet</h3>
-        <a class="btn primary" href="#/move/new">Add your first move</a>
-      </div>`);
-    wireCollections();
-    return;
-  }
-
-  show(html`${head}${collections}
-    <h2 class="subhead">Moves</h2>
-    <div class="filters">
-      <div class="filter-row">
-        <select id="sort" aria-label="Sort moves">
-          <option value="recent" ${filters.sort === 'recent' ? raw('selected') : ''}>Recent</option>
-          <option value="name" ${filters.sort === 'name' ? raw('selected') : ''}>A to Z</option>
-          <option value="hard" ${filters.sort === 'hard' ? raw('selected') : ''}>Hardest first</option>
-        </select>
-      </div>
+  show(html`
+    <div class="page-head">
+      <h1>My moves</h1>
+      <a class="btn primary" href="#/move/new">${plusIcon}<span>New move</span></a>
     </div>
-    <div class="stack" id="move-list"></div>`);
+    ${collections}
+    <section class="block" aria-labelledby="moves-title">
+      <div class="block-head">
+        <h2 id="moves-title">Moves</h2>
+        <span class="block-count" id="move-count">${moves.length}</span>
+      </div>
+      ${moves.length ? html`
+        <div class="search-box">
+          ${searchIcon}
+          <input type="search" id="move-search" placeholder="Search moves, entries, notes…"
+            aria-label="Search your moves" autocomplete="off" enterkeyhint="search" value="${moveQuery}">
+          <button type="button" class="search-clear" id="move-search-clear" aria-label="Clear search"
+            title="Clear" hidden>${crossIcon}</button>
+        </div>
+        <div class="list-group" id="move-list"></div>` : html`
+        <div class="empty">
+          <h3>No moves yet</h3>
+          <p>Log the first trick you are working on.</p>
+          <a class="btn primary" href="#/move/new">${plusIcon}<span>New move</span></a>
+        </div>`}
+    </section>`);
 
+  $$('[data-invite-accept]').forEach((btn) => btn.addEventListener('click', () => attempt(async () => {
+    const cid = await store.respondToInvite(btn.dataset.inviteAccept, true);
+    toast('You joined the collection.');
+    go(`#/collection/${cid}`);
+  })));
+  $$('[data-invite-decline]').forEach((btn) => btn.addEventListener('click', () => attempt(async () => {
+    await store.respondToInvite(btn.dataset.inviteDecline, false);
+    toast('Invitation declined.');
+    await route({ keepScroll: true });
+  })));
+  $('#new-cat-open').addEventListener('click', () => attempt(async () => {
+    const cat = await newCollectionDialog();
+    if (cat) go(`#/collection/${cat.id}`);
+  }));
+
+  if (!moves.length) return;
   const list = $('#move-list');
+  const search = $('#move-search');
+  const clear = $('#move-search-clear');
+  const count = $('#move-count');
   const draw = () => {
-    const rows = [...moves];
-    if (filters.sort === 'name') rows.sort((a, b) => a.name.localeCompare(b.name));
-    if (filters.sort === 'hard') rows.sort((a, b) => b.difficulty - a.difficulty || a.name.localeCompare(b.name));
+    const rows = moves.filter((m) => moveMatches(m, moveQuery, names));
+    clear.hidden = !moveQuery;
+    count.textContent = moveQuery ? `${rows.length} of ${moves.length}` : String(moves.length);
+    list.classList.toggle('is-empty', !rows.length);
     list.innerHTML = rows.length
-      ? rows.map((m) => moveCard(m, names)).join('')
-      : String(html`<div class="empty">No moves match those filters.</div>`);
+      ? rows.map((m) => moveCard(m)).join('')
+      : String(html`<p class="list-empty">No moves match “${moveQuery.trim()}”.</p>`);
   };
   draw();
-
-  wireCollections();
-  $('#sort').addEventListener('change', (e) => { filters.sort = e.target.value; draw(); });
+  search.addEventListener('input', () => { moveQuery = search.value; draw(); });
+  search.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && search.value) { e.preventDefault(); search.value = ''; moveQuery = ''; draw(); }
+  });
+  clear.addEventListener('click', () => { search.value = ''; moveQuery = ''; draw(); search.focus(); });
 }
 
 //---------- photos & videos ----------
@@ -1297,10 +1338,10 @@ function mediaSection({ title, hint, rows, note, canUpload, me, panel = false })
       ${canUpload && !note ? html`
         <div class="upload-row">
           <input type="file" id="media-file" accept="image/*,video/*" multiple hidden>
-          <button type="button" class="icon-btn plain" id="media-add"
-            aria-label="Add photo or video" title="Add photo or video">${plusIcon}</button>
+          <button type="button" class="drop-btn" id="media-add" aria-describedby="media-limit">
+            ${cameraIcon}<span>Add photos or videos</span></button>
+          <p class="field-help" id="media-limit">Up to ${megabytes(store.MAX_UPLOAD_BYTES)} MB each.</p>
         </div>` : ''}
-      ${canUpload ? html`<span class="muted upload-note">JPG, PNG, WebP, GIF or MP4/WebM/MOV, up to ${megabytes(store.MAX_UPLOAD_BYTES)} MB each.</span>` : ''}
 
     </div>`;
 }
@@ -1336,198 +1377,321 @@ function wireMedia({ parent, rows, refresh }) {
 
 //---------- move ----------
 
+const levelOf = (value) => Math.min(5, Math.max(1, Number(value) || 3));
+
+/* How hard a move is, read at a glance: five short bars filled up to the level, and its name. */
+const diffBars = (value) => {
+  const level = levelOf(value);
+  return html`<span class="diff-meter" title="${store.difficultyLabel(level)}">
+    <span class="diff-meter-bars" aria-hidden="true">${[1, 2, 3, 4, 5].map((i) =>
+      html`<span class="${i <= level ? 'on' : ''}"></span>`)}</span>
+    <span class="diff-meter-label">${store.difficultyLabel(level)}</span>
+  </span>`;
+};
+
+/* The same five dashes as buttons, for the owner's own move page: tap a dash to set the level. */
+const diffPicker = (value) => {
+  const level = levelOf(value);
+  return html`<span class="diff-meter diff-picker" id="diff-picker" role="group" aria-label="Difficulty">
+    <span class="diff-meter-bars">${[1, 2, 3, 4, 5].map((i) =>
+      html`<button type="button" class="${i <= level ? 'on' : ''}" data-diff="${i}"
+        aria-label="${store.difficultyLabel(i)}" aria-pressed="${i === level ? 'true' : 'false'}"
+        title="${store.difficultyLabel(i)}"></button>`)}</span>
+    <span class="diff-meter-label">${store.difficultyLabel(level)}</span>
+  </span>`;
+};
+
+/* One choice out of a few, as a track with the chosen option lifted onto a pill. Native radios, so
+ * arrow keys, a screen reader and the form all work without help. */
+const segmented = ({ name, options, value, label, id = '' }) => html`
+  <div class="segmented" role="radiogroup" aria-label="${label}" ${id ? raw(`id="${id}"`) : ''}>
+    ${options.map((o) => html`<label class="segmented-opt">
+      <input type="radio" name="${name}" value="${o.value}"
+        ${String(o.value) === String(value) ? raw('checked') : ''}>
+      <span>${o.label}</span>
+    </label>`)}
+  </div>`;
+
+/* The photo or video a move's frame shows. A clip plays in place; a photo fills the frame. */
+const stageMedia = (m) => (m.kind === 'video'
+  ? html`<video src="${m.url}" controls preload="metadata" playsinline></video>`
+  : html`<img src="${m.url}" alt="${m.caption || 'Photo'}">`);
+
+/* A move page is the same page for everybody, built around one frame for its photos and videos:
+ * the name above it, and everything else about the move listed under it as its attributes. The
+ * frame and every attribute are drawn whether or not there is anything in them yet, so a dancer
+ * can see what a move can hold before opening the editor; an empty attribute's Add opens the editor
+ * at that field. The owner gets Edit and a status they can change in one tap; anybody else gets the
+ * one thing they can do with it, which is save it to their own moves. */
 async function viewMove(id) {
   const move = await store.getMove(id);
   if (!move) return notFound('That move does not exist, or it belongs to a private account.');
   setTitle(move.name);
 
   const me = store.currentUser();
-  if (move.userId === me.id) return viewMoveForm(id, new URLSearchParams());
-  const [owner, names, entry] = await Promise.all([
-    store.userById(move.userId),
-    catMap(move.userId),
+  const mine = move.userId === me.id;
+  const [owner, cats, entry] = await Promise.all([
+    mine ? me : store.userById(move.userId),
+    mine ? store.listMyCollections() : store.listCategories(move.userId),
     move.dictEntryId ? store.getEntry(move.dictEntryId) : null,
   ]);
+  const names = new Map(cats.map((c) => [c.id, c.name]));
   const ownerName = owner?.username ?? 'this dancer';
 
   let media = [];
   let mediaNote = '';
   try { media = await store.listMedia({ moveId: move.id }); }
   catch (err) { mediaNote = mediaSetupNote(err); }
-
   await store.loadEntryIndex();
-  const chipSection = (title, items) => items.length
-    ? html`<div class="section"><h2>${title}</h2><div class="chips">${
-        items.map((t) => partChip({ text: t, count: 1 }))}</div></div>`
-    : '';
+
+  const editAt = (field) => `#/move/${move.id}/edit?focus=${field}`;
+  /* An empty attribute: Add for the owner, which opens the editor on that field, and a quiet dash for
+   * anybody else, who has nothing to add to somebody else's move. */
+  const emptyValue = (field, label) => (mine
+    ? html`<a class="attr-add" href="${editAt(field)}" aria-label="Add ${label}">${plusIcon}<span>Add</span></a>`
+    : html`<span class="attr-none">—</span>`);
+  const chipsOf = (items) => html`<div class="chips">${items.map((t) => partChip({ text: t, count: 1 }))}</div>`;
+  const inCollections = move.categoryIds.filter((cid) => names.has(cid));
+  const attrs = [
+    { field: 'entries', label: 'Entries', value: move.entries.length ? chipsOf(move.entries) : '' },
+    { field: 'exits', label: 'Exits', value: move.exits.length ? chipsOf(move.exits) : '' },
+    { field: 'combos', label: 'Combos', value: move.combos.length ? chipsOf(move.combos) : '' },
+    { field: 'notes', label: 'Notes', value: move.notes ? html`<p class="attr-notes">${move.notes}</p>` : '' },
+  ];
+  /* The owner can close the empty photo box with its ×; adding photos then lives in the attribute
+   * list as one more "+ Add". Remembered per move in this browser only. */
+  const placeholderHidden = mine && !media.length && !mediaNote && mediaPlaceholderHidden(move.id);
+  /* The status bar can be closed with the x that shows on hover; it comes back from the list below. */
+  const statusHidden = mine && hiddenOnMove(STATUS_HIDDEN_KEY, move.id);
+  if (statusHidden) {
+    attrs.unshift({ field: 'status', label: 'Status',
+      value: html`<button type="button" class="attr-add" id="status-show" aria-label="Show the status bar">${plusIcon}<span>Add</span></button>` });
+  }
+  if (placeholderHidden) {
+    attrs.push({ field: 'media', label: 'Photos & videos',
+      value: html`<button type="button" class="attr-add" id="media-add" aria-label="Add photos or videos">${plusIcon}<span>Add</span></button>` });
+  }
+
+  /* The frame keeps one shape whatever is in it: empty, one photo, or a run of clips with the rest as
+   * thumbnails underneath. The owner's empty frame is the upload button itself. */
+  const first = media[0];
+  const frame = mediaNote
+    ? html`<div class="media-stage is-empty"><p class="media-stage-note">${mediaNote}</p></div>`
+    : first ? html`
+      <div class="media-stage" id="media-stage">${stageMedia(first)}</div>
+      ${media.length > 1 || mine ? html`<div class="media-thumbs" role="group" aria-label="Photos and videos">
+        ${media.map((m, i) => html`<span class="media-thumb">
+          <button type="button" class="media-thumb-btn${i === 0 ? ' is-on' : ''}" data-stage="${i}"
+            aria-label="Show ${m.kind} ${i + 1} of ${media.length}" aria-pressed="${i === 0 ? 'true' : 'false'}">
+            ${m.kind === 'video' ? html`<video src="${m.url}" preload="metadata" muted playsinline></video>`
+              : html`<img src="${m.url}" alt="" loading="lazy">`}
+          </button>
+          ${m.ownerId === me.id ? html`<button type="button" class="media-remove" data-remove="${m.id}"
+            aria-label="Remove this ${m.kind}">${crossIcon}</button>` : ''}
+        </span>`)}
+        ${mine ? html`<button type="button" class="media-thumb media-thumb-add" id="media-add"
+          aria-label="Add photos or videos" title="Add photos or videos">${plusIcon}</button>` : ''}
+      </div>` : ''}`
+      : placeholderHidden ? ''
+      : mine ? html`
+        <div class="media-empty-wrap">
+          <button type="button" class="media-stage is-empty" id="media-add" aria-describedby="media-limit">
+            ${cameraIcon}<span>Add photos or videos</span>
+            <small id="media-limit">Up to ${megabytes(store.MAX_UPLOAD_BYTES)} MB each</small>
+          </button>
+          <button type="button" class="media-empty-close" id="media-placeholder-close"
+            aria-label="Hide the photo box" title="Hide the photo box">${crossIcon}</button>
+        </div>`
+        : html`<div class="media-stage is-empty">${cameraIcon}<span>No photos or videos yet</span></div>`;
 
   show(html`
-    ${backLink(`#/user/${move.userId}`, `${ownerName}'s moves`)}
-    <div class="page-head">
-      <div>
-        <p class="eyebrow">Move by ${ownerName}</p>
+    <div class="page-bar">
+      ${backLink(mine ? backTo('#/moves') : `#/user/${move.userId}`, mine ? 'Back' : `${ownerName}'s profile`)}
+      ${mine
+        ? html`<a class="icon-btn" href="#/move/${move.id}/edit" title="Edit" aria-label="Edit ${move.name}">${pencilIcon}</a>`
+        : html`<button type="button" class="btn small primary" id="copy"
+            title="Copies the name only. ${ownerName}'s notes stay theirs.">${plusIcon}<span>Save to my moves</span></button>`}
+    </div>
+
+    <header class="move-hero">
+      <div class="move-title-line">
         <h1>${move.name}</h1>
+        ${entry ? html`<a class="dict-icon-link" href="#/dictionary/${entry.id}"
+          title="${entry.name} in the dictionary${entry.status === 'pending' ? ' (pending review)' : ''}"
+          aria-label="Open ${entry.name} in the dictionary">${dictIcon}</a>` : ''}
       </div>
+      ${mine ? '' : html`<p class="move-byline">by <a class="quiet-link" href="#/user/${move.userId}">${ownerName}</a></p>`}
+      ${mine ? diffPicker(move.difficulty) : diffBars(move.difficulty)}
+      ${mine && !statusHidden ? html`<div class="status-bar-wrap">
+        ${segmented({
+          name: 'move-status', label: `Where ${move.name} has got to`, id: 'move-status',
+          options: store.STATUSES, value: statusValue(move.status),
+        })}
+        <button type="button" class="status-bar-close" id="status-hide"
+          aria-label="Hide the status bar" title="Hide the status bar">${crossIcon}</button>
+      </div>` : ''}
+    </header>
+
+    <section class="move-media" aria-label="Photos and videos">
+      ${mine ? html`<input type="file" id="media-file" accept="image/*,video/*" multiple hidden>` : ''}
+      ${frame}
+    </section>
+
+    <dl class="detail-list">
+      ${attrs.map((a) => html`<div class="detail-row">
+        <dt>${a.label}</dt>
+        <dd>${a.value || emptyValue(a.field, a.label.toLowerCase())}</dd>
+      </div>`)}
+    </dl>
+
+    <div class="move-colls">
+      <span class="move-colls-label">Collections</span>
+      <div class="chips">${inCollections.length
+        ? inCollections.map((cid) => html`<a class="chip" href="#/collection/${cid}">${names.get(cid)}</a>`)
+        : mine ? emptyValue('cats', 'collections') : html`<span class="attr-none">—</span>`}</div>
     </div>
-
-    <div class="meta-row">
-      ${diffMeter(move.difficulty)}
-      ${entry ? html`<span class="tag">Dictionary: <a href="#/dictionary/${entry.id}">${entry.name}</a>${entry.status === 'pending' ? ' (pending review)' : ''}</span>`
-        : html`<span class="tag">Not in the dictionary</span>`}
-    </div>
-
-    ${chipSection('Entries', move.entries)}
-    ${chipSection('Exits', move.exits)}
-    ${chipSection('Combos', move.combos)}
-
-    ${move.categoryIds.length ? html`
-      <div class="section"><h2>Collections</h2><div class="chips">
-        ${move.categoryIds.filter((cid) => names.has(cid)).map((cid) =>
-          html`<a class="chip" href="#/collection/${cid}">${names.get(cid)}</a>`)}
-      </div></div>` : ''}
-
-    ${move.notes ? html`<div class="section"><h2>Notes</h2><div class="notes">${move.notes}</div></div>` : ''}
-
-    ${mediaSection({
-      title: 'Media',
-      hint: '',
-      rows: media, note: mediaNote, canUpload: false, me,
-    })}
-
-    <div class="actions">
-      <button type="button" class="btn primary" id="copy">Save to my goals</button>
-    </div>
-    <p class="muted fineprint">Only the name is copied. ${ownerName}'s notes, entries and exits stay theirs.</p>
   `);
 
-  $('#copy')?.addEventListener('click', () => {
-    attempt(async () => {
-      const { move: copy, existed } = await store.copyToMine(move.id);
-      toast(existed ? 'You already have that move.' : 'Added to your goals.');
-      go(`#/move/${copy.id}`);
+  $('#copy')?.addEventListener('click', () => attempt(async () => {
+    const { move: copy, existed } = await store.copyToMine(move.id);
+    toast(existed ? 'You already have that move.' : 'Saved to your moves.');
+    go(`#/move/${copy.id}`);
+  }));
+
+  $$('#move-status input').forEach((radio) => radio.addEventListener('change', () => attempt(async () => {
+    await store.setStatus(move.id, radio.value);
+    toast(`${move.name}: ${statusLabel(radio.value).toLowerCase()}.`);
+  })));
+
+  /* A thumbnail puts its photo or clip in the frame. */
+  $$('[data-stage]').forEach((btn) => btn.addEventListener('click', () => {
+    const m = media[Number(btn.dataset.stage)];
+    if (!m) return;
+    $('#media-stage').innerHTML = String(stageMedia(m));
+    $$('[data-stage]').forEach((b) => {
+      b.classList.toggle('is-on', b === btn);
+      b.setAttribute('aria-pressed', String(b === btn));
     });
+  }));
+
+  $('#media-placeholder-close')?.addEventListener('click', () => {
+    setMediaPlaceholderHidden(move.id);
+    route({ keepScroll: true });
   });
+  $('#status-hide')?.addEventListener('click', () => {
+    setHiddenOnMove(STATUS_HIDDEN_KEY, move.id, true);
+    route({ keepScroll: true });
+  });
+  $('#status-show')?.addEventListener('click', () => {
+    setHiddenOnMove(STATUS_HIDDEN_KEY, move.id, false);
+    route({ keepScroll: true });
+  });
+
+  /* The dashes are the difficulty control on your own move: a tap writes it straight away. */
+  $$('#diff-picker [data-diff]').forEach((btn) => btn.addEventListener('click', () => attempt(async () => {
+    const level = Number(btn.dataset.diff);
+    if (level === levelOf(move.difficulty)) return;
+    await store.saveMove({ ...move, status: undefined, difficulty: level });
+    route({ keepScroll: true });
+  })));
 
   wireMedia({ parent: { moveId: move.id }, rows: media, refresh: () => route({ keepScroll: true }) });
 }
 
-//---------- chip input ----------
+const STATUS_HIDDEN_KEY = 'mypolemagazine-hidden-status-bars';
+function hiddenOnMove(key, moveId) {
+  try { return JSON.parse(localStorage.getItem(key) ?? '[]').includes(moveId); }
+  catch { return false; }
+}
+function setHiddenOnMove(key, moveId, hidden) {
+  try {
+    const ids = JSON.parse(localStorage.getItem(key) ?? '[]').filter((id) => id !== moveId);
+    if (hidden) ids.push(moveId);
+    localStorage.setItem(key, JSON.stringify(ids));
+  } catch { /* private mode: it just will not stick */ }
+}
 
-/* A row of chips that is edited where it is read: every chip keeps its ×, and the + beside the
- * field's title is the way to add another. The + sits up there with the words rather than at the end
- * of the row, so every way of adding something to this move - a chip, a collection, a photo, the
- * notes - is in the same place: to the right of the title of the thing it adds to. There is no pencil
- * and no box around the row, because there is no state to switch between - what is on the card is
- * what you can change. Pressing + puts the text box at the end of the row, where the next chip
- * belongs; Enter (or a comma) adds one and leaves the box there for the next, Escape closes it and
- * drops the half-typed word, and clicking away closes it while keeping what was typed. */
-function chipField(el, initial, label) {
+const MEDIA_HIDDEN_KEY = 'mypolemagazine-hidden-photo-boxes';
+function mediaPlaceholderHidden(moveId) {
+  try { return JSON.parse(localStorage.getItem(MEDIA_HIDDEN_KEY) ?? '[]').includes(moveId); }
+  catch { return false; }
+}
+function setMediaPlaceholderHidden(moveId) {
+  try {
+    const ids = JSON.parse(localStorage.getItem(MEDIA_HIDDEN_KEY) ?? '[]');
+    if (!ids.includes(moveId)) ids.push(moveId);
+    localStorage.setItem(MEDIA_HIDDEN_KEY, JSON.stringify(ids));
+  } catch { /* private mode: the box just comes back next time */ }
+}
+
+//---------- tag input ----------
+
+/* Entries, exits and combos: one box that holds its chips and a text field after them, the way a
+ * tag field works everywhere else. Enter or a comma adds what was typed, Backspace in an empty field
+ * takes the last chip back off, and leaving the field keeps what was typed. The dictionary's names are
+ * offered as suggestions, so a chip that matches a trick links to it on the move's page. */
+function tagInput(el, initial, { label, placeholder }) {
   let items = [...initial];
-  let open = false;
 
   const input = document.createElement('input');
   input.type = 'text';
-  input.className = 'chip-text';
+  input.className = 'tag-text';
   input.maxLength = 80;
-  input.placeholder = 'Add…';
+  input.placeholder = placeholder;
+  input.autocomplete = 'off';
+  input.enterKeyHint = 'enter';
+  input.setAttribute('list', 'dict-names');
   input.setAttribute('aria-label', `Add to ${label}`);
 
-  const add = document.createElement('button');
-  add.type = 'button';
-  add.className = 'icon-btn plain chip-add';
-  add.innerHTML = String(plusIcon);
-  add.setAttribute('aria-label', `Add to ${label}`);
-  add.setAttribute('aria-expanded', 'false');
-  if (el.id) add.setAttribute('aria-controls', el.id);
-  add.title = `Add to ${label}`;
-  /* Beside the field's title, where every other add control on this page sits. */
-  el.closest('.field')?.querySelector('.field-head')?.append(add);
-
+  const has = (text) => items.some((i) => i.toLowerCase() === text.toLowerCase());
   const commit = () => {
     const value = input.value.trim().replace(/,+$/, '').trim();
     input.value = '';
-    if (value && !items.some((i) => i.toLowerCase() === value.toLowerCase())) items.push(value);
-    return Boolean(value);
+    if (value && !has(value)) { items.push(value); return true; }
+    return false;
   };
 
-  const chipFor = (text, index) => {
-    const chip = document.createElement('span');
-    chip.className = 'chip';
-    chip.append(text);
-    const x = document.createElement('button');
-    x.type = 'button';
-    x.className = 'chip-x';
-    x.setAttribute('aria-label', `Remove ${text}`);
-    x.textContent = '×';
-    x.addEventListener('click', () => {
-      items.splice(index, 1);
-      draw();
-      (open ? input : add).focus();
-    });
-    chip.append(x);
-    return chip;
-  };
-
-  /* Redrawing takes the box out of the document for a moment, which blurs it. The flag keeps that
-   * blur from being read as the dancer leaving the field - pressing Enter adds a chip and must leave
-   * the box open for the next one. */
-  let redrawing = false;
   const draw = () => {
-    redrawing = true;
-    el.replaceChildren();
-    items.forEach((text, i) => el.append(chipFor(text, i)));
-    if (open) el.append(input);
-    redrawing = false;
-    if (open) input.focus();
+    el.querySelectorAll('.chip').forEach((c) => c.remove());
+    items.forEach((text, index) => {
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.append(text);
+      const x = document.createElement('button');
+      x.type = 'button';
+      x.className = 'chip-x';
+      x.setAttribute('aria-label', `Remove ${text}`);
+      x.innerHTML = String(crossIcon);
+      x.addEventListener('click', (e) => {
+        e.stopPropagation();
+        items.splice(index, 1);
+        draw();
+        input.focus();
+      });
+      chip.append(x);
+      el.insertBefore(chip, input);
+    });
+    input.placeholder = items.length ? 'Add…' : placeholder;
   };
 
-  const openBox = () => {
-    open = true;
-    add.setAttribute('aria-expanded', 'true');
-    draw();
-  };
-  const closeBox = () => {
-    open = false;
-    input.value = '';
-    add.setAttribute('aria-expanded', 'false');
-    draw();
-    add.focus();
-  };
-
-  /* A press must not pull focus out of the box that is already open: the blur would commit the
-   * half-typed word and close it, and the click that follows would open it again. The keyboard path
-   * still comes through click, where the box takes the focus it is given. */
-  add.addEventListener('pointerdown', (e) => e.preventDefault());
-  add.addEventListener('click', openBox);
+  el.append(input);
+  el.addEventListener('click', (e) => { if (e.target === el) input.focus(); });
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ',') {
+    if ((e.key === 'Enter' || e.key === ',') && !e.isComposing) {
       e.preventDefault();
-      commit(); draw(); input.focus();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      closeBox();
+      if (commit()) draw();
     } else if (e.key === 'Backspace' && !input.value && items.length) {
-      items.pop(); draw(); input.focus();
+      items.pop();
+      draw();
     }
   });
-  /* Closing the box is also how a chip is added with the mouse: type, tap elsewhere. What it types is
-   * put in the row before the box is swapped out, and the other chips are left exactly where they
-   * are - a press on a chip's × blurs this box on the way down, and a row rebuilt at that moment
-   * would take the button out from under the press. */
-  input.addEventListener('blur', () => {
-    if (redrawing || !open) return;
-    open = false;
-    add.setAttribute('aria-expanded', 'false');
-    const value = input.value.trim().replace(/,+$/, '').trim();
-    input.value = '';
-    if (value && !items.some((i) => i.toLowerCase() === value.toLowerCase())) {
-      items.push(value);
-      el.insertBefore(chipFor(value, items.length - 1), input);
+  /* Picking a suggestion from the list fills the field without a key press; take it as a chip. */
+  input.addEventListener('input', (e) => {
+    if (e.inputType === 'insertReplacementText' || e.inputType === undefined) {
+      if (commit()) draw();
     }
-    /* The chips stay exactly where they are: a press on one's × blurs this box on the way down, and
-     * a row rebuilt at that moment would take the button out from under the press. Only the box goes. */
-    input.remove();
   });
+  input.addEventListener('blur', () => { if (commit()) draw(); });
 
   draw();
   return () => { commit(); return items; };
@@ -1535,45 +1699,12 @@ function chipField(el, initial, label) {
 
 //---------- add / edit move ----------
 
-/* Entries, exits and combos are edited where they are read: the chips keep their ×, and the + beside
- * the row's title opens the box at the end of the row for the next one. Notes is the one field that
- * still has two states - the paragraph the page draws, and the box to write it in - because a
- * paragraph is not a row of chips and has nowhere to put a + that would not be a second control
- * beside the text. */
-/* The one control beside a field's label: a + while the field is empty, so the way to start is the
- * thing a dancer can see, and the pencil once there is something to edit. Both open and close the
- * field the same way; only what the mark promises changes. */
-const fieldEditButton = (label, id, filled, controls = `f-${id}`) => html`<button type="button"
-  class="icon-btn plain" data-edit="${id}" aria-expanded="false" aria-controls="${controls}"
-  aria-label="${filled ? 'Edit' : 'Add'} ${label}"
-  title="${filled ? 'Edit' : 'Add'} ${label}">${filled ? pencilIcon : plusIcon}</button>`;
-
-/* The + beside Collections is the same mark every other field title carries, in the same place,
- * because it is the same act: adding one thing to this move. It opens the New collection dialogue,
- * and what the dialogue makes is ticked on straight away (see appendCollectionPill). */
-const addCollectionButton = html`<button type="button" class="icon-btn plain" id="cat-new"
-  aria-haspopup="dialog" aria-label="New collection"
-  title="New collection">${plusIcon}</button>`;
-
-/* A title over a row of chips, with the + that adds another beside it - the same place every other
- * add control on this page sits. */
-const chipRow = (label, control, id) => html`
-  <div class="field" id="field-${id}">
-    <div class="field-head"><span class="label">${label}</span></div>
-    ${control}
-  </div>`;
-
-/* Swap that control as chips are added or removed. The label is read from the field, so the
- * accessible name keeps matching the words on screen beside it. */
-const setFieldFilled = (id, filled) => {
-  const field = $(`#field-${id}`);
-  const btn = field?.querySelector('[data-edit]');
-  if (!field || !btn) return;
-  const label = field.querySelector('.field-head .label')?.textContent ?? '';
-  btn.innerHTML = String(filled ? pencilIcon : plusIcon);
-  btn.setAttribute('aria-label', `${filled ? 'Edit' : 'Add'} ${label}`);
-  btn.title = `${filled ? 'Edit' : 'Add'} ${label}`;
-};
+/* A collection this move can be in, as a chip that is ticked by tapping it. */
+const collectionChip = (c, checked, me) => html`<label class="check-chip">
+  <input type="checkbox" name="cat" value="${c.id}" ${checked ? raw('checked') : ''}>
+  <span>${checkIcon}${c.name}${c.isShared && c.userId !== me.id
+    ? html`<small class="check-chip-note">shared</small>` : ''}</span>
+</label>`;
 
 async function viewMoveForm(id, query) {
   const me = store.currentUser();
@@ -1582,11 +1713,9 @@ async function viewMoveForm(id, query) {
     move = await store.getMove(id);
     if (!move || move.userId !== me.id) return notFound('You can only edit your own moves.');
   }
-  setTitle(move ? `Edit ${move.name}` : 'Add move');
+  setTitle(move ? `Edit ${move.name}` : 'New move');
 
-  /* Every collection this move can be put in: mine, and the ones I have joined. Sharing is settled by
-   * the database (supabase/shared-collections.sql), so a project without it simply answers with the
-   * personal ones. */
+  /* Every collection this move can be put in: mine, and the ones I have joined. */
   const [entries, prefillEntry, cats] = await Promise.all([
     store.listEntries(),
     !move && query.get('entry') ? store.getEntry(query.get('entry')) : null,
@@ -1594,230 +1723,174 @@ async function viewMoveForm(id, query) {
   ]);
   const prefillCat = !move ? query.get('cat') : null;
   const m = move ?? {
-    name: prefillEntry?.name ?? '', difficulty: 3, entries: [], exits: [], combos: [],
+    name: prefillEntry?.name ?? '', difficulty: 3, status: 'goal', entries: [], exits: [], combos: [],
     notes: '', categoryIds: cats.some((c) => c.id === prefillCat) ? [prefillCat] : [],
     dictEntryId: prefillEntry?.id ?? null,
   };
-  /* Where Cancel and a finished save go: the screen this form was opened from - the dictionary, a
-   * trick's own page, or the roster. An entry id in the address is the dictionary's own link, so it
-   * is also the answer when a reload has left the app with no history to ask. An edit keeps the
-   * roster, because that is the list the move is managed from. */
-  const backHref = move ? '#/moves' : backTo(query.get('entry') ? '#/dictionary' : '#/moves');
-  const level = Math.min(5, Math.max(1, Number(m.difficulty) || 3));
-  /* What the title says: the name, linked to the trick it is filed under; a plain name when it is not
-   * linked; and a quiet prompt on a move that does not have one yet. */
-  const linkedEntry = m.dictEntryId ? entries.find((e) => e.id === m.dictEntryId) ?? null : null;
-  const titleInner = linkedEntry
-    ? html`<a class="quiet-link" href="#/dictionary/${linkedEntry.id}">${m.name || linkedEntry.name}</a>`
-    : m.name ? m.name : html`<span class="muted">Name this move</span>`;
+  /* Where Cancel and a finished save go. An edit goes back to the move. A new move goes back to the
+   * screen it was started from - the dictionary, a trick's page, a collection or My moves - because
+   * that is the list it was being added to; an entry id in the address answers that after a reload. */
+  const backHref = move ? `#/move/${move.id}` : backTo(query.get('entry') ? '#/dictionary' : '#/moves');
+  const level = levelOf(m.difficulty);
 
-  const view = html`
-    ${backLink(backHref, move ? 'My moves' : 'Cancel')}
-    <div class="page-head move-head">
-      <div class="move-ident">
-        <p class="eyebrow">${move ? 'Move' : 'New move'}</p>
-        <div class="move-title-row">
-          <h1 class="move-title" id="move-title">${titleInner}</h1>
-          <button type="button" class="icon-btn plain" id="edit-move-details" aria-haspopup="dialog"
-            aria-controls="move-details" aria-label="${m.name ? `Edit ${m.name}` : 'Name this move'}"
-            title="Name and dictionary entry">${pencilIcon}</button>
-        </div>
-      </div>
-      <div class="head-fields">
-        ${move ? html`<div class="head-field">
-          <span class="label" id="status-head">Current goal</span>
-          ${statusSelect(move, 'status-head')}
-        </div>` : ''}
-        <div class="head-field">
-          <div class="diff-edit">
-            <div class="diff-steps" role="radiogroup" aria-labelledby="diff-head">
-              ${[1, 2, 3, 4, 5].map((i) => html`<button type="button" class="diff-step ${i <= level ? 'on' : ''}"
-                role="radio" data-level="${i}" aria-checked="${i === level ? 'true' : 'false'}"
-                aria-label="${i} of 5"></button>`)}
-            </div>
-            <p class="diff-label" id="diff-label" aria-live="polite">${store.difficultyLabel(level)}</p>
-          </div>
-        </div>
-      </div>
+  show(html`
+    <div class="page-bar">
+      ${backLink(backHref, 'Cancel')}
     </div>
+    <div class="page-head"><h1>${move ? 'Edit move' : 'New move'}</h1></div>
 
-    <form class="form" id="move-form">
-      <input type="hidden" name="difficulty" value="${level}">
-
-      <label class="check-row field" id="suggest-row" hidden>
-        <input type="checkbox" name="suggest">
-        <span><strong>Suggest this as a new Dictionary entry</strong>
-          <small>An admin reviews it before it appears for everyone.</small></span>
-      </label>
-
-      ${chipRow('Entries', html`<div class="chip-field" id="f-entries"></div>`, 'entries')}
-      ${chipRow('Exits', html`<div class="chip-field" id="f-exits"></div>`, 'exits')}
-      ${chipRow('Combines well with...', html`<div class="chip-field" id="f-combos"></div>`, 'combos')}
-
-      <div class="field" id="field-cats">
-        <div class="field-head"><span class="label" id="cats-label">Collections</span>${addCollectionButton}</div>
-        <div class="checks" id="move-cats" role="group" aria-labelledby="cats-label">
-          ${cats.map((c) => html`<label class="check"><input type="checkbox" name="cat" value="${c.id}" ${m.categoryIds.includes(c.id) ? raw('checked') : ''}> ${c.name}${c.isShared && c.userId !== me.id ? html`<span class="check-shared">shared</span>` : ''}</label>`)}
-        </div>
-      </div>
-
-      <div class="field" id="media-field" role="group" aria-labelledby="media-label">
-        <div class="field-head">
-          <span class="label" id="media-label">Media</span>
-          <button type="button" class="icon-btn plain" id="move-files-add"
-            aria-label="Add photo or video" title="Add photo or video">${plusIcon}</button>
-        </div>
-        <input type="file" id="move-files" accept="image/*,video/*" multiple hidden>
-        <ul class="file-list" id="move-file-list"></ul>
-        <div class="media-grid" id="move-media" hidden></div>
-        <p class="field-help" id="move-media-note" hidden></p>
-      </div>
-
-      <div class="field" id="field-notes" data-editing="off">
-        <div class="field-head">
-          <label class="label" for="notes-text">Notes</label>
-          ${fieldEditButton('Notes', 'notes', Boolean((m.notes ?? '').trim()), 'notes-text')}
-        </div>
-        <p class="notes-read" id="notes-read"></p>
-        <textarea class="notes-input" id="notes-text" name="notes" maxlength="2000" placeholder="">${m.notes}</textarea>
-      </div>
-
-      <div class="actions">
-        <button class="btn primary" type="submit">Save</button>
-        ${move ? html`<button type="button" class="btn danger" id="delete">Delete from My Moves</button>`
-          : html`<a class="btn" href="${backHref}">Cancel</a>`}
-      </div>
-    </form>
-
-    <dialog class="sheet" id="move-details" aria-labelledby="move-details-title">
-      <h2 id="move-details-title">Name and dictionary entry</h2>
-      <div class="form">
-        <label class="field"><span>Name</span>
-          <input type="text" id="move-name" name="name" form="move-form" maxlength="80"
-            autocomplete="off" list="dict-names" value="${m.name}" placeholder="Name this move">
+    <form class="form move-form" id="move-form" novalidate>
+      <section class="form-card">
+        <label class="field" for="move-name">
+          <span class="label">Name</span>
+          <input type="text" id="move-name" name="name" maxlength="80" autocomplete="off"
+            list="dict-names" value="${m.name}" placeholder="e.g. Fireman spin" required>
         </label>
-        <datalist id="dict-names">${entries.map((e) => html`<option value="${e.name}"></option>`)}</datalist>
+        <datalist id="dict-names">${entries.filter((e) => e.status !== 'pending' || e.submittedBy === me.id)
+          .map((e) => html`<option value="${e.name}"></option>`)}</datalist>
 
+        <div class="dict-line">
+          <span class="dict-state" id="dict-state"></span>
+          <button type="button" class="btn-text" id="dict-change" aria-expanded="false"
+            aria-controls="dict-picker">Change</button>
+        </div>
+        <div class="dict-picker" id="dict-picker" hidden>
+          <select id="dict-select" name="dict" aria-label="Dictionary entry">
+            <option value="">Not linked</option>
+            ${entries.map((e) => html`<option value="${e.id}" ${m.dictEntryId === e.id ? raw('selected') : ''}>${e.name}${e.status === 'pending' ? ' (pending review)' : ''}</option>`)}
+          </select>
+        </div>
+        <label class="check-row" id="suggest-row" hidden>
+          <input type="checkbox" name="suggest">
+          <span>Suggest it for the dictionary</span>
+        </label>
+      </section>
+
+      <section class="form-card">
+        <fieldset class="field">
+          <legend class="label">Status</legend>
+          ${segmented({ name: 'status', label: 'Status', options: store.STATUSES, value: statusValue(m.status) })}
+        </fieldset>
+        <fieldset class="field">
+          <legend class="label">How hard is it for you? <span class="label-value" id="diff-label">${store.difficultyLabel(level)}</span></legend>
+          <div class="diff-pick" role="radiogroup" aria-label="How hard it is for you">
+            ${store.DIFFICULTIES.map((d) => html`<label class="diff-opt">
+              <input type="radio" name="difficulty" value="${d.value}" ${d.value === level ? raw('checked') : ''}
+                aria-label="${d.label}">
+              <span aria-hidden="true"></span>
+            </label>`)}
+          </div>
+        </fieldset>
+      </section>
+
+      <section class="form-card">
         <div class="field">
-          <span class="label">Dictionary entry</span>
-          <div class="dict-link">
-            <span id="dict-link-value">${linkedEntry ? linkedEntry.name : 'Not linked'}</span>
-            <button type="button" class="btn small" id="dict-change" aria-expanded="false"
-              aria-controls="dict-picker">Change</button>
-          </div>
-          <div id="dict-picker" hidden>
-            <select id="dict-select" name="dict" form="move-form" aria-label="Dictionary entry">
-              <option value="">Not linked</option>
-              ${entries.map((e) => html`<option value="${e.id}" ${m.dictEntryId === e.id ? raw('selected') : ''}>${e.name}${e.status === 'pending' ? ' (pending review)' : ''}</option>`)}
-            </select>
-          </div>
-          <small class="muted field-help">The dictionary trick keeps its own name; this move can be
-            called whatever you call it.</small>
-          <p class="dict-hint" id="dict-hint"></p>
+          <span class="label" id="entries-label">Entries</span>
+          <div class="tag-input" id="f-entries" role="group" aria-labelledby="entries-label"></div>
         </div>
+        <div class="field">
+          <span class="label" id="exits-label">Exits</span>
+          <div class="tag-input" id="f-exits" role="group" aria-labelledby="exits-label"></div>
+        </div>
+        <div class="field">
+          <span class="label" id="combos-label">Combos</span>
+          <div class="tag-input" id="f-combos" role="group" aria-labelledby="combos-label"></div>
+        </div>
+      </section>
 
-        <div class="actions">
-          <button type="button" class="btn primary" id="move-details-done">Done</button>
+      <section class="form-card">
+        <label class="field" for="notes-text">
+          <span class="label">Notes</span>
+          <textarea id="notes-text" name="notes" maxlength="2000" rows="4"
+            placeholder="Grip, cues, what to work on next">${m.notes}</textarea>
+        </label>
+      </section>
+
+      <section class="form-card">
+        <div class="field">
+          <span class="label" id="cats-label">Collections</span>
+          <div class="check-chips" id="move-cats" role="group" aria-labelledby="cats-label">
+            ${cats.map((c) => collectionChip(c, m.categoryIds.includes(c.id), me))}
+            <button type="button" class="add-chip" id="cat-new" aria-haspopup="dialog">${plusIcon}<span>New</span></button>
+          </div>
         </div>
+      </section>
+
+      <section class="form-card">
+        <div class="field" id="media-field">
+          <span class="label" id="media-label">Photos &amp; videos</span>
+          <input type="file" id="move-files" accept="image/*,video/*" multiple hidden>
+          <div class="media-grid" id="move-media" hidden></div>
+          <ul class="file-list" id="move-file-list"></ul>
+          <button type="button" class="drop-btn" id="move-files-add" aria-describedby="media-limit">
+            ${cameraIcon}<span>Add photos or videos</span>
+          </button>
+          <p class="field-help" id="media-limit">Up to ${megabytes(store.MAX_UPLOAD_BYTES)} MB each.</p>
+          <p class="field-help" id="move-media-note" hidden></p>
+        </div>
+      </section>
+
+      ${move ? html`<div class="danger-line">
+        <button type="button" class="btn-text danger" id="delete">${trashIcon}<span>Delete move</span></button>
+      </div>` : ''}
+
+      <div class="form-bar">
+        <a class="btn" href="${backHref}">Cancel</a>
+        <button class="btn primary" type="submit" id="move-save">${move ? 'Save changes' : 'Add move'}</button>
       </div>
-    </dialog>`;
-  show(view);
+    </form>`);
+
+  const form = $('#move-form');
+  /* Cancel leaves the form out of the history, the same way a save does. */
+  $$('.page-bar .page-back, .form-bar a.btn').forEach((a) => a.addEventListener('click', (e) => {
+    e.preventDefault();
+    returnFromForm(backHref);
+  }));
   if (move) {
-    wireStatusSelects([move]);
     $('#delete').addEventListener('click', () => attempt(async () => {
       const yes = await confirmDialog({
         title: 'Delete this move?',
-        body: `“${move.name}” is deleted from My Moves, and from every collection it was in.`,
+        body: `“${move.name}” is deleted from My moves, and from every collection it was in.`,
         confirmLabel: 'Delete',
         danger: true,
       });
       if (!yes) return;
       await store.deleteMove(move.id);
       toast('Move deleted.');
-      go('#/moves');
+      returnFromForm('#/moves');
     }));
   }
 
-  const formEl = $('#move-form');
-  const diffInput = formEl.elements.difficulty;
   const diffLabel = $('#diff-label');
-  /* The dashes live in the page head now, beside the name, so they are found on the page rather than
-   * inside the form - the hidden input carrying the answer is still in the form, which is what the
-   * save reads. */
-  $$('.diff-step').forEach((step) => step.addEventListener('click', () => {
-    const n = Number(step.dataset.level);
-    diffInput.value = String(n);
-    $$('.diff-step').forEach((s) => {
-      const sn = Number(s.dataset.level);
-      s.classList.toggle('on', sn <= n);
-      s.setAttribute('aria-checked', String(sn === n));
-    });
-    diffLabel.textContent = store.difficultyLabel(n);
+  $$('input[name="difficulty"]').forEach((r) => r.addEventListener('change', () => {
+    diffLabel.textContent = store.difficultyLabel(r.value);
   }));
 
-  /* The + opens the new-collection dialogue, and what it makes is ticked on, so this move lands in
-   * it when the form is saved. The collection itself exists from the moment it is created - which is
-   * what lets it be ticked straight away - rather than being a name parked on the form. */
-  $('#cat-new')?.addEventListener('click', () => attempt(async () => {
+  /* The + makes a collection straight away and ticks it, so the move lands in it on save. */
+  $('#cat-new').addEventListener('click', () => attempt(async () => {
     const made = await newCollectionDialog();
     if (made) appendCollectionPill(made);
   }));
 
-  const form = $('#move-form');
-  const getEntries = chipField($('#f-entries'), m.entries, 'entries');
-  const getExits = chipField($('#f-exits'), m.exits, 'exits');
-  const getCombos = chipField($('#f-combos'), m.combos, 'combos');
+  const getEntries = tagInput($('#f-entries'), m.entries, { label: 'entries', placeholder: 'How you get in, e.g. Front hook' });
+  const getExits = tagInput($('#f-exits'), m.exits, { label: 'exits', placeholder: 'How you get out, e.g. Floor sit' });
+  const getCombos = tagInput($('#f-combos'), m.combos, { label: 'combos', placeholder: 'Moves it flows into' });
 
-  /* The pencil beside a label opens that one field. `data-editing` carries the state, which is all the
-   * stylesheet needs to swap a chip that can be deleted for plain pills and text (see .field[data-
-   * editing] in style.css). Closing it again leaves the value alone: the input is hidden, not cleared. */
-  $$('[data-edit]').forEach((btn) => btn.addEventListener('click', () => {
-    const field = btn.closest('.field');
-    const on = field.dataset.editing !== 'on';
-    field.dataset.editing = on ? 'on' : 'off';
-    btn.setAttribute('aria-expanded', String(on));
-    if (on) field.querySelector('.chip-text, .notes-input')?.focus();
-  }));
+  /* The notes box grows with what is written in it, so a long note is read in one piece. */
+  const notes = $('#notes-text');
+  const grow = () => { notes.style.height = 'auto'; notes.style.height = `${Math.max(110, notes.scrollHeight + 2)}px`; };
+  notes.addEventListener('input', grow);
+  requestAnimationFrame(grow);
 
-  /* What the notes say, before and while they are edited: the paragraph is the one the move's own page
-   * draws, and an empty note is a line of muted text rather than an empty box. */
-  const notesInput = $('#notes-text');
-  const notesRead = $('#notes-read');
-  const syncNotes = () => {
-    const text = notesInput.value.trim();
-    notesRead.textContent = text;
-    notesRead.classList.toggle('is-empty', !text);
-    setFieldFilled('notes', Boolean(text));
-  };
-  notesInput.addEventListener('input', syncNotes);
-  syncNotes();
-
-  const details = $('#move-details');
-  const titleEl = $('#move-title');
-  const nameInput = form.elements.name;
-  const dictSelect = form.elements.dict;
+  /* The name and the dictionary entry it is filed under. Typing a name the dictionary knows links it;
+   * typing one it does not offers to suggest it; Change opens the full list. */
+  const nameInput = $('#move-name');
+  const dictSelect = $('#dict-select');
   const dictPicker = $('#dict-picker');
   const dictChange = $('#dict-change');
-  const dictValue = $('#dict-link-value');
-  const editDetails = $('#edit-move-details');
+  const dictState = $('#dict-state');
   const suggestRow = $('#suggest-row');
-  const hint = $('#dict-hint');
   let autoLinked = false;
-
-  /* The title says the name and, when there is one, links to the trick the move is filed under.
-   * Typing in the dialogue redraws it, so the page behind the box already says what is about to be
-   * saved - and a move with no link is a plain title rather than a link to nowhere. */
-  const drawTitle = () => {
-    const name = nameInput.value.trim();
-    const linked = entries.find((e) => e.id === dictSelect.value) ?? null;
-    titleEl.innerHTML = String(html`${linked
-      ? html`<a class="quiet-link" href="#/dictionary/${linked.id}">${name || linked.name}</a>`
-      : name || html`<span class="muted">Name this move</span>`}`);
-    dictValue.innerHTML = String(html`${linked
-      ? html`<a class="quiet-link" href="#/dictionary/${linked.id}">${linked.name}</a>`
-      : 'Not linked'}`);
-    editDetails.setAttribute('aria-label', name ? `Edit ${name}` : 'Name this move');
-  };
 
   const sync = () => {
     const typed = nameInput.value.trim().toLowerCase();
@@ -1829,55 +1902,52 @@ async function viewMoveForm(id, query) {
       dictSelect.value = '';
       autoLinked = false;
     }
-    hint.textContent = autoLinked
-      ? `Matched "${dictSelect.selectedOptions[0].textContent}" in the dictionary.`
-      : '';
+    const linked = entries.find((e) => e.id === dictSelect.value) ?? null;
+    dictState.innerHTML = String(linked
+      ? html`${bookIcon}<span>In the dictionary as <a class="quiet-link" href="#/dictionary/${linked.id}">${linked.name}</a></span>`
+      : html`${bookIcon}<span class="muted">Not in the dictionary</span>`);
+    dictChange.textContent = dictPicker.hidden ? (linked ? 'Change' : 'Link') : 'Done';
     suggestRow.hidden = !(typed && !dictSelect.value && !match);
-    drawTitle();
   };
 
-  const openDetails = () => {
-    /* The dropdown is the least frequent thing in here: the entry the move is filed under is a link
-     * on a line of its own, and changing it is one press away rather than a list shown every time the
-     * name is looked at. */
-    dictPicker.hidden = true;
-    dictChange.setAttribute('aria-expanded', 'false');
-    if (!details.open) details.showModal();
-    nameInput.focus();
-    nameInput.select();
-  };
-  editDetails.addEventListener('click', openDetails);
-  $('#move-details-done').addEventListener('click', () => details.close());
   dictChange.addEventListener('click', () => {
-    const show = dictPicker.hidden;
-    dictPicker.hidden = !show;
-    dictChange.setAttribute('aria-expanded', String(show));
-    if (show) dictSelect.focus();
+    const open = dictPicker.hidden;
+    dictPicker.hidden = !open;
+    dictChange.setAttribute('aria-expanded', String(open));
+    sync();
+    if (open) dictSelect.focus();
   });
-
   nameInput.addEventListener('input', sync);
   dictSelect.addEventListener('change', () => { autoLinked = false; sync(); });
   sync();
+  if (!move && !m.name) nameInput.focus();
+  const focusField = {
+    entries: '#f-entries .tag-text', exits: '#f-exits .tag-text', combos: '#f-combos .tag-text',
+    notes: '#notes-text', cats: '#move-cats input, #cat-new', media: '#move-files-add',
+  }[query.get('focus')];
+  /* After the router has put the page at the top, which it does once the view is drawn. */
+  if (move && focusField) {
+    setTimeout(() => {
+      const target = $(focusField);
+      target?.closest('.form-card')?.scrollIntoView({ block: 'center' });
+      target?.focus({ preventScroll: true });
+    }, 0);
+  }
 
-  /* A new move arrives with no name, and the name is no longer a box on the page: opening the one
-   * place it can be typed is what makes the page usable as soon as it opens. A move prefilled from
-   * the dictionary already has a name, so that one is left closed. */
-  if (!move && !m.name) openDetails();
-
-//---------- move photos & videos ----------
+  //---------- move photos & videos ----------
 
   let picked = [];
   let mediaEnabled = true;  // false if media tables are unavailable
 
   const drawPicked = () => {
     const list = $('#move-file-list');
-    list.innerHTML = picked.length ? picked.map((f, i) => String(html`
+    list.innerHTML = picked.map((f, i) => String(html`
       <li class="file-chip">
         <span class="file-chip-name">${f.name}</span>
         <span class="file-chip-size">${fileSize(f.size)}</span>
         <button type="button" class="file-chip-x" data-unpick="${i}"
-          aria-label="Do not upload ${f.name}">×</button>
-      </li>`)).join('') : '';
+          aria-label="Do not upload ${f.name}">${crossIcon}</button>
+      </li>`)).join('');
     $$('[data-unpick]').forEach((btn) => btn.addEventListener('click', () => {
       picked.splice(Number(btn.dataset.unpick), 1);
       drawPicked();
@@ -1925,51 +1995,48 @@ async function viewMoveForm(id, query) {
     attempt(async () => {
       const data = new FormData(form);
       const name = String(data.get('name') ?? '').trim();
-      /* The name is the page's title, so there is no field to leave empty by accident - but a title
-       * can still be cleared, and a move with no name would be a blank card in every list it is in. */
       if (!name) {
         toast('Give the move a name first.', true);
-        if (details.open) nameInput.focus();
-        else openDetails();
+        nameInput.focus();
         return;
       }
-      let dictEntryId = data.get('dict') || null;
-      if (!dictEntryId && data.get('suggest')) {
-        const { entry, created } = await store.submitEntry(name);
-        dictEntryId = entry.id;
-        if (created) toast(entry.status === 'pending' ? 'Move saved. Dictionary suggestion sent for review.' : 'Move saved.');
-      }
-      const categoryIds = data.getAll('cat');
-
-      const saved = await store.saveMove({
-        id: move?.id, name, difficulty: data.get('difficulty'),
-        entries: getEntries(), exits: getExits(), combos: getCombos(),
-        notes: data.get('notes'), categoryIds, dictEntryId,
-      });
-      if (!data.get('suggest') && !picked.length) toast('Move saved.');
-
-      if (picked.length && !mediaEnabled) {
-        toast('Move saved. Uploads are not switched on for this project yet: run supabase/media.sql, '
-          + 'then add the files from the move page.', true);
-      } else if (picked.length) {
-        try {
-          for (const file of picked) {
-            toast(`Uploading ${file.name}…`);
-            await store.uploadMedia(file, { moveId: saved.id });
-          }
-          toast(picked.length === 1 ? 'Move saved, with its photo or video.'
-            : `Move saved, with ${plural(picked.length, 'file')}.`);
-        } catch (err) {
-          toast(`Move saved, but the upload failed: ${err.message}`, true);
+      const save = $('#move-save');
+      save.disabled = true;
+      try {
+        let dictEntryId = data.get('dict') || null;
+        if (!dictEntryId && data.get('suggest')) {
+          const { entry, created } = await store.submitEntry(name);
+          dictEntryId = entry.id;
+          if (created) toast(entry.status === 'pending' ? 'Move saved. Dictionary suggestion sent for review.' : 'Move saved.');
         }
+        const saved = await store.saveMove({
+          id: move?.id, name, difficulty: data.get('difficulty'), status: data.get('status') ?? 'goal',
+          entries: getEntries(), exits: getExits(), combos: getCombos(),
+          notes: data.get('notes'), categoryIds: data.getAll('cat'), dictEntryId,
+        });
+        if (!data.get('suggest') && !picked.length) toast(move ? 'Saved.' : 'Move added.');
+
+        if (picked.length && !mediaEnabled) {
+          toast('Move saved. Uploads are not switched on for this project yet: run supabase/media.sql, '
+            + 'then add the files from the move page.', true);
+        } else if (picked.length) {
+          try {
+            for (const file of picked) {
+              toast(`Uploading ${file.name}…`);
+              await store.uploadMedia(file, { moveId: saved.id });
+            }
+            toast(picked.length === 1 ? 'Move saved, with its photo or video.'
+              : `Move saved, with ${plural(picked.length, 'file')}.`);
+          } catch (err) {
+            toast(`Move saved, but the upload failed: ${err.message}`, true);
+          }
+        }
+        /* An edit lands back on the move, and the form is not left in the history behind it. A new
+         * move goes back to the list it was being added to. */
+        returnFromForm(move ? `#/move/${saved.id}` : backHref);
+      } finally {
+        save.disabled = false;
       }
-      /* An edit lands back on the page it was made on. A new move goes back to the screen it was
-       * started from rather than to the move's own page: the form was opened to put something into a
-       * list - a collection, the dictionary's "add to my moves", the roster - and that list is where
-       * the new move now shows up. Its own page, where entries and exits are filled in, is one tap
-       * away on its card. */
-      if (move) await route({ keepScroll: true });
-      else returnFromForm(backHref);
     });
   });
 
@@ -2130,10 +2197,9 @@ function wireDancerSearch({ input, results, taken, action = 'Invite', onPick }) 
 }
 
 /* The + beside Collections opens this rather than unrolling a box inside the form. It asks for a
- * name and, beside it, for the dancers to invite: the moment a collection exists it is open to
- * invitations, so there is no "share" checkbox to tick first - the picker asks the same question the
- * collection's **Share collection** box asks afterwards. It resolves with the collection it made, or null when it was
- * closed, and the caller decides what to do with it - the move form ticks it on. */
+ * name only: dancers are invited afterwards from the collection's **Share collection** box. It
+ * resolves with the collection it made, or null when it was closed, and the caller decides what to
+ * do with it - the move form ticks it on. */
 function newCollectionDialog() {
   return new Promise((resolve) => {
     let dialog = $('#new-collection-dialog');
@@ -2142,35 +2208,12 @@ function newCollectionDialog() {
         '<dialog class="sheet" id="new-collection-dialog" aria-labelledby="new-collection-title"></dialog>');
       dialog = $('#new-collection-dialog');
     }
-    const canInvite = store.sharedEnabled() && store.invitesEnabled();
-    const picked = new Map();   // dancer id -> profile, as chosen before the collection exists
-    const taken = new Map();    // dancer id -> what the search button should say once picked
-
     dialog.innerHTML = String(html`
       <h2 id="new-collection-title">New collection</h2>
       <form class="form" id="new-collection-form">
         <label class="field"><span>Name</span>
           <input type="text" name="name" maxlength="40" required autocomplete="off"
-            placeholder="Monday class"></label>
-        <div class="field" id="new-collection-dancers">
-          <div class="field-head">
-            <span class="label">Dancers</span>
-            ${canInvite ? html`<button type="button" class="icon-btn plain"
-              id="new-collection-add-dancer" aria-label="Add a dancer" title="Add a dancer"
-              aria-expanded="false" aria-controls="new-collection-search">${plusIcon}</button>` : ''}
-          </div>
-          <div class="dancer-picked" id="new-collection-picked"></div>
-          ${canInvite ? html`
-            <div class="dancer-search" id="new-collection-search" hidden>
-              <input type="search" id="new-collection-search-input" autocomplete="off"
-                placeholder="Search by username" aria-label="Search dancers by username">
-              <div class="dancer-results" id="new-collection-results" aria-live="polite"></div>
-            </div>
-            <p class="field-help">They get an invitation when the collection is made. Their own moves
-              stay as private as their account is.</p>` : html`
-            <p class="field-help">Invitations are not switched on for this project yet: run
-              <code>supabase/shared-collections.sql</code> in the Supabase SQL editor, then reload.</p>`}
-        </div>
+            placeholder="Favorites"></label>
         <div class="actions">
           <button class="btn primary" type="submit">Create</button>
           <button class="btn" type="button" id="new-collection-cancel">Cancel</button>
@@ -2188,44 +2231,6 @@ function newCollectionDialog() {
      * is caught. */
     dialog.addEventListener('close', () => finish(null));
 
-    const pickedBox = $('#new-collection-picked', dialog);
-    const drawPicked = () => {
-      pickedBox.innerHTML = [...picked.values()].map((u) => String(html`<span class="chip">@${u.username}
-        <button type="button" class="chip-x" data-unpick="${u.id}"
-          aria-label="Take ${u.username} off the invitation list">×</button></span>`)).join('');
-    };
-
-    let picker = null;
-    if (canInvite) {
-      const searchBox = $('#new-collection-search', dialog);
-      const toggle = $('#new-collection-add-dancer', dialog);
-      toggle.addEventListener('click', () => {
-        const open = searchBox.hidden;
-        searchBox.hidden = !open;
-        toggle.setAttribute('aria-expanded', String(open));
-        if (open) $('#new-collection-search-input', dialog).focus();
-      });
-      picker = wireDancerSearch({
-        input: $('#new-collection-search-input', dialog),
-        results: $('#new-collection-results', dialog),
-        taken,
-        action: 'Add',
-        onPick: (user) => {
-          picked.set(user.id, user);
-          drawPicked();
-          return true;
-        },
-      });
-      pickedBox.addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-unpick]');
-        if (!btn) return;
-        picked.delete(btn.dataset.unpick);
-        taken.delete(btn.dataset.unpick);
-        drawPicked();
-        picker.draw();
-      });
-    }
-
     const form = $('#new-collection-form', dialog);
     form.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -2235,25 +2240,7 @@ function newCollectionDialog() {
       attempt(async () => {
         try {
           const cat = await store.createCategory(data.get('name'));
-          let failures = 0;
-          let firstError = '';
-          for (const user of picked.values()) {
-            try {
-              await store.inviteToCollection(cat.id, user.username);
-            } catch (err) {
-              failures += 1;
-              firstError ||= err.message;
-            }
-          }
-          if (!cat.isShared && picked.size) {
-            toast('Collection made. Invitations are not switched on for this project yet.', true);
-          } else if (failures) {
-            toast(`Collection made, but ${plural(failures, 'invitation')} could not be sent: ${firstError}`, true);
-          } else if (picked.size) {
-            toast(`Collection made, with ${plural(picked.size, 'invitation')} sent.`);
-          } else {
-            toast('Collection made.');
-          }
+          toast('Collection made.');
           finish(cat);
         } finally { button.disabled = false; }
       });
@@ -2420,14 +2407,7 @@ function appendCollectionPill(cat) {
   if (!box) return;
   const already = box.querySelector(`input[value="${cat.id}"]`);
   if (already) { already.checked = true; return; }
-  /* Only a collection somebody else owns is worth marking "shared": every collection of your own is
-   * open to invitations now, so the word beside all of them would be noise rather than a note. */
-  const label = document.createElement('label');
-  label.className = 'check';
-  label.innerHTML = String(html`<input type="checkbox" name="cat" value="${cat.id}" checked>
-    ${cat.name}${cat.isShared && cat.userId !== store.currentUser().id
-      ? html`<span class="check-shared">shared</span>` : ''}`);
-  box.append(label);
+  $('#cat-new').insertAdjacentHTML('beforebegin', String(collectionChip(cat, true, store.currentUser())));
 }
 
 //---------- collections ----------
@@ -2460,14 +2440,14 @@ async function viewCollection(id) {
     : [];
   const canInvite = canManage && store.sharedEnabled() && store.invitesEnabled();
   const pending = canInvite ? await store.listCategoryInvites(cat.id) : [];
-  const eyebrow = mine ? 'Collection' : shared ? `Shared by ${ownerName}` : `Collection by ${ownerName}`;
+  const subline = [plural(moves.length, 'move'), mine ? '' : shared ? `Shared by ${ownerName}` : `By ${ownerName}`]
+    .filter(Boolean).join(' · ');
 
   show(html`
     ${backLink(mine || member ? '#/moves' : `#/user/${cat.userId}`,
       mine || member ? 'Moves' : `${ownerName}'s profile`)}
     <div class="page-head collection-head">
       <div class="collection-ident">
-        <p class="eyebrow">${eyebrow}</p>
         <div class="collection-title-row">
           <h1 id="collection-title">${cat.name}</h1>
           ${canManage ? html`<form class="collection-name-edit" id="collection-rename" hidden>
@@ -2479,9 +2459,9 @@ async function viewCollection(id) {
               aria-label="Cancel renaming" title="Cancel">${crossIcon}</button>
           </form>` : ''}
         </div>
+        <p class="page-sub">${subline}</p>
       </div>
       <div class="head-actions">
-        <span class="count">${moves.length}</span>
         ${canManage ? html`
           <button type="button" class="icon-btn plain" id="rename-collection"
             aria-label="Rename this collection" title="Rename" aria-expanded="false"
@@ -2504,9 +2484,9 @@ async function viewCollection(id) {
 
     ${member ? html`
       <div class="actions"><button type="button" class="btn primary" style="margin-bottom:1rem;" id="add-to-collection-toggle"
-        aria-haspopup="dialog">+ Add Moves</button></div>` : ''}
+        aria-haspopup="dialog">${plusIcon}<span>Add moves</span></button></div>` : ''}
 
-    ${shared && !member ? '' : moves.length ? html`<div class="stack" id="collection-moves">${
+    ${shared && !member ? '' : moves.length ? html`<div class="list-group" id="collection-moves">${
       moves.map((m) => moveCard(m, new Map(), shared ? store.usernameOf(m.userId) : ''))}</div>`
       : html`<div class="empty"><p>No moves in this collection yet.</p></div>`}
 
@@ -2629,12 +2609,11 @@ async function viewdictionary() {
   show(html`
     <div class="page-head">
       <div>
-        <h1>Pole Dictionary</h1>
-        <p class="lede">Master trick list for all community members</p>
+        <h1>Dictionary</h1>
+        <p class="page-sub">${plural(entries.length, 'trick')}</p>
       </div>
       <div class="head-actions">
-        <span class="count">${entries.length}</span>
-        <button type="button" class="icon-btn" id="suggest-open" title="Add a trick" aria-label="Add a trick">${plusIcon}</button>
+        <button type="button" class="btn small" id="suggest-open" title="Suggest a trick for the dictionary" aria-label="Suggest a trick">${plusIcon}<span>Suggest</span></button>
       </div>
     </div>
     <div class="filters">
@@ -2657,7 +2636,7 @@ async function viewdictionary() {
           Supabase SQL editor, then reload.</p>`}
       <p class="subnote muted" id="dict-note"></p>
     </div>
-    <div class="stack" id="dict-list"></div>
+    <div class="stack grouped" id="dict-list"></div>
     ${suggestDialog(me)}`);
 
   const list = $('#dict-list');
@@ -2688,11 +2667,14 @@ async function viewdictionary() {
 
     list.innerHTML = rows.length ? rows.map((e) => {
       const linked = mineByEntry.get(e.id);
-      const avg = info.get(e.id).average;
+      const { lead } = info.get(e.id);
       return String(html`<div class="card">${trickPreview({
         href: `#/dictionary/${e.id}`,
         name: e.name,
-        difficulty: avg === null ? UNRATED : Math.round((avg * 5) / 3),
+        /* The community's level in the dictionary's own words (Beginner, Intermediate, Advanced),
+         * never the personal scale a dancer rates their own moves on. A trick nobody has rated
+         * shows no level at all rather than an "Unrated" badge. */
+        badge: lead ? html`<span class="badge xs level-${lead}">${store.levelLabel(lead)}</span>` : '',
         mark: e.status === 'pending' ? html`<span class="pending-mark" role="img" title="Pending review" aria-label="Pending review">*</span>` : '',
         alias: matchedAlias.get(e.id),
         actionsInHead: true,
@@ -2935,8 +2917,6 @@ function partsSection(parts, note) {
     <div class="chips">${items.map((it) => partChip(it))}</div>`);
   return html`<section class="section parts-card">
     <h2>Entries &amp; exits</h2>
-    <p class="muted subnote">What the members who log this trick say they do on it, most common
-      first. A name in the dictionary opens its own page.</p>
     ${row('Entries', parts.entries)}
     ${row('Exits', parts.exits)}
   </section>`;
@@ -2987,7 +2967,6 @@ async function viewEntry(id) {
         <button type="button" class="icon-btn plain request-edit" data-flag-open
           title="Request edit" aria-label="Request an edit to ${entry.name}">${pencilIcon}</button>
         <header class="entry-head">
-          <p class="eyebrow">Pole Dictionary</p>
           <div class="entry-title">
             <h1>${entry.name}</h1>
             ${entry.status === 'pending' ? html`<span class="tag">Pending review</span>` : ''}
@@ -3269,7 +3248,7 @@ async function viewUser(id) {
       ${cats.length ? html`<h2 class="subhead">Collections</h2>
         <div class="chips">${cats.map((c) => html`<a class="chip" href="#/collection/${c.id}">${c.name}</a>`)}</div>` : ''}
       <h2 class="subhead">Moves</h2>
-      <div class="stack">${moves.length ? moves.map((m) => moveCard(m, names))
+      <div class="list-group">${moves.length ? moves.map((m) => moveCard(m, names))
         : html`<div class="empty"><p>No moves logged yet.</p></div>`}</div>`
       : html`<div class="empty"><h3>This account is private</h3>
         <p>Only ${user.username} can see their moves.</p></div>`}
@@ -3512,9 +3491,9 @@ async function viewAccount() {
             title="Change avatar" aria-label="Change avatar">${cameraIcon}</button>` : ''}
         </span>
         <div>
-          ${me.isAdmin ? html`<p class="eyebrow">Admin</p>` : ''}
           <div class="name-row">
             <h1>${me.username}</h1>
+            ${me.isAdmin ? html`<span class="role-chip">Admin</span>` : ''}
           </div>
           ${followBars(social, { own: true })}
           ${where.length ? html`<p class="muted">${where}</p>`
@@ -3528,59 +3507,38 @@ async function viewAccount() {
 
     ${profileEditor(me, thisYear)}
 
-    <h2 class="subhead">Privacy</h2>
-    <label class="check-row card">
-      <input type="checkbox" id="private" ${me.isPrivate ? raw('checked') : ''}>
-      <span><strong>Private account</strong>
-        <small class="muted">Other members can't see your moves or collections. Dictionary suggestions are still reviewed as usual.</small></span>
-    </label>
-    ${!me.isAdmin ? '' : html`
-    <ul class="list">
-      <li>
-      <br>
-        <a class="link-row" class="subhead" style="border-top: 1px solid #ccc;" href="#/review">
-          ${checkIcon}
-          <span><strong>Review</strong>
-            <small class="muted">${pending
-              ? `${plural(pending, 'new trick')} need review.`
-              : ''}</small></span>
-          ${chevronIcon}
-        </a>
-      </li>
-    </ul>`}
+    <div class="menu-group">
+      <label class="menu-row">
+        <span class="menu-text"><strong>Private account</strong>
+          <small>Only you see your moves and collections</small></span>
+        <input type="checkbox" class="switch" id="private" ${me.isPrivate ? raw('checked') : ''}>
+      </label>
+    </div>
 
-    <h2 class="subhead">Support</h2>
-    <ul class="list">
-      <li>
-        <a class="link-row" href="#/support">
-          ${supportIcon}
-          <span><strong>Contact support</strong>
-            <small class="muted">Comments, questions, complaints or concerns</small></span>
-          ${chevronIcon}
-        </a>
-      </li>
+    <div class="menu-group">
       ${!me.isAdmin ? '' : html`
-      <li>
-        <a class="link-row" href="#/support/inbox">
-          ${supportIcon}
-          <span><strong>Support inbox</strong>
-            <small class="muted">Every message the contact form has taken, and whether the email reached us.</small></span>
-          ${chevronIcon}
-        </a>
-      </li>`}
-    </ul>
-
-    <h2 class="subhead">Settings</h2>
-    <ul class="list">
-      <li>
-        <a class="link-row" href="#/settings">
-          ${settingsIcon}
-          <span><strong>Settings</strong>
-            <small class="muted">Appearance, download data, delete account</small></span>
-          ${chevronIcon}
-        </a>
-      </li>
-    </ul>
+      <a class="menu-row" href="#/review">
+        ${checkIcon}
+        <span class="menu-text"><strong>Review</strong></span>
+        ${pending ? html`<span class="count">${pending}</span>` : ''}
+        ${chevronIcon}
+      </a>
+      <a class="menu-row" href="#/support/inbox">
+        ${supportIcon}
+        <span class="menu-text"><strong>Support inbox</strong></span>
+        ${chevronIcon}
+      </a>`}
+      <a class="menu-row" href="#/support">
+        ${supportIcon}
+        <span class="menu-text"><strong>Contact support</strong></span>
+        ${chevronIcon}
+      </a>
+      <a class="menu-row" href="#/settings">
+        ${settingsIcon}
+        <span class="menu-text"><strong>Settings</strong></span>
+        ${chevronIcon}
+      </a>
+    </div>
 
     <div class="account-actions">
       <button type="button" class="btn block" id="logout">Log out</button>
@@ -3934,7 +3892,7 @@ function viewSettings() {
     <div class="set-grid">
       <section class="set-card">
         <h2 class="set-title">Appearance</h2>
-        <p class="set-help">Applies to his device only</p>
+        <p class="set-help">Applies to this device only</p>
         <div class="seg" role="group" aria-label="Colour theme">
           ${THEMES.map((t) => html`<button type="button" class="seg-btn" data-theme-pick="${t.value}"
             aria-pressed="${pref === t.value}">${t.label}</button>`)}
@@ -4353,12 +4311,31 @@ const pad2 = (n) => String(n).padStart(2, '0');
 const localDay = (d = new Date()) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 const dayLabel = (iso) => {
   const [y, m, d] = iso.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const date = new Date(y, m - 1, d);
+  const today = localDay();
+  const yesterday = localDay(new Date(Date.now() - 864e5));
+  if (iso === today) return 'Today';
+  if (iso === yesterday) return 'Yesterday';
+  return date.toLocaleDateString(undefined, {
+    weekday: 'short', day: 'numeric', month: 'short',
+    ...(y === new Date().getFullYear() ? {} : { year: 'numeric' }),
+  });
 };
+
+/* A day for an entry: today or any day before it, never one that has not happened yet. The native
+ * picker does the choosing (it is the best one on a phone), drawn as one rounded field with a
+ * calendar mark so it reads as a control rather than a line of text. */
+const dateField = ({ id, name, value, label }) => html`<label class="date-field" for="${id}">
+  ${calendarIcon}
+  <span class="sr-only">${label}</span>
+  <input type="date" id="${id}" name="${name}" value="${value}" max="${localDay()}" required>
+</label>`;
 
 /* Files chosen for the entry being written. They live until the form is submitted or the drawer is
  * reopened, so picking a photo and then writing a longer note does not lose it. */
 let journalPicked = [];
+/* The entry being edited in place, if any, so a redraw keeps it open. */
+let journalEditing = null;
 
 function drawJournalPicked() {
   const list = $('#journal-file-list');
@@ -4368,7 +4345,7 @@ function drawJournalPicked() {
       <span class="file-chip-name">${f.name}</span>
       <span class="file-chip-size">${fileSize(f.size)}</span>
       <button type="button" class="file-chip-x" data-journal-unpick="${i}"
-        aria-label="Remove ${f.name}">×</button>
+        aria-label="Remove ${f.name}">${crossIcon}</button>
     </li>`)).join('');
 }
 
@@ -4377,27 +4354,31 @@ function journalDrawer() {
     <dialog class="journal-drawer" id="journal-drawer" aria-labelledby="journal-title">
       <div class="journal-head">
         <h2 id="journal-title">Journal</h2>
-        <button type="button" class="btn small" id="journal-close">Close</button>
+        <button type="button" class="icon-btn plain" id="journal-close" aria-label="Close journal"
+          title="Close">${crossIcon}</button>
       </div>
-      <form class="form" id="journal-form">
-        <p class="journal-day"><time id="journal-day"></time></p>
-        <label class="field"><span>What did you work on?</span>
-          <textarea name="body" id="journal-body" rows="4" maxlength="2000" required
-            placeholder="e.g. flips, inverts, a combo, etc..."></textarea>
-        </label>
-        <div class="field">
-          <span>Photos and videos <span class="muted">optional</span></span>
-          <input type="file" id="journal-files" accept="image/*,video/*" multiple hidden>
-          <div class="upload-row">
-            <button type="button" class="btn small" id="journal-files-add">+ Add photo or video</button>
-            <span class="muted upload-note">Up to ${megabytes(store.MAX_UPLOAD_BYTES)} MB each.</span>
-          </div>
-          <ul class="file-list" id="journal-file-list"></ul>
+      <form class="journal-compose" id="journal-form">
+        ${dateField({ id: 'journal-date', name: 'date', value: localDay(), label: 'Date of this entry' })}
+        <textarea name="body" id="journal-body" rows="4" maxlength="2000" required
+          aria-label="What did you work on?" placeholder="What did you work on?"></textarea>
+        <ul class="file-list" id="journal-file-list"></ul>
+        <input type="file" id="journal-files" accept="image/*,video/*" multiple hidden>
+        <div class="journal-compose-bar">
+          <button type="button" class="icon-btn plain" id="journal-files-add"
+            aria-label="Add photo or video" title="Add photo or video (up to ${megabytes(store.MAX_UPLOAD_BYTES)} MB)">${cameraIcon}</button>
+          <button type="submit" class="btn primary small">Add entry</button>
         </div>
-        <div class="actions"><button type="submit" class="btn primary">Add entry</button></div>
       </form>
       <ol class="journal-list" id="journal-list" aria-label="Past entries"></ol>
     </dialog>`;
+}
+
+/* A date typed or picked past today is turned back rather than saved: the journal is a record of
+ * what happened. */
+function checkJournalDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error('Pick a date for the entry.');
+  if (value > localDay()) throw new Error('Journal entries can be dated today or earlier.');
+  return value;
 }
 
 function mountJournal() {
@@ -4405,12 +4386,15 @@ function mountJournal() {
   document.body.insertAdjacentHTML('beforeend', String(journalDrawer()));
   const drawer = $('#journal-drawer');
   $('#journal-close').addEventListener('click', () => drawer.close());
+  /* A tap on the dimmed page beside the drawer closes it, the way a sheet does on a phone. */
+  drawer.addEventListener('click', (e) => { if (e.target === drawer) drawer.close(); });
   $('#journal-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const body = $('#journal-body').value;
     const files = [...journalPicked];
     attempt(async () => {
-      const entry = await store.addJournalEntry({ date: localDay(), body });
+      const date = checkJournalDate($('#journal-date').value);
+      const entry = await store.addJournalEntry({ date, body });
       let attached = 0;
       let failed = null;
       for (const file of files) {
@@ -4419,6 +4403,7 @@ function mountJournal() {
       }
       journalPicked = [];
       $('#journal-form').reset();
+      $('#journal-date').value = localDay();
       drawJournalPicked();
       if (failed) toast(`${failed.file.name}: ${failed.err.message}`, true);
       else toast(attached ? `Logged with ${plural(attached, 'file')}.` : 'Logged in your journal.');
@@ -4442,19 +4427,46 @@ function mountJournal() {
     journalPicked.splice(Number(btn.dataset.journalUnpick), 1);
     drawJournalPicked();
   });
-  $('#journal-list').addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-journal-delete]');
-    if (!btn) return;
-    attempt(async () => {
-      const yes = await confirmDialog({
-        title: 'Delete this entry?',
-        body: 'The entry and what you wrote in it are gone from your journal.',
-        confirmLabel: 'Delete',
-        danger: true,
+
+  /* Every control on a past entry is delegated from the list, since the list is redrawn. */
+  const list = $('#journal-list');
+  list.addEventListener('click', (e) => {
+    const del = e.target.closest('[data-journal-delete]');
+    const edit = e.target.closest('[data-journal-edit]');
+    const cancel = e.target.closest('[data-journal-cancel]');
+    if (edit) {
+      journalEditing = edit.dataset.journalEdit;
+      attempt(drawJournal);
+    } else if (cancel) {
+      journalEditing = null;
+      attempt(drawJournal);
+    } else if (del) {
+      attempt(async () => {
+        const yes = await confirmDialog({
+          title: 'Delete this entry?',
+          body: 'The entry and what you wrote in it are gone from your journal.',
+          confirmLabel: 'Delete',
+          danger: true,
+        });
+        if (!yes) return;
+        await store.deleteJournalEntry(del.dataset.journalDelete);
+        journalEditing = null;
+        toast('Entry deleted.');
+        await drawJournal();
       });
-      if (!yes) return;
-      await store.deleteJournalEntry(btn.dataset.journalDelete);
-      toast('Entry deleted.');
+    }
+  });
+  list.addEventListener('submit', (e) => {
+    const editForm = e.target.closest('[data-journal-form]');
+    if (!editForm) return;
+    e.preventDefault();
+    attempt(async () => {
+      const date = checkJournalDate(editForm.elements.date.value);
+      const body = editForm.elements.body.value.trim();
+      if (!body) throw new Error('Write what you worked on first.');
+      await store.updateJournalEntry(editForm.dataset.journalForm, { date, body });
+      journalEditing = null;
+      toast('Entry updated.');
       await drawJournal();
     });
   });
@@ -4469,30 +4481,49 @@ const journalMedia = (rows) => (rows?.length ? html`<div class="media-grid journ
     </figure>`)}
 </div>` : '');
 
+const journalEntry = (e) => (journalEditing === e.id ? html`
+  <li class="journal-entry is-editing">
+    <form class="journal-edit" data-journal-form="${e.id}">
+      ${dateField({ id: `journal-date-${e.id}`, name: 'date', value: e.date, label: 'Date of this entry' })}
+      <textarea name="body" rows="4" maxlength="2000" required aria-label="Entry">${e.body}</textarea>
+      <div class="journal-compose-bar">
+        <button type="button" class="btn-text danger" data-journal-delete="${e.id}">${trashIcon}<span>Delete</span></button>
+        <span class="spacer"></span>
+        <button type="button" class="btn small" data-journal-cancel="${e.id}">Cancel</button>
+        <button type="submit" class="btn small primary">Save</button>
+      </div>
+    </form>
+  </li>` : html`
+  <li class="journal-entry">
+    <div class="journal-entry-head">
+      <time datetime="${e.date}">${dayLabel(e.date)}</time>
+      <button type="button" class="icon-btn plain" data-journal-edit="${e.id}"
+        title="Edit entry" aria-label="Edit the entry from ${dayLabel(e.date)}">${pencilIcon}</button>
+    </div>
+    <p class="journal-entry-body">${e.body}</p>
+    ${journalMedia(e.media)}
+  </li>`);
+
 async function drawJournal() {
   const list = $('#journal-list');
   const entries = await store.listJournal();
   list.innerHTML = entries.length
-    ? entries.map((e) => String(html`
-        <li class="journal-entry">
-          <div class="journal-entry-head">
-            <time datetime="${e.date}">${dayLabel(e.date)}</time>
-            <button type="button" class="icon-btn plain" data-journal-delete="${e.id}" title="Delete entry" aria-label="Delete entry">${trashIcon}</button>
-          </div>
-          <p class="journal-entry-body">${e.body}</p>
-          ${journalMedia(e.media)}
-        </li>`)).join('')
-    : '<li class="muted"></li>';
+    ? entries.map((e) => String(journalEntry(e))).join('')
+    : String(html`<li class="journal-empty">Nothing logged yet.</li>`);
+  const editing = list.querySelector('.journal-edit textarea');
+  if (editing) { editing.focus(); editing.setSelectionRange(editing.value.length, editing.value.length); }
 }
 
 async function openJournal() {
   mountJournal();
   const drawer = $('#journal-drawer');
-  const today = localDay();
-  $('#journal-day').textContent = dayLabel(today);
-  $('#journal-day').setAttribute('datetime', today);
   $('#journal-form').reset();
+  /* The picker's latest day is today's, worked out each time it opens, so a drawer left open past
+   * midnight still offers the new day. */
+  $('#journal-date').max = localDay();
+  $('#journal-date').value = localDay();
   journalPicked = [];
+  journalEditing = null;
   drawJournalPicked();
   drawer.showModal();
   $('#journal-body').focus();

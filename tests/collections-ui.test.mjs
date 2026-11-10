@@ -2,7 +2,7 @@
  * pencil beside the title, the bin, and the people icon. None of them is covered by the button-id
  * check alone, because the bugs this file is looking for are about *where* a change happens:
  *
- *   1. a new collection asks for dancers in its Dancers field, with no "share with class" checkbox;
+ *   1. a new collection asks for a name only - no dancers, no "share with class" checkbox;
  *   2. renaming happens in the name line itself, not in a second dialog;
  *   3. deleting asks the same question as removing a goal, and keeps the moves;
  *   4. the people icon opens the one box that adds, removes and withdraws collaborators.
@@ -34,13 +34,14 @@ const buttonTag = (page, id) => {
   return tag;
 };
 
-test('a new collection invites from its Dancers field, with no sharing checkbox', () => {
+test('a new collection asks for a name only, with no dancers or sharing checkbox', () => {
   const dialog = body('newCollectionDialog');
 
-  assert.match(dialog, /id="new-collection-add-dancer"/, 'the + that opens the dancer search is gone');
-  assert.match(dialog, /id="new-collection-search-input"/, 'the dancer search input is gone');
-  assert.match(dialog, /wireDancerSearch\(/, 'the create dialog no longer uses the shared dancer search');
-  assert.match(dialog, /store\.inviteToCollection\(/, 'creating with dancers picked no longer sends invitations');
+  assert.match(dialog, /name="name"/, 'the create dialog no longer asks for a name');
+  assert.match(dialog, /store\.createCategory\(/, 'the create dialog no longer makes a collection');
+  assert.doesNotMatch(dialog, /new-collection-add-dancer|new-collection-search-input|wireDancerSearch\(/,
+    'the dancer picker is back in the create dialog; invites belong in Share collection');
+  assert.doesNotMatch(dialog, /store\.inviteToCollection\(|picked\b/, 'the create dialog should not send invitations');
 
   assert.doesNotMatch(dialog, /type="checkbox"/i, 'the create dialog should not have a sharing checkbox');
   assert.doesNotMatch(dialog, /share with (a )?class/i, 'the old "share with class" question is back');

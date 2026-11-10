@@ -20,8 +20,20 @@ export const exists = (rel) => existsSync(abs(rel));
 export const bytes = (rel) => readFileSync(abs(rel));
 
 /* A short, stable fingerprint. Short is deliberate: it only ever goes into tests/shell-baseline.json,
- * where what matters is whether a file changed, not collision resistance. */
-export const sha = (rel) => createHash('sha256').update(bytes(rel)).digest('hex').slice(0, 16);
+ * where what matters is whether a file changed, not collision resistance.
+ *
+ * Text is hashed with LF endings whatever the checkout uses. Windows with core.autocrlf=true hands
+ * the test CRLF copies, while GitHub Actions checks the same commit out with LF; hashing raw bytes
+ * made a baseline stamped on one machine fail on the other. Line endings do not change what the
+ * browser runs, so they should not change whether CACHE looks stale. */
+const TEXT_EXT = new Set(['.html', '.css', '.js', '.mjs', '.json', '.webmanifest', '.svg', '.txt']);
+export const sha = (rel) => {
+  const data = bytes(rel);
+  const normal = TEXT_EXT.has(extname(rel))
+    ? Buffer.from(data.toString('utf8').replace(/\r\n/g, '\n'), 'utf8')
+    : data;
+  return createHash('sha256').update(normal).digest('hex').slice(0, 16);
+};
 
 /* Every file under a directory, repo-relative with forward slashes, skipping the things that are not
  * source: the object store, installed packages, and editor/OS droppings. */

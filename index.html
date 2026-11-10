@@ -28,6 +28,22 @@
   <script>if (location.protocol === 'file:') document.documentElement.classList.add('no-server');</script>
 </head>
 <body>
+  <!-- Shared gradients for the glossy pink people (js/app.js). Defined once
+       here, in an SVG that is rendered but takes no room, so an icon inside a hidden tab still finds them. -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <radialGradient id="pm-pink" cx="38%" cy="28%" r="80%">
+        <stop offset="0" stop-color="#ffe3f1"/><stop offset=".35" stop-color="#ff8cc6"/>
+        <stop offset=".8" stop-color="#ec2f8f"/><stop offset="1" stop-color="#c41877"/>
+      </radialGradient>
+      <linearGradient id="pm-gloss" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+      </linearGradient>
+      <radialGradient id="pm-glow" cx="50%" cy="100%" r="60%">
+        <stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+  </svg>
   <div class="file-warning" role="alert">
     This app has to be served over http. In this folder run <code>python3 -m http.server 8000</code>,
     then open <code>http://localhost:8000</code>.
